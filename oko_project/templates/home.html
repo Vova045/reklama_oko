@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Bitrix Integration</title>
+    
     <script src="//api.bitrix24.com/api/v1/"></script>
     <script>
         BX24.init(function() {
@@ -43,19 +44,15 @@
         }
     
         function fetchAvailablePlacements() {
-    // Получаем токен доступа из ранее инициализированных данных
     const accessToken = BX24.getAuth().access_token;
 
-    // Проверяем, что токен доступен
     if (!accessToken) {
         console.error("Access token is not available.");
         return;
     }
 
-    // URL вашего Django-приложения для получения доступных размещений
     const url = `https://reklamaoko.ru/api/bitrix/get_available_placements/?access_token=${accessToken}`;
 
-    // Выполняем запрос
     fetch(url)
         .then(response => {
             if (!response.ok) {
@@ -64,14 +61,38 @@
             return response.json();
         })
         .then(data => {
-            console.log("Доступные размещения:", data.available_placements);
-            alert("Доступные размещения: " + JSON.stringify(data.available_placements));
+            displayAvailablePlacements(data.available_placements);
         })
         .catch(error => {
             console.error("Ошибка при получении доступных размещений:", error);
             alert("Ошибка: " + error.message);
         });
 }
+
+function displayAvailablePlacements(placements) {
+    // Получаем элемент для отображения мест
+    const placementsContainer = document.getElementById("placements-container");
+
+    // Очищаем контейнер перед добавлением новых данных
+    placementsContainer.innerHTML = "";
+
+    // Проверяем, есть ли размещения
+    if (placements && placements.length > 0) {
+        placements.forEach(placement => {
+            // Создаем элемент для каждого размещения
+            const placementItem = document.createElement("div");
+            placementItem.textContent = placement; // Устанавливаем текст размещения
+            placementsContainer.appendChild(placementItem); // Добавляем элемент в контейнер
+        });
+    } else {
+        placementsContainer.textContent = "Размещений не найдено."; // Если размещений нет
+    }
+}
+
+// Вызываем функцию при загрузке страницы
+document.addEventListener("DOMContentLoaded", fetchAvailablePlacements);
+
+
 
 // Вызываем функцию при загрузке страницы
 document.addEventListener("DOMContentLoaded", fetchAvailablePlacements);
@@ -82,6 +103,7 @@ document.addEventListener("DOMContentLoaded", fetchAvailablePlacements);
     
 </head>
 <body>
-    <h1>Bitrix24 Integration Example</h1>
+    <h1>Интеграция с Bitrix24</h1>
+    <div id="placements-container"></div> <!-- Контейнер для размещений -->
 </body>
 </html>
