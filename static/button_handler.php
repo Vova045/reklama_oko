@@ -3,7 +3,7 @@
 header('Content-Type: application/json');
 
 // URL вашего Django-приложения
-$appUrl = 'https://reklamaoko.ru/admin';
+$appUrl = 'https://reklamaoko.ru';
 
 // Получаем данные запроса
 $request = file_get_contents('php://input');
@@ -18,7 +18,7 @@ if (!$accessToken) {
 
 // Функция для выполнения POST-запроса к Bitrix API
 function sendRequest($method, $parameters, $accessToken) {
-    $url = "https://oko.bitrix24.ru/rest/$method?auth=$accessToken";
+    $url = "https://oko.bitrix24.ru/rest/$method?auth=$accessToken"; // Изменено на ваш домен
     $options = [
         'http' => [
             'method'  => 'POST',
