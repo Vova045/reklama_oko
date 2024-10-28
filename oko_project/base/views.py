@@ -62,9 +62,10 @@ def bind_application(request):
     if not access_token:
         return JsonResponse({"error": "Access token is missing"}, status=400)
 
-    # Базовый URL для API Bitrix24
-    BASE_URL = "https://oko.bitrix24.ru/rest/placement.bind.json"
-    
+    # URL для добавления и проверки размещений
+    BIND_URL = "https://oko.bitrix24.ru/rest/placement.bind.json"
+    GET_PLACEMENTS_URL = "https://oko.bitrix24.ru/rest/placement.get.json"
+
     # Массив данных для размещения приложения в разных местах
     placements = [
         {"PLACEMENT": "left_menu", "TITLE": "Калькуляция", "DESCRIPTION": "Приложение для управления расчётами"},
@@ -82,11 +83,23 @@ def bind_application(request):
         'Content-Type': 'application/json'
     }
 
-    # Результаты для каждого размещения
-    results = []
+    # Получение уже существующих размещений
+    existing_placements = []
+    response = requests.get(GET_PLACEMENTS_URL, headers=headers)
+    if response.status_code == 200:
+        existing_placements = response.json().get('result', [])
+    else:
+        print("Ошибка при получении текущих размещений:", response.status_code, response.text)
 
-    # Проход по каждому размещению и отправка запроса
+    # Добавление приложения в указанные места
+    bind_results = []
     for placement in placements:
+        # Проверка, если приложение уже добавлено в это место
+        if any(p['placement'] == placement['PLACEMENT'] for p in existing_placements):
+            bind_results.append({"placement": placement["PLACEMENT"], "status": "Уже добавлено"})
+            continue
+
+        # Данные для размещения
         payload = {
             "PLACEMENT": placement["PLACEMENT"],
             "HANDLER": "https://reklamaoko.ru",
@@ -94,22 +107,25 @@ def bind_application(request):
             "DESCRIPTION": placement["DESCRIPTION"]
         }
 
-        # Отправка запроса
-        response = requests.post(BASE_URL, headers=headers, data=json.dumps(payload))
+        # Запрос на добавление
+        response = requests.post(BIND_URL, headers=headers, data=json.dumps(payload))
         
         # Проверка ответа
         if response.status_code == 200:
-            results.append({"placement": placement["PLACEMENT"], "status": "Добавлено успешно"})
+            bind_results.append({"placement": placement["PLACEMENT"], "status": "Добавлено успешно"})
         else:
             error_message = response.json().get("error_description", "Ошибка при добавлении")
-            results.append({
+            bind_results.append({
                 "placement": placement["PLACEMENT"],
                 "status": f"Ошибка: {response.status_code}, {error_message}"
             })
             print(f"Ошибка при добавлении {placement['PLACEMENT']}: {response.status_code}, {response.text}")
 
-    # Возврат результата
-    return JsonResponse({"results": results})
+    # Ответ с результатами привязки и уже существующими размещениями
+    return JsonResponse({
+        "existing_placements": existing_placements,
+        "bind_results": bind_results
+    })
 
 
 def get_technological_links(request):
