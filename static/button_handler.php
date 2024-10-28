@@ -3,7 +3,7 @@
 header('Content-Type: application/json');
 
 // URL вашего Django-приложения
-$appUrl = 'https://reklamaoko.ru';
+$appUrl = 'https://reklamaoko.ru/admin';
 
 // Получаем данные запроса
 $request = file_get_contents('php://input');
