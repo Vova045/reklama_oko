@@ -20,4 +20,3 @@ urlpatterns = [
     path('api/bitrix/', views.get_current_user, name='bitrix'),
     ]
     
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
