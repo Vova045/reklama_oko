@@ -3,6 +3,7 @@ from . import views
 from .views import filter_nomenclature
 from . import admin
 urlpatterns = [
+    path('', views.home, name='home'),
     # Другие URL-обработчики вашего приложения
     # URL для получения технологических узлов
     path('api/technological-links/', views.get_technological_links, name='get_technological_links'),
@@ -17,6 +18,6 @@ urlpatterns = [
     path('edit-default-parameters/', views.edit_default_parameters, name='edit-default-parameters'),
     path('check-folder-type/', views.check_folder_type, name='check_folder_type'),
     path('load-initial-folders/', views.load_initial_folders, name='load_initial_folders'),
-    path('api/bitrix/', views.get_current_user, name='bitrix'),
+    # path('api/bitrix/', views.get_current_user, name='bitrix'),
     ]
     

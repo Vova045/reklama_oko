@@ -8,6 +8,9 @@ from .models import MaterialsTechnologicalOperation, ParametersNormativesInCalcu
 from .forms import ParametersNormativesInCalculationForm
 from django.db.models import Q
 
+def home(request):
+    return render(request, 'home.html')
+
 def get_technological_links(request):
     product_id = request.GET.get('product_id')
     
@@ -559,5 +562,4 @@ def get_current_user():
         return {'error': 'Ошибка доступа к API', 'status_code': response.status_code, 'response': response.text}
 
 # Пример вызова функции
-current_user_info = get_current_user()
-print(current_user_info)
+# current_user_info = get_current_user()
