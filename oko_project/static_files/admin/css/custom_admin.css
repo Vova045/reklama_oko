@@ -1,0 +1,35 @@
+/* custom_admin.css */
+
+.admin-header,
+.admin-content,
+.admin-form {
+    overflow-wrap: break-word; /* Перенос слов */
+    word-wrap: break-word; /* Для старых браузеров */
+    word-break: break-all; /* Для неконтролируемых длинных слов */
+}
+
+.field-formula_name,
+.field-parameters_product,
+.field-nomenclature,
+.field-operation {
+    white-space: normal; /* Позволяет переносить строки */
+}
+
+.calculation-page-container {
+    display: grid;
+    grid-template-columns: 1fr 3fr 1fr;
+    grid-template-rows: auto;
+    gap: 20px;
+    margin: 20px;
+}
+
+.side-panel, .top-panel, .right-panel, .center-panel {
+    background-color: #f8f8f8;
+    padding: 15px;
+    border: 1px solid #ddd;
+}
+
+.side-panel, .right-panel {
+    height: 100vh;
+    overflow-y: auto;
+}

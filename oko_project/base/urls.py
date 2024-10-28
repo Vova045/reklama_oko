@@ -19,3 +19,5 @@ urlpatterns = [
     path('load-initial-folders/', views.load_initial_folders, name='load_initial_folders'),
     path('api/bitrix/', views.get_current_user, name='bitrix'),
     ]
+    
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
