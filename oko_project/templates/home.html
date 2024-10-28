@@ -3,39 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <title>Bitrix Integration</title>
-    <script src="{% url 'proxy_bx24' %}"></script>
+    <script src="//api.bitrix24.com/api/v1/"></script>
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            if (typeof BX24 !== 'undefined') {
-                // SDK загружен, выполняем код
-                BX24.init(function() {
-                    BX24.getAuth(function(auth) {
-                        if (auth && auth.access_token) {
-                            fetch('https://reklamaoko.ru/static/button_handler.php', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify({
-                                    auth: {
-                                        access_token: auth.access_token
-                                    }
-                                })
-                            })
-                            .then(response => response.json())
-                            .then(data => {
-                                console.log(data);
-                            })
-                            .catch(error => console.error('Error:', error));
-                        } else {
-                            console.error('No access token received');
-                        }
-                    });
-                });
-            } else {
-                console.error('Bitrix24 SDK не загружен. Убедитесь, что вы открываете это приложение внутри интерфейса Bitrix24.');
+        BX24.init(function() {
+            const initData = BX24.getAuth();
+            console.log("initData: ", initData);
+
+            if (!initData.access_token) {
+                console.error("Access token not found.");
+                return;
             }
+
+            checkApiAccess(initData.access_token);
         });
+
+        function checkApiAccess(accessToken) {
+            const url = 'https://oko.bitrix24.ru/rest/user.current.json';
+
+            fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            })
+            .then(response => {
+                console.log("Response status:", response.status);
+                if (!response.ok) {
+                    return response.json().then(errorData => {
+                        throw new Error('Network response was not ok: ' + JSON.stringify(errorData));
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log("Данные пользователя:", data);
+                alert("Доступ к API успешен! Данные пользователя: " + JSON.stringify(data));
+            })
+            .catch(error => {
+                console.error("Ошибка при получении данных:", error);
+                alert("Ошибка доступа к API: " + error.message);
+            });
+        }
     </script>
 </head>
 <body>

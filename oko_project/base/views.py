@@ -10,15 +10,6 @@ from django.db.models import Q
 from django.views.decorators.csrf import csrf_exempt
 
 
-from django.http import HttpResponse
-import requests
-
-def proxy_bx24(method, params):
-    url = f"https://oko.bitrix24.ru/rest/{method}"
-    response = requests.post(url, json=params)
-    return response.json()
-
-
 @csrf_exempt
 def home(request):
     return render(request, 'home.html')
