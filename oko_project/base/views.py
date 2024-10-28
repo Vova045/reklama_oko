@@ -13,9 +13,9 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 import requests
 
-def proxy_bx24(request):
-    response = requests.get('https://cdn.bitrix24.ru/bx24.js')
-    return HttpResponse(response.content, content_type='application/javascript')
+# def proxy_bx24(request):
+#     response = requests.get('https://cdn.bitrix24.ru/bx24.js')
+#     return HttpResponse(response.content, content_type='application/javascript')
 
 
 @csrf_exempt
