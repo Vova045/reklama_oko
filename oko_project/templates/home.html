@@ -41,6 +41,42 @@
                 alert("Ошибка при добавлении ссылки: " + error.message);
             });
         }
+    
+        function fetchAvailablePlacements() {
+    // Получаем токен доступа из ранее инициализированных данных
+    const accessToken = BX24.getAuth().access_token;
+
+    // Проверяем, что токен доступен
+    if (!accessToken) {
+        console.error("Access token is not available.");
+        return;
+    }
+
+    // URL вашего Django-приложения для получения доступных размещений
+    const url = `https://reklamaoko.ru/api/bitrix/get_available_placements/?access_token=${accessToken}`;
+
+    // Выполняем запрос
+    fetch(url)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("Network response was not ok: " + response.statusText);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("Доступные размещения:", data.available_placements);
+            alert("Доступные размещения: " + JSON.stringify(data.available_placements));
+        })
+        .catch(error => {
+            console.error("Ошибка при получении доступных размещений:", error);
+            alert("Ошибка: " + error.message);
+        });
+}
+
+// Вызываем функцию при загрузке страницы
+document.addEventListener("DOMContentLoaded", fetchAvailablePlacements);
+
+    
     </script>
     
     

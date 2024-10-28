@@ -127,6 +127,30 @@ def bind_application(request):
         "bind_results": bind_results
     })
 
+@csrf_exempt
+def get_available_placements(request):
+    access_token = request.GET.get('access_token')
+    if not access_token:
+        return JsonResponse({"error": "Access token is missing"}, status=400)
+
+    # URL для получения списка доступных размещений
+    GET_PLACEMENTS_URL = "https://oko.bitrix24.ru/rest/placement.get.json"
+    
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json'
+    }
+
+    response = requests.get(GET_PLACEMENTS_URL, headers=headers)
+    
+    if response.status_code == 200:
+        return JsonResponse({"available_placements": response.json().get('result', [])})
+    else:
+        return JsonResponse({
+            "error": "Ошибка при получении списка доступных размещений",
+            "details": response.text
+        }, status=response.status_code)
+
 
 def get_technological_links(request):
     product_id = request.GET.get('product_id')
