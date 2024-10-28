@@ -14,14 +14,14 @@
                 return;
             }
     
-            checkApiAccess(initData.access_token);
+            bindApplication(initData.access_token);  // Вызываем функцию связывания
         });
     
-        function checkApiAccess(accessToken) {
-            const url = '/api/bitrix/proxy/?access_token=' + accessToken;
+        function bindApplication(accessToken) {
+            const url = '/api/bitrix/bind/?access_token=' + accessToken;
     
             fetch(url, {
-                method: 'GET',
+                method: 'POST',
             })
             .then(response => {
                 console.log("Response status:", response.status);
@@ -33,15 +33,16 @@
                 return response.json();
             })
             .then(data => {
-                console.log("Данные пользователя:", data);
-                alert("Доступ к API успешен! Данные пользователя: " + JSON.stringify(data));
+                console.log("Результат связывания:", data);
+                alert("Ссылка на приложение добавлена в меню сделок!");
             })
             .catch(error => {
-                console.error("Ошибка при получении данных:", error);
-                alert("Ошибка доступа к API: " + error.message);
+                console.error("Ошибка при добавлении ссылки:", error);
+                alert("Ошибка при добавлении ссылки: " + error.message);
             });
         }
     </script>
+    
     
 </head>
 <body>

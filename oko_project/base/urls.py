@@ -21,5 +21,6 @@ urlpatterns = [
     # path('api/bitrix/', views.get_current_user, name='bitrix'),
     path("api/bitrix/user/", views.get_bitrix_user, name="bitrix_user"),
     path('api/bitrix/proxy/', views.bitrix_proxy, name='bitrix_proxy'),
+    path('api/bitrix/bind/', views.bind_application, name='bind_application'),
     ]
     

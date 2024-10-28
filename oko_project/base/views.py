@@ -33,6 +33,37 @@ def bitrix_proxy(request):
     else:
         return JsonResponse({"error": response.json()}, status=response.status_code)
 
+import requests
+from django.http import JsonResponse
+
+def bind_application(request):
+    # Настройки API и URL для вебхука
+    BASE_URL = "https://oko.bitrix24.ru/rest/placement.bind.json"
+
+    # Получаем токен доступа
+    access_token = request.GET.get('access_token')
+
+    # Данные для размещения
+    payload = {
+        "PLACEMENT": "crm_deal_menu",  # Для добавления в меню сделок
+        "HANDLER": "https://reklamaoko.ru",  # Ссылка на ваше Django приложение
+        "TITLE": "Мое Django приложение",  # Название в меню
+        "DESCRIPTION": "Приложение для управления рекламой"  # Описание
+    }
+
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+    }
+
+    # Отправка запроса
+    response = requests.post(BASE_URL, headers=headers, json=payload)
+
+    # Проверка ответа
+    if response.status_code == 200:
+        return JsonResponse({"success": "Ссылка на приложение успешно добавлена в меню!"})
+    else:
+        return JsonResponse({"error": "Ошибка при добавлении ссылки", "details": response.json()}, status=response.status_code)
+
 
 def get_technological_links(request):
     product_id = request.GET.get('product_id')
