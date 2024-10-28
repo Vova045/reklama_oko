@@ -87,6 +87,8 @@ CORS_ALLOWED_ORIGINS = [
     "https://oko.bitrix24.ru",
 ]
 
+
+X_FRAME_OPTIONS = 'ALLOWALL'
 CORS_ALLOW_METHODS = [
     "GET",
     "POST",
