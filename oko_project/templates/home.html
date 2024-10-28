@@ -6,43 +6,39 @@
     <script src="https://cdn.bitrix24.ru/bx24.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-            // Проверяем, что BX24 SDK загружен
-            if (typeof BX24 === "undefined") {
-                console.error("Bitrix24 SDK не загружен. Убедитесь, что вы открываете это приложение внутри интерфейса Bitrix24.");
-                return;
-            }
-            
-            // Запрос авторизации при загрузке страницы
-            BX24.init(function() {
-                BX24.getAuth(function(auth) {
-                    // Проверяем, что auth содержит access_token
-                    if (auth && auth.access_token) {
-                        // Отправляем данные в обработчик
-                        fetch('https://reklamaoko.ru/staticfiles/button_handler.php', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                auth: {
-                                    access_token: auth.access_token
-                                }
+            if (typeof BX24 !== 'undefined') {
+                // SDK загружен, выполняем код
+                BX24.init(function() {
+                    BX24.getAuth(function(auth) {
+                        if (auth && auth.access_token) {
+                            fetch('https://reklamaoko.ru/static/button_handler.php', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    auth: {
+                                        access_token: auth.access_token
+                                    }
+                                })
                             })
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            console.log("Ответ от обработчика:", data);
-                        })
-                        .catch(error => console.error("Ошибка при отправке данных в обработчик:", error));
-                    } else {
-                        console.error("Не удалось получить access token.");
-                    }
+                            .then(response => response.json())
+                            .then(data => {
+                                console.log(data);
+                            })
+                            .catch(error => console.error('Error:', error));
+                        } else {
+                            console.error('No access token received');
+                        }
+                    });
                 });
-            });
+            } else {
+                console.error('Bitrix24 SDK не загружен. Убедитесь, что вы открываете это приложение внутри интерфейса Bitrix24.');
+            }
         });
     </script>
 </head>
 <body>
-    <h1>Пример интеграции с Bitrix24</h1>
+    <h1>Bitrix24 Integration Example</h1>
 </body>
 </html>
