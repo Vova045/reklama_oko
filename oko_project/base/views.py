@@ -553,9 +553,8 @@ def load_initial_folders(request):
 import requests
 
 def get_bitrix_user(request):
-        
     # Настройки API и URL для вебхука
-    BASE_URL = f"https://oko.bitrix24.ru/rest/7/5c7fk7e5y2cev81a/placement.bind.json"
+    BASE_URL = "https://oko.bitrix24.ru/rest/7/5c7fk7e5y2cev81a/placement.bind.json"
 
     # Данные для размещения
     payload = {
@@ -570,8 +569,15 @@ def get_bitrix_user(request):
 
     # Проверка ответа
     if response.status_code == 200:
-        print("Ссылка на приложение успешно добавлена в меню!")
+        return JsonResponse({"message": "Ссылка на приложение успешно добавлена в меню!"})
     else:
-        print("Ошибка при добавлении ссылки:", response.status_code, response.text)
+        return JsonResponse(
+            {
+                "error": "Ошибка при добавлении ссылки",
+                "status_code": response.status_code,
+                "details": response.text,
+            },
+            status=500
+        )
 
 
