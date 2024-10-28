@@ -17,6 +17,5 @@ urlpatterns = [
     path('edit-default-parameters/', views.edit_default_parameters, name='edit-default-parameters'),
     path('check-folder-type/', views.check_folder_type, name='check_folder_type'),
     path('load-initial-folders/', views.load_initial_folders, name='load_initial_folders'),
-    # path('api/bitrix/<str:api_method>/', views.BitrixProxy.as_view(), name='bitrix-proxy'),
     path('api/bitrix/', views.get_current_user, name='bitrix'),
     ]
