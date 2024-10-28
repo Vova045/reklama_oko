@@ -42,6 +42,11 @@ from django.views.decorators.csrf import csrf_exempt
 import requests
 import json
 
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import requests
+import json
+
 @csrf_exempt
 def bind_application(request):
     if request.method != 'POST':
@@ -57,7 +62,7 @@ def bind_application(request):
 
     # Данные для размещения
     payload = {
-        "PLACEMENT": "crm_deal_menu",
+        "PLACEMENT": "left_menu",  # Левое меню — доступное почти на всех аккаунтах
         "HANDLER": "https://reklamaoko.ru",
         "TITLE": "Мое Django приложение",
         "DESCRIPTION": "Приложение для управления рекламой"
@@ -65,7 +70,7 @@ def bind_application(request):
 
     headers = {
         'Authorization': f'Bearer {access_token}',
-        'Content-Type': 'application/json'  # Указание формата данных
+        'Content-Type': 'application/json'
     }
 
     # Отправка запроса к Bitrix24
@@ -75,7 +80,6 @@ def bind_application(request):
     if response.status_code == 200:
         return JsonResponse({"success": "Ссылка на приложение успешно добавлена в меню!"})
     else:
-        # Логирование для отладки
         print("Ошибка при добавлении ссылки:", response.status_code, response.text)
         return JsonResponse({"error": "Ошибка при добавлении ссылки", "details": response.text}, status=response.status_code)
 
