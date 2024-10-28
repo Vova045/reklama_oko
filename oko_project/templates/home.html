@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Bitrix Integration</title>
-    <script src="https://cdn.bitrix24.ru/bx24.js" integrity="sha384-base64_hash" crossorigin="anonymous"></script>
+    <script src="{% url 'proxy_bx24' %}"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             if (typeof BX24 !== 'undefined') {
