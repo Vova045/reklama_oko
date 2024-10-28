@@ -8,23 +8,20 @@
         BX24.init(function() {
             const initData = BX24.getAuth();
             console.log("initData: ", initData);
-
+    
             if (!initData.access_token) {
                 console.error("Access token not found.");
                 return;
             }
-
+    
             checkApiAccess(initData.access_token);
         });
-
+    
         function checkApiAccess(accessToken) {
-            const url = 'https://oko.bitrix24.ru/rest/user.current.json';
-
+            const url = '/api/bitrix/proxy/?access_token=' + accessToken;
+    
             fetch(url, {
                 method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`
-                }
             })
             .then(response => {
                 console.log("Response status:", response.status);
@@ -45,6 +42,7 @@
             });
         }
     </script>
+    
 </head>
 <body>
     <h1>Bitrix24 Integration Example</h1>

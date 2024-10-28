@@ -14,6 +14,26 @@ from django.views.decorators.csrf import csrf_exempt
 def home(request):
     return render(request, 'home.html')
 
+
+import requests
+from django.http import JsonResponse
+
+def bitrix_proxy(request):
+    access_token = request.GET.get('access_token')  # Получаем токен из запроса
+    url = 'https://oko.bitrix24.ru/rest/user.current.json'  # URL Bitrix24
+
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+    }
+
+    response = requests.get(url, headers=headers)
+
+    if response.status_code == 200:
+        return JsonResponse(response.json())
+    else:
+        return JsonResponse({"error": response.json()}, status=response.status_code)
+
+
 def get_technological_links(request):
     product_id = request.GET.get('product_id')
     

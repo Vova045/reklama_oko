@@ -20,5 +20,6 @@ urlpatterns = [
     path('load-initial-folders/', views.load_initial_folders, name='load_initial_folders'),
     # path('api/bitrix/', views.get_current_user, name='bitrix'),
     path("api/bitrix/user/", views.get_bitrix_user, name="bitrix_user"),
+    path('api/bitrix/proxy/', views.bitrix_proxy, name='bitrix_proxy'),
     ]
     
