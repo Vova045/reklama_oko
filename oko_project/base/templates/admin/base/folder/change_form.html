@@ -1,0 +1,118 @@
+{% extends "admin/change_form.html" %}
+
+{% block content %}
+    <form method="post" id="folder-form" data-all-folders="{{ all_folders_json|escapejs }}">
+        {% csrf_token %}
+        {{ form.as_p }}  <!-- Отображение формы -->
+        
+        <div class="unic_folder">
+            {% for folder_type in unique_folder_types %}
+                <p class="folder-type" style="cursor: pointer;">{{ folder_type }}</p>
+            {% endfor %}
+        </div>
+        
+        <div id="folder-type-result"></div>
+        
+        <button type="submit">Сохранить</button>
+    </form>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const NameInput = document.querySelector('#id_name');  // Поле для ввода имени папки
+            const folderTypeInput = document.querySelector('#id_folder_type');  // Поле для ввода типа папки
+            const resultDisplay = document.getElementById('folder-type-result');  // Поле для отображения результата
+            const parentFolderSelect = document.querySelector('#id_parent'); // Выбор родительской папки
+    
+            parentFolderSelect.disabled = true;
+    
+            // Устанавливаем значения полей для редактирования
+            {% if original %}
+                parentFolderSelect.disabled = false;
+                NameInput.value = "{{ original.name }}"; // Устанавливаем имя папки
+                folderTypeInput.value = "{{ original.folder_type }}"; // Устанавливаем тип папки
+                parentFolderSelect.value = "{{ original.parent.id }}"; // Устанавливаем родительскую папку, если она есть
+            {% endif %}
+    
+            // Функция для загрузки всех папок
+            function loadInitialFolders() {
+                fetch("{% url 'load_initial_folders' %}")
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.matching_folders) {
+                            parentFolderSelect.innerHTML = ''; // Очистка текущих опций
+                            data.matching_folders.forEach(folder => {
+                                addFolderOptions(folder);
+                            });
+                        } else {
+                            resultDisplay.textContent = "Ошибка получения данных";
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Ошибка:', error);
+                        resultDisplay.textContent = "Ошибка соединения";
+                    });
+            }
+    
+            // Функция для добавления опций с иерархией
+            function addFolderOptions(folder, prefix = '') {
+                const option = document.createElement('option');
+                option.value = folder.id; // Устанавливаем id папки
+                option.textContent = `${prefix}${folder.name}`; // Добавляем префикс
+                parentFolderSelect.appendChild(option);
+    
+                // Рекурсивно добавляем дочерние папки
+                folder.children.forEach(child => {
+                    addFolderOptions(child, prefix + '— '); // Добавляем отступ для дочерних папок
+                });
+            }
+    
+            // Загрузка папок при старте страницы
+            loadInitialFolders();
+    
+            // Добавляем обработчик событий для всех элементов <p>
+            document.querySelectorAll('.folder-type').forEach(function(element) {
+                element.addEventListener('click', function() {
+                    parentFolderSelect.disabled = false;
+                    folderTypeInput.value = this.textContent; // Копируем текст в поле ввода
+                });
+            });
+    
+            if (folderTypeInput) {
+                folderTypeInput.addEventListener('input', function() {
+                    parentFolderSelect.disabled = false;
+                    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                    const folderType = folderTypeInput.value;
+    
+                    fetch("{% url 'check_folder_type' %}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: new URLSearchParams({ 'folder_type': folderType }).toString()
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.folder_type) {
+                            resultDisplay.innerHTML = '';
+                            // Обновление выпадающего списка родительских папок
+                            parentFolderSelect.innerHTML = ''; // Очистка текущих опций
+                            data.matching_folders.forEach(folder => {
+                                addFolderOptions(folder); // Используем иерархию
+                            });
+                        } else {
+                            resultDisplay.textContent = "Ошибка получения данных";
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Ошибка:', error);
+                        resultDisplay.textContent = "Ошибка соединения";
+                    });
+                });
+            }
+        });
+    </script>
+    
+
+    
+{% endblock %}

@@ -1,0 +1,9 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+    <div class="custom-text">
+        Вова
+    </div>
+    {{ block.super }}  {# Отображает остальное содержимое стандартного шаблона #}
+    <script type="text/javascript" src="{% static 'base/js/custom_admin.js' %}"></script>
+{% endblock %}

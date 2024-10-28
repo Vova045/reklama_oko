@@ -1,0 +1,25 @@
+{% extends "admin/base_site.html" %}
+{% block title %}Редактирование значений по умолчанию{% endblock %}
+{% block content %}
+<h1>Редактирование значений по умолчанию</h1>
+<form method="post">
+    {% csrf_token %}
+    <div>
+        <label for="overheads">Накладные расходы:</label>
+        <input type="text" name="overheads" id="overheads" value="{{ current_overheads }}">
+    </div>
+    <div>
+        <label for="salary_fund">Фонд зарплаты:</label>
+        <input type="text" name="salary_fund" id="salary_fund" value="{{ current_salary_fund }}">
+    </div>
+    <div>
+        <label for="profit">Прибыль:</label>
+        <input type="text" name="profit" id="profit" value="{{ current_profit }}">
+    </div>
+    <div>
+        <label for="payroll">Отчисления на зарплату:</label>
+        <input type="text" name="payroll" id="payroll" value="{{ current_payroll }}">
+    </div>
+    <button type="submit">Сохранить изменения</button>
+</form>
+{% endblock %}
