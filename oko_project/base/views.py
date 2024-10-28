@@ -7,7 +7,9 @@ from .models import ProductComposition, TechnologicalOperation, MaterialsTechnol
 from .models import MaterialsTechnologicalOperation, ParametersNormativesInCalculation, OperationOfTechnologicalOperation, ProductionOperation, ProductionOperationTariffs, TechnologicalLink, Folder
 from .forms import ParametersNormativesInCalculationForm
 from django.db.models import Q
+from django.views.decorators.csrf import csrf_exempt
 
+@csrf_exempt
 def home(request):
     return render(request, 'home.html')
 
