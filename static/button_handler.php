@@ -18,7 +18,7 @@ if (!$accessToken) {
 
 // Функция для выполнения POST-запроса к Bitrix API
 function sendRequest($method, $parameters, $accessToken) {
-    $url = "https://your-bitrix24-url.com/rest/$method?auth=$accessToken";
+    $url = "https://oko.bitrix24.ru/rest/$method?auth=$accessToken";
     $options = [
         'http' => [
             'method'  => 'POST',
