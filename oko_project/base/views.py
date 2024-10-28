@@ -563,3 +563,26 @@ def get_bitrix_user(request):
         return JsonResponse(data)
     except requests.exceptions.RequestException as e:
         return JsonResponse({"error": "Ошибка доступа к API", "details": str(e)})
+
+
+import requests
+
+# Настройки API и URL для вебхука
+BASE_URL = f"https://oko.bitrix24.ru/rest/7/5c7fk7e5y2cev81a/placement.bind.json"
+
+# Данные для размещения
+payload = {
+    "PLACEMENT": "left_menu",  # Для добавления в левое меню
+    "HANDLER": "https://reklamaoko.ru",  # Ссылка на ваше Django приложение
+    "TITLE": "Мое Django приложение",  # Название в меню
+    "DESCRIPTION": "Приложение для управления рекламой"  # Описание
+}
+
+# Отправка запроса
+response = requests.post(BASE_URL, json=payload)
+
+# Проверка ответа
+if response.status_code == 200:
+    print("Ссылка на приложение успешно добавлена в меню!")
+else:
+    print("Ошибка при добавлении ссылки:", response.status_code, response.text)
