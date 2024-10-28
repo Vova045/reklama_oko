@@ -552,14 +552,14 @@ def load_initial_folders(request):
 
 import requests
 
-def get_current_user():
+def get_bitrix_user(request):
     webhook_url = 'https://oko.bitrix24.ru/rest/webhook_id/jqysbr3qd2vyfgjh/user.current.json'
-    response = requests.get(webhook_url)
     
-    if response.status_code == 200:
-        return response.json()
-    else:
-        return {'error': 'Ошибка доступа к API', 'status_code': response.status_code, 'response': response.text}
+    try:
+        response = requests.get(webhook_url)
+        response.raise_for_status()  # Проверка успешности запроса
 
-# Пример вызова функции
-# current_user_info = get_current_user()
+        data = response.json()
+        return JsonResponse(data)
+    except requests.exceptions.RequestException as e:
+        return JsonResponse({"error": "Ошибка доступа к API", "details": str(e)})
