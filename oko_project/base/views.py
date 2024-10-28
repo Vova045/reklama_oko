@@ -47,6 +47,11 @@ from django.views.decorators.csrf import csrf_exempt
 import requests
 import json
 
+import json
+import requests
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+
 @csrf_exempt
 def bind_application(request):
     if request.method != 'POST':
@@ -57,31 +62,54 @@ def bind_application(request):
     if not access_token:
         return JsonResponse({"error": "Access token is missing"}, status=400)
 
-    # URL для добавления приложения в Bitrix24
+    # Базовый URL для API Bitrix24
     BASE_URL = "https://oko.bitrix24.ru/rest/placement.bind.json"
+    
+    # Массив данных для размещения приложения в разных местах
+    placements = [
+        {"PLACEMENT": "left_menu", "TITLE": "Калькуляция", "DESCRIPTION": "Приложение для управления расчётами"},
+        {"PLACEMENT": "crm.deal.list.menu", "TITLE": "Калькуляция", "DESCRIPTION": "Приложение для управления расчётами"},
+        {"PLACEMENT": "crm.company.details", "TITLE": "Калькуляция", "DESCRIPTION": "Приложение для управления расчётами"},
+        {"PLACEMENT": "crm.contact.details", "TITLE": "Калькуляция", "DESCRIPTION": "Приложение для управления расчётами"},
+        {"PLACEMENT": "crm.activity.list.menu", "TITLE": "Калькуляция", "DESCRIPTION": "Приложение для управления расчётами"},
+        {"PLACEMENT": "task.list.menu", "TITLE": "Калькуляция", "DESCRIPTION": "Приложение для управления расчётами"},
+        {"PLACEMENT": "user.profile.menu", "TITLE": "Калькуляция", "DESCRIPTION": "Приложение для управления расчётами"}
+    ]
 
-    # Данные для размещения
-    payload = {
-        "PLACEMENT": "left_menu",  # Левое меню — доступное почти на всех аккаунтах
-        "HANDLER": "https://reklamaoko.ru",
-        "TITLE": "Мое Django приложение",
-        "DESCRIPTION": "Приложение для управления рекламой"
-    }
-
+    # Заголовки запроса
     headers = {
         'Authorization': f'Bearer {access_token}',
         'Content-Type': 'application/json'
     }
 
-    # Отправка запроса к Bitrix24
-    response = requests.post(BASE_URL, headers=headers, data=json.dumps(payload))
+    # Результаты для каждого размещения
+    results = []
 
-    # Проверка ответа
-    if response.status_code == 200:
-        return JsonResponse({"success": "Ссылка на приложение успешно добавлена в меню!"})
-    else:
-        print("Ошибка при добавлении ссылки:", response.status_code, response.text)
-        return JsonResponse({"error": "Ошибка при добавлении ссылки", "details": response.text}, status=response.status_code)
+    # Проход по каждому размещению и отправка запроса
+    for placement in placements:
+        payload = {
+            "PLACEMENT": placement["PLACEMENT"],
+            "HANDLER": "https://reklamaoko.ru",
+            "TITLE": placement["TITLE"],
+            "DESCRIPTION": placement["DESCRIPTION"]
+        }
+
+        # Отправка запроса
+        response = requests.post(BASE_URL, headers=headers, data=json.dumps(payload))
+        
+        # Проверка ответа
+        if response.status_code == 200:
+            results.append({"placement": placement["PLACEMENT"], "status": "Добавлено успешно"})
+        else:
+            error_message = response.json().get("error_description", "Ошибка при добавлении")
+            results.append({
+                "placement": placement["PLACEMENT"],
+                "status": f"Ошибка: {response.status_code}, {error_message}"
+            })
+            print(f"Ошибка при добавлении {placement['PLACEMENT']}: {response.status_code}, {response.text}")
+
+    # Возврат результата
+    return JsonResponse({"results": results})
 
 
 def get_technological_links(request):
