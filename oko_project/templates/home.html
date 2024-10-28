@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -97,5 +97,45 @@
     <p>&copy; 2024 Наружная реклама. Все права защищены.</p>
 </footer>
 
+</body>
+</html> -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Bitrix Integration</title>
+    <script src="https://cdn.bitrix24.ru/bx24.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Запрос авторизации при загрузке страницы
+            BX24.getAuth(function(auth) {
+                // Проверяем, что auth действительно содержит access_token
+                if (auth && auth.access_token) {
+                    // Отправляем данные в обработчик
+                    fetch('https://oko.bitrix24.ru/static/button_handler.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            auth: {
+                                access_token: auth.access_token
+                            }
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log(data);
+                    })
+                    .catch(error => console.error('Error:', error));
+                } else {
+                    console.error('No access token received');
+                }
+            });
+        });
+    </script>
+</head>
+<body>
+    <h1>Bitrix24 Integration Example</h1>
 </body>
 </html>
