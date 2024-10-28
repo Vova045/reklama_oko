@@ -553,7 +553,7 @@ def load_initial_folders(request):
 import requests
 
 def get_bitrix_user(request):
-    webhook_url = 'https://oko.bitrix24.ru/rest/webhook_id/jqysbr3qd2vyfgjh/user.current.json'
+    webhook_url = 'https://oko.bitrix24.ru/rest/7/5c7fk7e5y2cev81a/user.current.json'
     
     try:
         response = requests.get(webhook_url)
