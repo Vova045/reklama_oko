@@ -52,7 +52,7 @@ if (isset($_GET['code'])) {
     $clientId = 'local.671fe1a5771b80.36776378';
     $redirectUri = 'https://reklamaoko.ru/static/button_handler.php';
 
-    $authUrl = "https://oauth.bitrix.info/oauth/authorize/?client_id=local.671fe1a5771b80.36776378";
+    $authUrl = "https://oauth.bitrix.info/oauth/authorize?client_id={$clientId}&redirect_uri={$redirectUri}&response_type=code";
     header("Location: $authUrl");
     exit();
 }
