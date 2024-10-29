@@ -2,8 +2,8 @@
 session_start();
 
 // Замените на свои реальные значения
-$clientId = 'local.671fe1a5771b80.36776378'; // Ваш client ID
-$clientSecret = 'rxXLQH8AI2Ig9Uvgx7VmcsVKD39Qs46vIMiRGZiu2GsxHrAfE2'; // Ваш client secret
+$clientId = 'local.671fe1a5771b80.36776378';
+$clientSecret = 'rxXLQH8AI2Ig9Uvgx7VmcsVKD39Qs46vIMiRGZiu2GsxHrAfE2'; // Ваш клиент-секрет
 $redirectUri = 'https://reklamaoko.ru/static/button_handler.php'; // URL для редиректа
 
 // Проверка наличия кода авторизации
