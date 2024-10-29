@@ -49,7 +49,7 @@ if (isset($_GET['code'])) {
     curl_close($ch);
 } else {
     // Если код авторизации отсутствует, перенаправляем на страницу авторизации
-    $clientId = 'rxXLQH8AI2Ig9Uvgx7VmcsVKD39Qs46vIMiRGZiu2GsxHrAfE2';
+    $clientId = 'local.671fe1a5771b80.36776378';
     $redirectUri = 'https://reklamaoko.ru/static/button_handler.php';
 
     $authUrl = "https://oauth.bitrix.info/oauth/authorize?client_id={$clientId}&redirect_uri={$redirectUri}&response_type=code";
