@@ -1,51 +1,42 @@
 <?php
-session_start();
+// Обработчик для установки и настройки приложения в Bitrix24
 
-// Замените на свои реальные значения
-$clientId = 'local.671fe1a5771b80.36776378';
-$clientSecret = 'rxXLQH8AI2Ig9Uvgx7VmcsVKD39Qs46vIMiRGZiu2GsxHrAfE2'; // Ваш клиент-секрет
-$redirectUri = 'https://reklamaoko.ru/static/button_handler.php'; // URL для редиректа
+// Проверка, была ли выполнена установка
+$result = array('install' => true); // Замените это на реальную логику установки
 
-// Проверка наличия кода авторизации
-if (isset($_GET['code'])) {
-    $authCode = $_GET['code'];
-
-    $url = "https://oauth.bitrix.info/oauth/token";
-    $postFields = [
-        'grant_type' => 'authorization_code',
-        'client_id' => $clientId,
-        'client_secret' => $clientSecret,
-        'redirect_uri' => $redirectUri,
-        'code' => $authCode,
-    ];
-
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postFields));
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'Content-Type: application/x-www-form-urlencoded'
-    ]);
-
-    $response = curl_exec($ch);
-
-    if ($response === false) {
-        echo 'Ошибка cURL: ' . curl_error($ch);
-    } else {
-        $responseData = json_decode($response, true);
-        if (isset($responseData['access_token'])) {
-            echo "Access Token: " . htmlspecialchars($responseData['access_token']);
-        } else {
-            echo "Ошибка получения Access Token: " . htmlspecialchars($response);
-        }
-    }
-
-    curl_close($ch);
+// Проверка успешности установки
+if ($result['install'] == true) {
+    ?>
+    <head>
+        <script src="//api.bitrix24.com/api/v1/"></script>
+        <script>
+            BX24.init(function() {
+                // Завершение установки приложения
+                BX24.installFinish();
+                
+                // Привязка к левому меню
+                BX24.callMethod('placement.bind', {
+                    ID: "YOUR_PLACEMENT_ID", // Замените на ваш ID
+                    TYPE: "LEFT_MENU"
+                }, function(result) {
+                    if (result.error()) {
+                        console.error("Error binding placement:", result.error());
+                    } else {
+                        console.log("Placement bound successfully:", result.data());
+                    }
+                });
+            });
+        </script>
+    </head>
+    <body>
+        Установка приложения завершена
+    </body>
+    <?php
 } else {
-    // Перенаправление на страницу авторизации Bitrix
-    $authUrl = "https://oauth.bitrix.info/oauth/authorize?client_id={$clientId}&redirect_uri={$redirectUri}&response_type=code";
-    header("Location: $authUrl");
-    exit();
+    ?>
+    <body>
+        Ошибка установки приложения
+    </body>
+    <?php
 }
 ?>
