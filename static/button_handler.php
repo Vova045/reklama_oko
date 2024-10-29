@@ -2,8 +2,8 @@
 session_start();
 
 // Замените на свои реальные значения
-$clientId = 'local.671fe1a5771b80.36776378';
-$clientSecret = 'rxXLQH8AI2Ig9Uvgx7VmcsVKD39Qs46vIMiRGZiu2GsxHrAfE2'; // Убедитесь, что у вас есть правильный секрет
+$clientId = 'local.671fe1a5771b80.36776378'; // Ваш client ID
+$clientSecret = 'rxXLQH8AI2Ig9Uvgx7VmcsVKD39Qs46vIMiRGZiu2GsxHrAfE2'; // Ваш client secret
 $redirectUri = 'https://reklamaoko.ru/static/button_handler.php'; // URL для редиректа
 
 // Проверка наличия кода авторизации
@@ -31,7 +31,7 @@ if (isset($_GET['code'])) {
     $response = curl_exec($ch);
 
     if ($response === false) {
-        echo 'Ошибка cURL: ' . htmlspecialchars(curl_error($ch));
+        echo 'Ошибка cURL: ' . curl_error($ch);
     } else {
         $responseData = json_decode($response, true);
         if (isset($responseData['access_token'])) {
