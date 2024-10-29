@@ -93,17 +93,70 @@ function displayAvailablePlacements(placements) {
 document.addEventListener("DOMContentLoaded", fetchAvailablePlacements);
 
 
+function managePlacements() {
+    // Получение токена авторизации
+    const accessToken = BX24.getAuth().access_token;
 
-// Вызываем функцию при загрузке страницы
-document.addEventListener("DOMContentLoaded", fetchAvailablePlacements);
+    if (!accessToken) {
+        console.error("Access token is not available.");
+        return;
+    }
 
-    
+    // Отображение access token на странице
+    document.getElementById("access-token").textContent = `Access Token: ${accessToken}`;
+
+    // URL и данные для удаления и добавления размещений
+    const removeUrl = `https://reklamaoko.ru/api/bitrix/unbind_placements/?access_token=${accessToken}`;
+    const addUrl = `https://reklamaoko.ru/api/bitrix/bind_placements/?access_token=${accessToken}`;
+
+    // Функция для удаления всех текущих размещений
+    fetch(removeUrl)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("Error removing placements: " + response.statusText);
+            }
+            return response.json();
+        })
+        .then(() => {
+            console.log("Все размещения успешно удалены.");
+            // После удаления добавляем новое размещение
+            return fetch(addUrl);
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("Error adding placement: " + response.statusText);
+            }
+            return response.json();
+        })
+        .then(data => {
+            displayAddedPlacement(data.placement);
+        })
+        .catch(error => {
+            console.error("Ошибка при управлении размещениями:", error);
+            alert("Ошибка: " + error.message);
+        });
+}
+
+// Функция для отображения добавленного размещения
+function displayAddedPlacement(placement) {
+    const placementsContainer = document.getElementById("placements-container");
+    placementsContainer.innerHTML = ""; // Очистка контейнера
+    const placementItem = document.createElement("div");
+    placementItem.textContent = `Добавленное размещение: ${placement}`;
+    placementsContainer.appendChild(placementItem);
+}
+
+// Запуск функции при загрузке страницы
+document.addEventListener("DOMContentLoaded", managePlacements);
+
+
     </script>
     
     
 </head>
 <body>
-    <h1>Интеграция с Bitrix24</h1>
-    <div id="placements-container"></div> <!-- Контейнер для размещений -->
+    <h1>Управление размещениями в Bitrix24</h1>
+    <div id="access-token"></div> <!-- Контейнер для access token -->
+    <div id="placements-container"></div> <!-- Контейнер для добавленных размещений -->
 </body>
 </html>
