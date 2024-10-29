@@ -1,19 +1,16 @@
 <?php
-// Проверьте, был ли передан код авторизации
+session_start(); // Начинаем сессии, если это необходимо
+
+// Убедитесь, что код авторизации присутствует
 if (isset($_GET['code'])) {
     $authCode = $_GET['code'];
-    echo "Код авторизации: " . htmlspecialchars($authCode) . "<br>";
-} else {
-    echo "Код авторизации не получен.<br>";
-}
 
-// Пример получения токена (замените значения на свои)
-$clientId = 'rxXLQH8AI2Ig9Uvgx7VmcsVKD39Qs46vIMiRGZiu2GsxHrAfE2';
-$clientSecret = 'local.671fe1a5771b80.36776378';
-$redirectUri = 'https://reklamaoko.ru/static/button_handler.php';
+    // Пример получения токена
+    $clientId = 'rxXLQH8AI2Ig9Uvgx7VmcsVKD39Qs46vIMiRGZiu2GsxHrAfE2';
+    $clientSecret = 'local.671fe1a5771b80.36776378';
+    $redirectUri = 'https://reklamaoko.ru/static/button_handler.php';
 
-// Получение токена
-if (isset($authCode)) {
+    // Получение токена
     $url = "https://oauth.bitrix.info/oauth/token";
     $postFields = [
         'grant_type' => 'authorization_code',
@@ -29,6 +26,9 @@ if (isset($authCode)) {
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postFields));
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Content-Type: application/x-www-form-urlencoded'
+    ]);
 
     // Выполнение запроса
     $response = curl_exec($ch);
@@ -47,5 +47,13 @@ if (isset($authCode)) {
 
     // Закрытие cURL
     curl_close($ch);
+} else {
+    // Если код авторизации отсутствует, перенаправляем на страницу авторизации
+    $clientId = 'rxXLQH8AI2Ig9Uvgx7VmcsVKD39Qs46vIMiRGZiu2GsxHrAfE2';
+    $redirectUri = 'https://reklamaoko.ru/static/button_handler.php';
+
+    $authUrl = "https://oauth.bitrix.info/oauth/authorize?client_id={$clientId}&redirect_uri={$redirectUri}&response_type=code";
+    header("Location: $authUrl");
+    exit();
 }
 ?>
