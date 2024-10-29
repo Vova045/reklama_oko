@@ -31,7 +31,7 @@ if (isset($_GET['code'])) {
     $response = curl_exec($ch);
 
     if ($response === false) {
-        echo 'Ошибка cURL: ' . curl_error($ch);
+        echo 'Ошибка cURL: ' . htmlspecialchars(curl_error($ch));
     } else {
         $responseData = json_decode($response, true);
         if (isset($responseData['access_token'])) {
