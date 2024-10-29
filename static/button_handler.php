@@ -1,10 +1,12 @@
 <?php
 session_start();
 
+// Замените на свои реальные значения
 $clientId = 'local.671fe1a5771b80.36776378';
-$clientSecret = 'ваш_client_secret';
-$redirectUri = 'https://reklamaoko.ru/static/button_handler.php';
+$clientSecret = 'rxXLQH8AI2Ig9Uvgx7VmcsVKD39Qs46vIMiRGZiu2GsxHrAfE2'; // Убедитесь, что у вас есть правильный секрет
+$redirectUri = 'https://reklamaoko.ru/static/button_handler.php'; // URL для редиректа
 
+// Проверка наличия кода авторизации
 if (isset($_GET['code'])) {
     $authCode = $_GET['code'];
 
@@ -41,6 +43,7 @@ if (isset($_GET['code'])) {
 
     curl_close($ch);
 } else {
+    // Перенаправление на страницу авторизации Bitrix
     $authUrl = "https://oauth.bitrix.info/oauth/authorize?client_id={$clientId}&redirect_uri={$redirectUri}&response_type=code";
     header("Location: $authUrl");
     exit();
