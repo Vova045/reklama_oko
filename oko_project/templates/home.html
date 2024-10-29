@@ -4,41 +4,7 @@
     <meta charset="UTF-8">
     <title>Bitrix Integration</title>
     
-    <script src="//api.bitrix24.com/api/v1/"></script>
-    <script>
-        BX24.init(function() {
-            const initData = BX24.getAuth();
-            console.log("initData: ", initData);
     
-            if (!initData.access_token) {
-                console.error("Access token not found.");
-                return;
-            }
-
-            // Отправка токена на сервер
-            sendAccessTokenToHandler(initData.access_token);
-        });
-
-        // Функция для отправки токена на PHP-хендлер
-        function sendAccessTokenToHandler(accessToken) {
-            fetch('https://reklamaoko.ru/handler.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    access_token: accessToken
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log("Response from handler:", data);
-            })
-            .catch(error => {
-                console.error("Error sending token to handler:", error);
-            });
-        }
-    </script>
 </head>
 <body>
     <h1>Управление размещениями в Bitrix24</h1>
