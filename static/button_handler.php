@@ -6,8 +6,6 @@ $redirectUri = 'https://reklamaoko.ru/static/button_handler.php';
 
 // Проверяем, был ли получен код авторизации
 if (!isset($_GET['code'])) {
-    echo "<script>console.log('Этап 1: Переадресация на страницу авторизации Bitrix');</script>";
-
     // Этап 1: Перенаправление на страницу авторизации Bitrix
     $authUrl = "https://oauth.bitrix.info/oauth/authorize?client_id={$clientId}&redirect_uri={$redirectUri}&response_type=code";
     header("Location: $authUrl");
@@ -15,11 +13,11 @@ if (!isset($_GET['code'])) {
 }
 
 // Этап 2: Обработка редиректа после авторизации
+echo "<script>console.log('Этап 2: Получен код авторизации');</script>";
+
 $code = $_GET['code'];
 $domain = $_GET['domain'] ?? '';
 $state = $_GET['state'] ?? '';
-
-echo "<script>console.log('Этап 2 завершен: Получен код авторизации');</script>";
 
 // Этап 3: Запрос токенов с использованием code
 echo "<script>console.log('Начинаем Этап 3: Запрос токенов с использованием code');</script>";
