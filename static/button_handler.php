@@ -1,7 +1,7 @@
 <?php
 // Установите ваши параметры
 $clientId = 'rxXLQH8AI2Ig9Uvgx7VmcsVKD39Qs46vIMiRGZiu2GsxHrAfE2';
-$clientSecret = 'local.671fe1a5771b80.36776378';
+$clientSecret = '671fe1a5771b80.36776378';
 $redirectUri = 'https://reklamaoko.ru/static/button_handler.php'; // URL для редиректа
 
 // Получаем код из параметров URL
