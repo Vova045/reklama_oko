@@ -1,28 +1,57 @@
 <?php
-// Устанавливаем заголовок JSON для ответа
 header('Content-Type: application/json');
 
-// Получаем данные запроса
+// Получение данных запроса
 $request = file_get_contents('php://input');
 $data = json_decode($request, true);
 
-// Логируем входящие данные для отладки
-error_log(print_r($data, true)); // Это поможет увидеть, что приходит в запросе
-
-// Проверка на наличие access_token
+// Получаем access_token
 $accessToken = $data['auth']['access_token'] ?? null;
-
 if (!$accessToken) {
     echo json_encode(['status' => 'error', 'message' => 'Access token is missing']);
     exit;
 }
 
-// Если токен получен, отправляем ответ
-$response = [
-    'status' => 'success',
-    'message' => 'Access token received',
-    'access_token' => $accessToken // Выводим токен для проверки (не рекомендуется в продакшене)
+// URL Bitrix24 для добавления размещений
+$addUrl = "https://oko.bitrix24.ru/rest/placement.bind";
+
+// Список размещений для добавления
+$placements = [
+    ['PLACEMENT' => 'left_menu', 'TITLE' => 'Калькуляция', 'HANDLER' => 'https://reklamaoko.ru'],
+    ['PLACEMENT' => 'crm.deal.list.menu', 'TITLE' => 'Калькуляция', 'HANDLER' => 'https://reklamaoko.ru'],
+    ['PLACEMENT' => 'crm.company.details', 'TITLE' => 'Калькуляция', 'HANDLER' => 'https://reklamaoko.ru'],
+    ['PLACEMENT' => 'crm.contact.details', 'TITLE' => 'Калькуляция', 'HANDLER' => 'https://reklamaoko.ru'],
+    ['PLACEMENT' => 'crm.activity.list.menu', 'TITLE' => 'Калькуляция', 'HANDLER' => 'https://reklamaoko.ru'],
+    ['PLACEMENT' => 'task.list.menu', 'TITLE' => 'Калькуляция', 'HANDLER' => 'https://reklamaoko.ru'],
+    ['PLACEMENT' => 'user.profile.menu', 'TITLE' => 'Калькуляция', 'HANDLER' => 'https://reklamaoko.ru']
 ];
 
-// Возвращаем JSON-ответ
-echo json_encode($response);
+// Функция для добавления размещений
+function addPlacement($placement, $accessToken, $addUrl) {
+    $payload = json_encode($placement);
+    $opts = [
+        'http' => [
+            'method' => 'POST',
+            'header' => "Authorization: Bearer $accessToken\r\n" .
+                        "Content-Type: application/json\r\n",
+            'content' => $payload
+        ]
+    ];
+    $context = stream_context_create($opts);
+    $result = file_get_contents($addUrl, false, $context);
+    return json_decode($result, true);
+}
+
+// Добавление каждого размещения и сбор результатов
+$results = [];
+foreach ($placements as $placement) {
+    $result = addPlacement($placement, $accessToken, $addUrl);
+    $results[] = [
+        'placement' => $placement['PLACEMENT'],
+        'status' => $result['error'] ?? 'Added successfully'
+    ];
+}
+
+// Возвращаем результат на страницу
+echo json_encode(['status' => 'complete', 'results' => $results]);
+?>
