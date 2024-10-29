@@ -6,8 +6,8 @@ if (isset($_GET['code'])) {
     $authCode = $_GET['code'];
 
     // Пример получения токена
-    $clientId = 'rxXLQH8AI2Ig9Uvgx7VmcsVKD39Qs46vIMiRGZiu2GsxHrAfE2';
-    $clientSecret = 'local.671fe1a5771b80.36776378';
+    $clientId = 'local.671fe1a5771b80.36776378';
+    $clientSecret = 'rxXLQH8AI2Ig9Uvgx7VmcsVKD39Qs46vIMiRGZiu2GsxHrAfE2';
     $redirectUri = 'https://reklamaoko.ru/static/button_handler.php';
 
     // Получение токена
