@@ -6,7 +6,7 @@ $redirectUri = 'https://reklamaoko.ru/static/button_handler.php';
 
 // Этап 1: Переадресация пользователя на страницу авторизации Bitrix24
 if (!isset($_GET['code'])) {
-    echo "<script>console.log('Этап 1: Запрос домена и переадресация на страницу авторизации');</script>";
+    // Переадресация на страницу авторизации Bitrix
     $authUrl = "https://oauth.bitrix.info/oauth/authorize?client_id={$clientId}&redirect_uri={$redirectUri}&response_type=code";
     header("Location: $authUrl");
     exit();
