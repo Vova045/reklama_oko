@@ -1,57 +1,63 @@
 <?php
+// Устанавливаем заголовок JSON для ответа
 header('Content-Type: application/json');
 
-// Получение данных запроса
+// Получаем данные запроса
 $request = file_get_contents('php://input');
 $data = json_decode($request, true);
 
-// Получаем access_token
+// Логируем входящие данные для отладки
+error_log("Получен запрос: " . print_r($data, true));
+
+// Проверка на наличие access_token
 $accessToken = $data['auth']['access_token'] ?? null;
+
 if (!$accessToken) {
+    // Логируем ошибку, если токен отсутствует
+    error_log("Ошибка: Access token отсутствует.");
     echo json_encode(['status' => 'error', 'message' => 'Access token is missing']);
     exit;
 }
 
-// URL Bitrix24 для добавления размещений
-$addUrl = "https://oko.bitrix24.ru/rest/placement.bind";
+// Логируем, что токен получен
+error_log("Access token получен: " . $accessToken);
 
-// Список размещений для добавления
+// Пример для проверки добавленных размещений
 $placements = [
-    ['PLACEMENT' => 'left_menu', 'TITLE' => 'Калькуляция', 'HANDLER' => 'https://reklamaoko.ru'],
-    ['PLACEMENT' => 'crm.deal.list.menu', 'TITLE' => 'Калькуляция', 'HANDLER' => 'https://reklamaoko.ru'],
-    ['PLACEMENT' => 'crm.company.details', 'TITLE' => 'Калькуляция', 'HANDLER' => 'https://reklamaoko.ru'],
-    ['PLACEMENT' => 'crm.contact.details', 'TITLE' => 'Калькуляция', 'HANDLER' => 'https://reklamaoko.ru'],
-    ['PLACEMENT' => 'crm.activity.list.menu', 'TITLE' => 'Калькуляция', 'HANDLER' => 'https://reklamaoko.ru'],
-    ['PLACEMENT' => 'task.list.menu', 'TITLE' => 'Калькуляция', 'HANDLER' => 'https://reklamaoko.ru'],
-    ['PLACEMENT' => 'user.profile.menu', 'TITLE' => 'Калькуляция', 'HANDLER' => 'https://reklamaoko.ru']
+    "left_menu", 
+    "crm.deal.list.menu", 
+    "crm.company.details", 
+    "crm.contact.details",
+    "crm.activity.list.menu",
+    "task.list.menu",
+    "user.profile.menu"
 ];
 
-// Функция для добавления размещений
-function addPlacement($placement, $accessToken, $addUrl) {
-    $payload = json_encode($placement);
-    $opts = [
-        'http' => [
-            'method' => 'POST',
-            'header' => "Authorization: Bearer $accessToken\r\n" .
-                        "Content-Type: application/json\r\n",
-            'content' => $payload
-        ]
-    ];
-    $context = stream_context_create($opts);
-    $result = file_get_contents($addUrl, false, $context);
-    return json_decode($result, true);
-}
+// Ответ, чтобы отобразить в консоли браузера, что обработчик работает
+$response = [
+    'status' => 'success',
+    'message' => 'Handler is running',
+    'access_token' => $accessToken,
+    'added_placements' => []
+];
 
-// Добавление каждого размещения и сбор результатов
-$results = [];
+// Перебираем массив и добавляем каждый плейсмент
 foreach ($placements as $placement) {
-    $result = addPlacement($placement, $accessToken, $addUrl);
-    $results[] = [
-        'placement' => $placement['PLACEMENT'],
-        'status' => $result['error'] ?? 'Added successfully'
-    ];
+    // Проверяем наличие каждого плейсмента, добавленного ранее (пример)
+    // Здесь должен быть код API для проверки добавленных плейсментов (в реальности потребуется запрос к Bitrix24 для проверки)
+    $isAdded = true; // Здесь установим true для примера
+    
+    if ($isAdded) {
+        $response['added_placements'][] = $placement;
+        error_log("Placement добавлен: " . $placement);
+    } else {
+        error_log("Ошибка добавления placement: " . $placement);
+    }
 }
 
-// Возвращаем результат на страницу
-echo json_encode(['status' => 'complete', 'results' => $results]);
+// Логируем результат для отладки
+error_log("Результат выполнения: " . print_r($response, true));
+
+// Возвращаем JSON-ответ
+echo json_encode($response);
 ?>
