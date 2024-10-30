@@ -3,7 +3,7 @@ import re
 from django.views.decorators.csrf import csrf_exempt
 import json
 from django.shortcuts import render, get_object_or_404
-from .models import ProductComposition, TechnologicalOperation, MaterialsTechnologicalOperation, Nomenklatura, ParametersOfProducts
+from .models import ProductComposition, TechnologicalOperation, MaterialsTechnologicalOperation, Nomenklatura, ParametersOfProducts, BitrixUser
 from .models import MaterialsTechnologicalOperation, ParametersNormativesInCalculation, OperationOfTechnologicalOperation, ProductionOperation, ProductionOperationTariffs, TechnologicalLink, Folder
 from .forms import ParametersNormativesInCalculationForm
 from django.db.models import Q
@@ -721,4 +721,33 @@ def get_bitrix_user(request):
             status=500
         )
 
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from .models import BitrixUser
 
+@csrf_exempt
+def install(request):
+    # Получаем параметры, переданные Bitrix при установке
+    domain = request.GET.get('DOMAIN')
+    auth_token = request.GET.get('AUTH_ID')
+    refresh_token = request.GET.get('REFRESH_ID')
+    member_id = request.GET.get('member_id')
+    
+    if not all([domain, auth_token, refresh_token, member_id]):
+        return JsonResponse({'status': 'error', 'message': 'Необходимые параметры не получены'}, status=400)
+
+    # Сохраняем или обновляем запись пользователя в базе данных
+    bitrix_user, created = BitrixUser.objects.update_or_create(
+        member_id=member_id,
+        defaults={
+            'domain': domain,
+            'auth_token': auth_token,
+            'refresh_token': refresh_token,
+        }
+    )
+
+    # Возвращаем успешный ответ
+    return JsonResponse({
+        'status': 'ok',
+        'message': 'Приложение успешно установлено' if created else 'Данные пользователя обновлены'
+    })

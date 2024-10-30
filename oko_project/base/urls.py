@@ -23,5 +23,6 @@ urlpatterns = [
     path('api/bitrix/proxy/', views.bitrix_proxy, name='bitrix_proxy'),
     path('api/bitrix/bind/', views.bind_application, name='bind_application'),
     path('api/bitrix/get_available_placements/', views.get_available_placements, name='get_available_placements'),
+    path('install/', views.install, name='bitrix_install'),
     ]
     

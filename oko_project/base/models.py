@@ -361,3 +361,15 @@ class ParametersNormativesInCalculation(models.Model):
 
     def __str__(self):
         return f"{self.calculation} - {self.overheads} - {self.salary_fund}  - {self.profit}"
+
+
+class BitrixUser(models.Model):
+    member_id = models.CharField(max_length=255, unique=True)  # Идентификатор пользователя Bitrix
+    domain = models.CharField(max_length=255)  # Домен пользователя в Bitrix
+    auth_token = models.CharField(max_length=255)  # Access token для доступа к API Bitrix
+    refresh_token = models.CharField(max_length=255)  # Refresh token для обновления access token
+    created_at = models.DateTimeField(auto_now_add=True)  # Дата установки приложения
+    updated_at = models.DateTimeField(auto_now=True)  # Дата обновления токенов
+
+    def __str__(self):
+        return f"Bitrix User {self.member_id} - Domain: {self.domain}"
