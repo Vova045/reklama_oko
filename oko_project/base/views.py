@@ -731,6 +731,11 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse, HttpResponseRedirect
 from .models import BitrixUser
 
+import requests
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse, HttpResponseRedirect
+from .models import BitrixUser
+
 @csrf_exempt
 def install(request):
     # Чтение параметров из GET и POST
@@ -738,7 +743,7 @@ def install(request):
     auth_token = request.POST.get('AUTH_ID')
     refresh_token = request.POST.get('REFRESH_ID')
     member_id = request.POST.get('member_id')
-    
+
     # Проверка, какие параметры получены
     received_params = {
         'DOMAIN': domain,
@@ -746,7 +751,7 @@ def install(request):
         'REFRESH_ID': refresh_token,
         'member_id': member_id
     }
-    
+
     # Если не все параметры получены, возвращаем ошибку
     if not all([domain, auth_token, refresh_token, member_id]):
         return JsonResponse({
@@ -771,11 +776,21 @@ def install(request):
     handler_url = 'https://reklamaoko.ru/static/admin/js/custom_button.js'  # Ваш URL для обработки
     title = 'Запустить приложение'  # Заголовок кнопки
 
-    # Формируем URL для запроса установки обработчика
-    url = f'https://{domain}/rest/placement.bind/?access_token={access_token}&PLACEMENT={placement}&HANDLER={handler_url}&TITLE={title}'
+    # Проверьте, установлен ли уже обработчик
+    check_url = f'https://{domain}/rest/placement.get/?access_token={access_token}&PLACEMENT={placement}'
+    check_response = requests.get(check_url)
+    check_data = check_response.json()
 
-    # Выполняем запрос
-    response = requests.post(url)
+    if check_data.get('result'):
+        # Если обработчик уже установлен, удаляем его
+        unbind_url = f'https://{domain}/rest/placement.unbind/?access_token={access_token}&PLACEMENT={placement}'
+        requests.post(unbind_url)
+
+    # Формируем URL для запроса установки обработчика
+    bind_url = f'https://{domain}/rest/placement.bind/?access_token={access_token}&PLACEMENT={placement}&HANDLER={handler_url}&TITLE={title}'
+
+    # Выполняем запрос на установку обработчика
+    response = requests.post(bind_url)
     response_data = response.json()
 
     if not response_data.get('result'):
