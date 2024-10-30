@@ -726,6 +726,11 @@ from django.views.decorators.csrf import csrf_exempt
 from django.urls import reverse
 from .models import BitrixUser
 
+import requests
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse, HttpResponseRedirect
+from .models import BitrixUser
+
 @csrf_exempt
 def install(request):
     # Чтение параметров из GET и POST
@@ -759,6 +764,25 @@ def install(request):
             'refresh_token': refresh_token,
         }
     )
+
+    # Установка обработчика места встраивания
+    access_token = auth_token  # Используйте полученный токен для авторизации
+    placement = 'CRM_DEAL_LIST_MENU'  # Место встраивания
+    handler_url = 'https://reklamaoko.ru/static/admin/js/custom_button.js'  # Ваш URL для обработки
+    title = 'Запустить приложение'  # Заголовок кнопки
+
+    # Формируем URL для запроса установки обработчика
+    url = f'https://{domain}/rest/placement.bind/?access_token={access_token}&PLACEMENT={placement}&HANDLER={handler_url}&TITLE={title}'
+
+    # Выполняем запрос
+    response = requests.post(url)
+    response_data = response.json()
+
+    if not response_data.get('result'):
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Ошибка установки обработчика: ' + response_data.get('error_description', 'Неизвестная ошибка'),
+        }, status=400)
 
     # Перенаправляем пользователя на нужный URL после успешной установки
     return HttpResponseRedirect('https://reklamaoko.ru')
