@@ -721,8 +721,9 @@ def get_bitrix_user(request):
             status=500
         )
 
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseRedirect
 from django.views.decorators.csrf import csrf_exempt
+from django.urls import reverse
 from .models import BitrixUser
 
 @csrf_exempt
@@ -741,12 +742,12 @@ def install(request):
         'member_id': member_id
     }
     
-    # Отправляем полученные параметры для отладки
+    # Если не все параметры получены, возвращаем ошибку
     if not all([domain, auth_token, refresh_token, member_id]):
         return JsonResponse({
             'status': 'error',
             'message': 'Необходимые параметры не получены',
-            'received_params': received_params  # добавляем полученные параметры для отладки
+            'received_params': received_params
         }, status=400)
 
     # Сохраняем или обновляем запись пользователя в базе данных
@@ -759,9 +760,5 @@ def install(request):
         }
     )
 
-    # Возвращаем успешный ответ с отладочными данными
-    return JsonResponse({
-        'status': 'ok',
-        'message': 'Приложение успешно установлено' if created else 'Данные пользователя обновлены',
-        'received_params': received_params  # добавляем полученные параметры для отладки
-    })
+    # Перенаправляем пользователя на нужный URL после успешной установки
+    return HttpResponseRedirect('https://reklamaoko.ru')

@@ -590,3 +590,13 @@ class ProductionOperationAdmin(admin.ModelAdmin):
                 _('Удалить выбранные элементы')
             )
         return actions
+    
+
+from .models import BitrixUser
+
+class BitrixUserAdmin(admin.ModelAdmin):
+    list_display = ('member_id', 'domain', 'auth_token', 'refresh_token')
+    search_fields = ('member_id', 'domain')
+    list_filter = ('domain',)
+
+admin.site.register(BitrixUser, BitrixUserAdmin)
