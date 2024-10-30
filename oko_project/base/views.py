@@ -727,11 +727,11 @@ from .models import BitrixUser
 
 @csrf_exempt
 def install(request):
-    # Получаем параметры, переданные Bitrix при установке
-    domain = request.GET.get('DOMAIN')
-    auth_token = request.GET.get('AUTH_ID')
-    refresh_token = request.GET.get('REFRESH_ID')
-    member_id = request.GET.get('member_id')
+    # Получаем параметры, переданные Bitrix при установке (пробуем через POST)
+    domain = request.POST.get('DOMAIN')
+    auth_token = request.POST.get('AUTH_ID')
+    refresh_token = request.POST.get('REFRESH_ID')
+    member_id = request.POST.get('member_id')
     
     # Проверка, какие параметры получены
     received_params = {
