@@ -733,8 +733,21 @@ def install(request):
     refresh_token = request.GET.get('REFRESH_ID')
     member_id = request.GET.get('member_id')
     
+    # Проверка, какие параметры получены
+    received_params = {
+        'DOMAIN': domain,
+        'AUTH_ID': auth_token,
+        'REFRESH_ID': refresh_token,
+        'member_id': member_id
+    }
+    
+    # Отправляем полученные параметры для отладки
     if not all([domain, auth_token, refresh_token, member_id]):
-        return JsonResponse({'status': 'error', 'message': 'Необходимые параметры не получены'}, status=400)
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Необходимые параметры не получены',
+            'received_params': received_params  # добавляем полученные параметры для отладки
+        }, status=400)
 
     # Сохраняем или обновляем запись пользователя в базе данных
     bitrix_user, created = BitrixUser.objects.update_or_create(
@@ -746,8 +759,9 @@ def install(request):
         }
     )
 
-    # Возвращаем успешный ответ
+    # Возвращаем успешный ответ с отладочными данными
     return JsonResponse({
         'status': 'ok',
-        'message': 'Приложение успешно установлено' if created else 'Данные пользователя обновлены'
+        'message': 'Приложение успешно установлено' if created else 'Данные пользователя обновлены',
+        'received_params': received_params  # добавляем полученные параметры для отладки
     })
