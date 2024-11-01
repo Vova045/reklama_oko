@@ -772,9 +772,9 @@ def install(request):
 
     # Установка обработчика места встраивания
     access_token = auth_token  # Используйте полученный токен для авторизации
-    placement = 'CRM_DEAL_LIST_MENU'  # Место встраивания
+    placement = 'CRM_DEAL_DETAIL_TAB'  # Место встраивания
     handler_url = 'https://reklamaoko.ru/static/admin/js/custom_button.js'  # Ваш URL для обработки
-    title = 'Запустить приложение'  # Заголовок кнопки
+    title = 'Калькуляции'  # Заголовок кнопки
 
     # Проверьте, установлен ли уже обработчик
     check_url = f'https://{domain}/rest/placement.get/?access_token={access_token}&PLACEMENT={placement}'
