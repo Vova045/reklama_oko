@@ -579,7 +579,6 @@ def update_parameters_product(request):
                     'payroll': payroll_default
                 }
             }
-            print(response_data)
             return JsonResponse(response_data)
 
 
@@ -635,6 +634,15 @@ def check_folder_type(request):
         # Создаем словарь для хранения иерархической структуры
         folder_map = {}
 
+        # Добавляем пустую опцию для родительской папки
+        folder_map[None] = {
+            'id': None,
+            'name': 'Без родительской папки',
+            'parent_id': None,
+            'children': [],
+            'parent_name': None
+        }
+
         # Заполняем словарь данными о папках
         for folder in matching_folders:
             folder_map[folder.id] = {
@@ -642,7 +650,7 @@ def check_folder_type(request):
                 'name': folder.name,
                 'parent_id': folder.parent_id,
                 'children': [],
-                'parent_name': folder.parent.name if folder.parent else None  # Получаем имя родителя, если есть
+                'parent_name': folder.parent.name if folder.parent else None
             }
 
         # Создаем иерархическую структуру
@@ -667,8 +675,16 @@ def check_folder_type(request):
 
 def load_initial_folders(request):
     if request.method == 'GET':
-        folders = Folder.objects.all().select_related('parent')  # Получаем все папки с их родителями
+        folders = Folder.objects.all().select_related('parent')
         folder_map = {}
+
+        # Добавляем пустую опцию для родительской папки
+        folder_map[None] = {
+            'id': None,
+            'name': 'Без родительской папки',
+            'parent': None,
+            'children': []
+        }
 
         # Создаем словарь, где ключ - id папки, значение - объект папки
         for folder in folders:
@@ -801,3 +817,19 @@ def install(request):
 
     # Перенаправляем пользователя на нужный URL после успешной установки
     return HttpResponseRedirect('https://reklamaoko.ru')
+
+def get_nomenklatura_by_folder(request, folder_id):
+    # Получаем все номенклатуры, которые относятся к выбранной папке
+    nomenklaturas = Nomenklatura.objects.filter(folder_id=folder_id).values('id', 'nomenklatura_name')
+    data = [{'id': n['id'], 'name': n['nomenklatura_name']} for n in nomenklaturas]
+    return JsonResponse(data, safe=False)
+
+def get_folder_by_nomenklatura(request, nomenklatura_id):
+    try:
+        nomenklatura = Nomenklatura.objects.get(id=nomenklatura_id)
+        folder = nomenklatura.folder  # Получаем папку, связанную с номенклатурой
+        return JsonResponse({'folder_id': folder.id}, safe=False)
+    except Nomenklatura.DoesNotExist:
+        return JsonResponse({'error': 'Nomenklatura not found'}, status=404)
+    
+

@@ -1,4 +1,5 @@
 {% extends "admin/change_form.html" %}
+{% load i18n %}  <!-- Добавьте эту строку для загрузки тегов перевода -->
 
 {% block content %}
     <form method="post" id="folder-form" data-all-folders="{{ all_folders_json|escapejs }}">
@@ -12,8 +13,13 @@
         </div>
         
         <div id="folder-type-result"></div>
-        
-        <button type="submit">Сохранить</button>
+
+        <!-- Кнопки для сохранения -->
+        <div class="submit-row">
+            <input type="submit" value="{% trans 'Save' %}" class="default" name="_save" />
+            <input type="submit" value="{% trans 'Save and continue editing' %}" class="default" name="_continue" />
+            <input type="submit" value="{% trans 'Save and add another' %}" class="default" name="_addanother" />
+        </div>
     </form>
     
     <script>
@@ -32,7 +38,7 @@
                 folderTypeInput.value = "{{ original.folder_type }}"; // Устанавливаем тип папки
                 parentFolderSelect.value = "{{ original.parent.id }}"; // Устанавливаем родительскую папку, если она есть
             {% endif %}
-    
+            
             // Функция для загрузки всех папок
             function loadInitialFolders() {
                 fetch("{% url 'load_initial_folders' %}")
@@ -69,11 +75,45 @@
             // Загрузка папок при старте страницы
             loadInitialFolders();
     
+            // Проверка на выбранную родительскую папку
+            if (parentFolderSelect.value === 'null' || parentFolderSelect.value === '') {
+                parentFolderSelect.value = ''; // Устанавливаем пустое значение
+            }
+    
             // Добавляем обработчик событий для всех элементов <p>
             document.querySelectorAll('.folder-type').forEach(function(element) {
                 element.addEventListener('click', function() {
+                    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     parentFolderSelect.disabled = false;
                     folderTypeInput.value = this.textContent; // Копируем текст в поле ввода
+                    const folderType = folderTypeInput.value;
+    
+                    // Отправляем запрос на сервер
+                    fetch("{% url 'check_folder_type' %}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: new URLSearchParams({ 'folder_type': folderType }).toString()
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.folder_type) {
+                            resultDisplay.innerHTML = '';
+                            // Обновление выпадающего списка родительских папок
+                            parentFolderSelect.innerHTML = ''; // Очистка текущих опций
+                            data.matching_folders.forEach(folder => {
+                                addFolderOptions(folder); // Используем иерархию
+                            });
+                        } else {
+                            resultDisplay.textContent = "Ошибка получения данных";
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Ошибка:', error);
+                        resultDisplay.textContent = "Ошибка соединения";
+                    });
                 });
             });
     
@@ -112,7 +152,5 @@
             }
         });
     </script>
-    
-
     
 {% endblock %}

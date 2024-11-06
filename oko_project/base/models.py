@@ -107,7 +107,7 @@ class Nomenklatura(models.Model):
     nomenklatura_name = models.CharField(max_length=400, blank=True, null=True, verbose_name="Наименование коменклатуры")
     full_name = models.CharField(max_length=400, blank=True, null=True, verbose_name="Полное наименование")
     measure_unit = models.ForeignKey(MeasureUnit, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Единица измерения")
-    parent = models.ForeignKey('self', on_delete=models.CASCADE, blank=True, null=True, related_name='Местонахождение', verbose_name="Родитель")
+    folder = models.ForeignKey(Folder, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Папка")
     comment = models.CharField(max_length=400, blank=True, null=True, verbose_name="Комментарий")
     waste_rate = models.CharField(max_length=400, blank=True, null=True, verbose_name="Норма отходов")
     material_markup = models.CharField(max_length=400, blank=True, null=True, verbose_name="Наценка материала")
@@ -131,7 +131,7 @@ class TechnologicalOperation(models.Model):
     id = models.AutoField(primary_key=True)  # Automatically generated identifier
     operation_code = models.CharField(max_length=100, unique=True, blank=True, null=True, verbose_name="Код технологической операции")
     operation_link_name = models.CharField(max_length=255, blank=True, null=True, verbose_name="Наименование технологической операции")
-    parent = models.ForeignKey('self', on_delete=models.CASCADE, blank=True, null=True, related_name='Местонахождение', verbose_name="Родитель")
+    folder = models.ForeignKey(Folder, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Папка")
     formula_name = models.CharField(max_length=100, blank=True, null=True, verbose_name="Представление в формуле")
     formula = models.CharField(max_length=100, blank=True, null=True, verbose_name="Формула расчета")
 

@@ -120,13 +120,25 @@ class TechnologicalLinkAdmin(admin.ModelAdmin):
                 order=1  # Укажите нужное значение для order
             )
 
+class NomenklaturaForm(forms.ModelForm):
+    class Meta:
+        model = Nomenklatura
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['folder'].queryset = Folder.objects.filter(folder_type='Номенклатура')
+        self.fields['folder'].widget = HierarchicalFolderWidget()
+        self.fields['folder'].widget.update_choices(self.fields['folder'].queryset)  # Обновляем опции для иерархии
+
+
 @admin.register(Nomenklatura)
 class NomenklaturaAdmin(admin.ModelAdmin):
     list_display = ('nomenklatura_code', 'nomenklatura_name', 'measure_unit', 'price')
     search_fields = ('nomenklatura_code', 'nomenklatura_name', 'full_name')
     list_filter = ('measure_unit',)
     exclude = ('nomenklatura_code',)
-
+    form = NomenklaturaForm
     actions = ['duplicate_selected']
 
     def duplicate_selected(self, request, queryset):
@@ -154,25 +166,77 @@ class OperationOfTechnologicalOperationInline(admin.TabularInline):
     fields = ['production_operation', 'formula']  # Поля, которые хотите видеть
     fk_name = 'technicological_operation'  # Поле, которое связывает с основной моделью
 
+from django import forms
+from .models import AddingMaterialsTechnologicalOperation, Folder, Nomenklatura
+
 class AddingMaterialsTechnologicalOperationInline(admin.TabularInline):
     model = AddingMaterialsTechnologicalOperation
-    extra = 1
+    extra = 0
     fields = ['nomenklatura', 'chapter_calculation', 'formula']
     fk_name = 'technicological_operation'
+
+
+class MaterialsTechnologicalOperationForm(forms.ModelForm):
+    folder = forms.ModelChoiceField(
+        queryset=Folder.objects.filter(folder_type="Номенклатура"),
+        required=False,
+        label="Папка Номенклатуры"
+    )
+
+    class Meta:
+        model = MaterialsTechnologicalOperation
+        fields = ['folder', 'nomenklatura', 'chapter_calculation', 'formula']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Если уже есть выбранная номенклатура, обновляем папку
+        if self.instance and self.instance.nomenklatura:
+            nomenklatura = self.instance.nomenklatura
+            # Находим папку, соответствующую выбранной номенклатуре
+            folder = nomenklatura.folder
+            self.fields['folder'].initial = folder  # Устанавливаем начальное значение для поля папки
+        
+        self.fields['folder'].queryset = Folder.objects.filter(folder_type='Номенклатура')
+        self.fields['folder'].widget = HierarchicalFolderWidget()
+        self.fields['folder'].widget.update_choices(self.fields['folder'].queryset)  # Обновляем опции для иерархии
+
 
 class MaterialsTechnologicalOperationInline(admin.TabularInline):
     model = MaterialsTechnologicalOperation
-    extra = 1
-    fields = ['nomenklatura', 'chapter_calculation', 'formula']
-    fk_name = 'technicological_operation'
+    form = MaterialsTechnologicalOperationForm
+    extra = 0
+    fields = ['folder', 'nomenklatura', 'chapter_calculation', 'formula']
+    show_delete = True  # Это позволяет отображать чекбокс для удаления объектов
+    class Media:
+        js = ('admin/js/nomenklatura_filter.js',)
+
 
 from django.core.exceptions import ValidationError
 
+from django import forms
+
+class TechnologicalOperationForm(forms.ModelForm):
+    class Meta:
+        model = TechnologicalOperation
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Фильтруем только папки с типом 'Технологические операции'
+        self.fields['folder'].queryset = Folder.objects.filter(folder_type='Технологические операции')
+        self.fields['folder'].widget = HierarchicalFolderWidget()
+        self.fields['folder'].widget.update_choices(self.fields['folder'].queryset)  # Обновляем опции для иерархии
+
+from django.utils.translation import gettext_lazy as _
+from django.utils.safestring import mark_safe
+
 @admin.register(TechnologicalOperation)
 class TechnologicalOperationAdmin(admin.ModelAdmin):
-    list_display = ('operation_code', 'operation_link_name', 'parent')
+    form = TechnologicalOperationForm
+    list_display = ('operation_code', 'operation_link_name', 'folder')
     search_fields = ('operation_code', 'operation_link_name')
-    list_filter = ('parent',)
+    list_filter = ('folder',)
     readonly_fields = ('available_formulas', 'available_math_symbols')
     exclude = ('operation_code',)
     inlines = [
@@ -182,7 +246,9 @@ class TechnologicalOperationAdmin(admin.ModelAdmin):
     ]
 
     class Media:
-        js = ('admin/js/copy_formula.js',) 
+        js = ('admin/js/copy_formula.js',)
+
+    actions = ['duplicate_selected', 'delete_materialstechnologicaloperation']
 
     def available_formulas(self, obj):
         formulas = Formulas.objects.values_list('formula_name', flat=True)
@@ -196,15 +262,6 @@ class TechnologicalOperationAdmin(admin.ModelAdmin):
         return mark_safe(", ".join(symbols_list))
     available_math_symbols.short_description = 'Список всех математических знаков'
 
-    actions = ['duplicate_selected', 'delete_selected']
-
-    def save(self, *args, **kwargs):
-        # Если это новый объект, генерируем код на основе нового ID
-        if not self.id:  # Если ID не установлен, значит это новый объект
-            super().save(*args, **kwargs)  # Сохраняем объект, чтобы получить ID
-            self.operation_code = f"TO_{self.id}"  # Создаем уникальный код с использованием ID
-        # Сохраняем объект с новым кодом, если он был установлен
-        super().save(*args, **kwargs)  # Сохраняем объект с новым кодом
     def duplicate_selected(self, request, queryset):
         for obj in queryset:
             obj.id = None  # Обнуляем ID, чтобы создать новый объект
@@ -212,22 +269,16 @@ class TechnologicalOperationAdmin(admin.ModelAdmin):
             obj.save()  # Сохраняем объект для генерации нового ID
             # Генерируем новый код в формате TO_{id}
             new_code = f"TO-{obj.id}"
-            # Проверяем, существует ли код, и если существует, назначаем его в TO_{id} без суффиксов
             if TechnologicalOperation.objects.filter(operation_code=new_code).exists():
-                # Если код уже существует, просто продолжаем с новым объектом без изменений
                 pass
-                
             else:
                 obj.operation_code = new_code  # Устанавливаем уникальный код
                 obj.save()  # Сохраняем объект с новым кодом
-            
-        self.message_user(request, _("Выбранные элементы были успешно дублированы."))
 
+        self.message_user(request, _("Выбранные элементы были успешно дублированы."))
 
     duplicate_selected.short_description = _("Копировать выбранные элементы")
 
-    
-    
     def get_actions(self, request):
         actions = super().get_actions(request)
         if 'delete_selected' in actions:
@@ -235,6 +286,7 @@ class TechnologicalOperationAdmin(admin.ModelAdmin):
                                           'delete_selected', 
                                           _('Удалить выбранные элементы'))
         return actions
+
 
     def save(self, *args, **kwargs):
         # Проверяем, что это новый объект
@@ -502,31 +554,91 @@ class FolderAdmin(admin.ModelAdmin):
     class Media:
         js = ('admin/js/folder_filter.js',)  # Путь к вашему JavaScript файлу
 
+    def save_model(self, request, obj, form, change):
+        parent_value = form.cleaned_data['parent']
+        
+        if parent_value == '':
+            obj.parent = None  # Устанавливаем в None, если выбрано пустое значение
+        else:
+            obj.parent = parent_value  # Устанавливаем родительскую папку
+
+        parent_value2 = request.POST.get('parent')
+        if parent_value2 == 'null':
+            parent_value = None  # или любое другое значение, которое вы используете для обозначения отсутствия родительской папки
+        super().save_model(request, obj, form, change)
+
+
+
+
     def add_view(self, request, form_url='', extra_context=None):
+        if request.method == 'POST':
+            post_data = request.POST.copy()
+            parent_value = post_data.get('parent')
+            if parent_value == 'null' or parent_value == '':
+                post_data['parent'] = ''  # Присваиваем пустую строку для обработки в форме
+            form = self.get_form(request)(post_data)
+            if form.is_valid():
+                if post_data['parent'] == '':
+                    form.cleaned_data['parent'] = None
+                else:
+                    form.cleaned_data['parent'] = Folder.objects.get(id=int(post_data['parent']))
+                folder = form.save(commit=False)  # Не сохраняем сразу
+                folder.parent = form.cleaned_data['parent']  # Устанавливаем значение
+                folder.save()  # Сохраняем объект
+                self.message_user(request, "Объект успешно создан.")
+                return self.response_add(request, folder)
+            else:
+                self.message_user(request, "Ошибка при создании объекта.", level='error')
+        else:
+            form = self.get_form(request)()
         queryset = Folder.objects.all().values('id', 'name', 'folder_type')
         all_folders_json = json.dumps(list(queryset))
-
         unique_folder_types = Folder.objects.values_list('folder_type', flat=True).distinct()
-
-        form = self.get_form(request)
-
         extra_context = extra_context or {}
         extra_context['all_folders_json'] = all_folders_json
         extra_context['unique_folder_types'] = unique_folder_types
         extra_context['form'] = form
-
         return super().add_view(request, form_url, extra_context=extra_context)
 
+
     def change_view(self, request, object_id, form_url='', extra_context=None):
+        print("Запрос POST:", request.POST)
         folder_instance = self.get_object(request, object_id)
+
+        if request.method == 'POST':
+            # Копируем POST-данные, чтобы иметь возможность изменять их
+            post_data = request.POST.copy()
+            
+            # Получаем значение parent
+            parent_value = post_data.get('parent')
+            if parent_value == 'null' or parent_value == '':
+                post_data['parent'] = ''  # Присваиваем пустую строку для обработки в форме
+            
+            # Создаем форму с измененными данными
+            form = self.get_form(request)(post_data, instance=folder_instance)
+
+            if form.is_valid():
+                # Если значение parent было изменено, то присваиваем None
+                if post_data['parent'] == '':
+                    form.cleaned_data['parent'] = None
+                else:
+                    form.cleaned_data['parent'] = Folder.objects.get(id=int(post_data['parent']))
+                
+                # Сохраняем изменения без немедленного сохранения объекта
+                folder = form.save(commit=False)
+                folder.parent = form.cleaned_data['parent']
+                folder.save()  # Сохраняем объект
+                self.message_user(request, "Объект успешно обновлен.")
+                return self.response_change(request, folder)
+            else:
+                print("Ошибки формы:", form.errors)  # Выводим ошибки формы
+                self.message_user(request, "Ошибка при обновлении объекта.", level='error')
+        else:
+            form = self.get_form(request)(instance=folder_instance)
 
         queryset = Folder.objects.all().values('id', 'name', 'folder_type')
         all_folders_json = json.dumps(list(queryset))
-
         unique_folder_types = Folder.objects.values_list('folder_type', flat=True).distinct()
-
-        form = self.get_form(request, folder_instance)
-
         extra_context = extra_context or {}
         extra_context['all_folders_json'] = all_folders_json
         extra_context['unique_folder_types'] = unique_folder_types

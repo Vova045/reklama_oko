@@ -20,11 +20,9 @@ from .models import Folder
 class FolderAdminForm(forms.ModelForm):
     class Meta:
         model = Folder
-        fields = '__all__'  # Убедитесь, что здесь указаны нужные поля
+        fields = ['name', 'parent', 'folder_type']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if not self.instance.pk:  # Если это новый объект
-            self.fields['parent'].empty_label = "Выберите родительскую папку"
-
-            
+        # Убедитесь, что поле parent не имеет строки 'null'
+        self.fields['parent'].empty_label = "Без родительской папки"  # Это поможет отображать пустое значение
