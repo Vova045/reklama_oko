@@ -3,16 +3,87 @@ import re
 from django.views.decorators.csrf import csrf_exempt
 import json
 from django.shortcuts import render, get_object_or_404
-from .models import ProductComposition, TechnologicalOperation, MaterialsTechnologicalOperation, Nomenklatura, ParametersOfProducts, BitrixUser
-from .models import MaterialsTechnologicalOperation, ParametersNormativesInCalculation, OperationOfTechnologicalOperation, ProductionOperation, ProductionOperationTariffs, TechnologicalLink, Folder
+from .models import ProductComposition, TechnologicalOperation, MaterialsTechnologicalOperation, Nomenklatura, ParametersOfProducts, BitrixUser, AddingMaterialsTechnologicalOperation
+from .models import MaterialsTechnologicalOperation, ParametersNormativesInCalculation, OperationOfTechnologicalOperation, ProductionOperation, ProductionOperationTariffs, TechnologicalLink, Folder, TechnologicalLinkComposition
 from .forms import ParametersNormativesInCalculationForm
 from django.db.models import Q
 from django.views.decorators.csrf import csrf_exempt
-
+from bitrix_calc.models import Bitrix_Goods, Bitrix_GoodsComposition
 
 @csrf_exempt
 def home(request):
-    return render(request, 'home.html')
+    # Извлекаем список изделий
+    goods = Bitrix_Goods.objects.all()
+
+    # Извлекаем данные с группировкой для видов изделий
+    compositions = (
+        Bitrix_GoodsComposition.objects.values("name_type_of_goods", "type_of_goods")
+        .distinct()
+        .order_by("name_type_of_goods", "type_of_goods")
+    )
+
+    # Группируем данные в словарь
+    grouped_compositions = {}
+    for composition in compositions:
+        name = composition["name_type_of_goods"]
+        type_ = composition["type_of_goods"]
+        if name not in grouped_compositions:
+            grouped_compositions[name] = []
+        grouped_compositions[name].append(type_)
+
+    # Передаем данные в шаблон
+    return render(request, "home.html", {"goods": goods, "grouped_compositions": grouped_compositions})
+
+
+# Обработчик для динамической загрузки видов товаров (если используется AJAX)
+@csrf_exempt
+def get_item_types(request, product_id):
+    if request.method == "GET":
+        # Получаем связанные виды товаров для выбранного продукта
+        compositions = (
+            Bitrix_GoodsComposition.objects.filter(goods_id=product_id)
+            .values("name_type_of_goods", "type_of_goods")
+            .distinct()
+            .order_by("name_type_of_goods", "type_of_goods")
+        )
+
+        # Группируем данные по name_type_of_goods
+        grouped_compositions = {}
+        for composition in compositions:
+            name = composition["name_type_of_goods"]
+            type_ = composition["type_of_goods"]
+            if name not in grouped_compositions:
+                grouped_compositions[name] = []
+            grouped_compositions[name].append(type_)
+
+        return JsonResponse(grouped_compositions)
+    
+@csrf_exempt
+def filter_item(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+        product_id = data.get("product_id")
+        product_name = data.get("product_name")
+        name_type_of_goods = data.get("name_type_of_goods")
+        type_of_goods = data.get("type_of_goods")
+
+        # Логика обработки полученных данных
+        # Например, сохранение или фильтрация товаров
+
+        response_data = {"status": "success", "message": "Данные успешно обработаны."}
+        return JsonResponse(response_data)
+        
+@csrf_exempt
+def calculation_list(request):
+    return render(request, 'calculation_list.html')
+
+@csrf_exempt
+def calculation_preview(request):
+    return render(request, 'calculation_preview.html')
+
+@csrf_exempt
+def calculation_previews(request):
+    return render(request, 'calculation_previews.html')
 
 
 import requests
@@ -32,20 +103,6 @@ def bitrix_proxy(request):
         return JsonResponse(response.json())
     else:
         return JsonResponse({"error": response.json()}, status=response.status_code)
-
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-import requests
-
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-import requests
-import json
-
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-import requests
-import json
 
 import json
 import requests
@@ -154,26 +211,93 @@ def get_available_placements(request):
 
 def get_technological_links(request):
     product_id = request.GET.get('product_id')
-    
-    if product_id:
-        compositions = ProductComposition.objects.filter(product_id=product_id)
-    else:
-        compositions = []
-
-    # Собираем уникальные ссылки
     unique_links = {}
-    
-    for comp in compositions:
-        tech_id = comp.technology.id
-        tech_name = comp.technology.operation_link_name
+    open_all = bool(product_id)  # Флаг для открытия всех папок, если выбран product_id
 
-        # Используем id как ключ, чтобы не было дубликатов
-        unique_links[(tech_id, tech_name)] = {'id': tech_id, 'name': tech_name}
-    
-    # Преобразуем уникальные значения обратно в список
+    if product_id:
+        product_compositions = ProductComposition.objects.filter(product_id=product_id)
+        
+        for product_composition in product_compositions:
+            technological_link = product_composition.technology
+            if technological_link:
+                tech_id = technological_link.id
+                tech_name = technological_link.operation_link_name
+                tech_folder = technological_link.folder.name
+                tech_folder_id = technological_link.folder.id
+                tech_parent_id = technological_link.folder.parent.id if technological_link.folder.parent else None
+                tech_parent_name = technological_link.folder.parent.name if technological_link.folder.parent else None
+                
+                unique_links[(tech_id, tech_name, tech_folder_id)] = {
+                    'id': tech_id,
+                    'name': tech_name,
+                    'folder': tech_folder,
+                    'folder_id': tech_folder_id,
+                    'parent_id': tech_parent_id,
+                    'parent_name': tech_parent_name
+                }
+
+        folder_ids = set(link['folder_id'] for link in unique_links.values())
+
+        def add_parent_folders(folder_id):
+            folder = Folder.objects.get(id=folder_id)
+            if folder.parent:
+                parent_id = folder.parent.id
+                if parent_id not in folder_ids:
+                    folder_ids.add(parent_id)
+                    add_parent_folders(parent_id)
+
+        for folder_id in folder_ids.copy():
+            add_parent_folders(folder_id)
+        
+        filtered_folders = Folder.objects.filter(id__in=folder_ids).order_by('name')
+        
+        all_folders = [
+            {
+                'folder': folder.name,
+                'folder_id': folder.id,
+                'parent_id': folder.parent.id if folder.parent else None,
+                'parent_name': folder.parent.name if folder.parent else None
+            }
+            for folder in filtered_folders
+        ]
+    else:
+        technological_links = TechnologicalLink.objects.all()
+        
+        for comp in technological_links:
+            tech_id = comp.id
+            tech_name = comp.operation_link_name
+            tech_folder = comp.folder.name
+            tech_folder_id = comp.folder.id
+            tech_parent_id = comp.folder.parent.id if comp.folder.parent else None
+            tech_parent_name = comp.folder.parent.name if comp.folder.parent else None
+            
+            unique_links[(tech_id, tech_name, tech_folder_id)] = {
+                'id': tech_id,
+                'name': tech_name,
+                'folder': tech_folder,
+                'folder_id': tech_folder_id,
+                'parent_id': tech_parent_id,
+                'parent_name': tech_parent_name
+            }
+        
+        all_folders = [
+            {
+                'folder': folder.name,
+                'folder_id': folder.id,
+                'parent_id': folder.parent.id if folder.parent else None,
+                'parent_name': folder.parent.name if folder.parent else None
+            }
+            for folder in Folder.objects.filter(folder_type='Технологические узлы')
+        ]
+
     links = list(unique_links.values())
 
-    return JsonResponse({'links': links})
+    return JsonResponse({
+        'links': links,
+        'folders': all_folders,
+        'open': open_all  # Передаем флаг "open"
+    })
+
 
 def edit_default_parameters(self, request):
     context = {
@@ -198,31 +322,56 @@ def get_technological_operations(request):
     if request.method == 'POST':
         # Получаем данные из тела POST-запроса
         data = json.loads(request.body)
-        link_ids = data.get('links')  # Получаем ссылки из данных
-        if link_ids and link_ids[0]: 
-            link = TechnologicalLink.objects.filter(
-                operation_link_name__in=link_ids
+        # print(data)
+        link_ids = data.get('links', [])  # Получаем ссылки из данных
+        current_product = data.get('current_product')  # Получаем ссылки из данных
+
+        if current_product:
+            product_compositions = ProductComposition.objects.filter(
+                product=current_product,
+                technology__operation_link_name__in=link_ids  # Фильтруем по имени технологии
             )
-            operations = TechnologicalOperation.objects.filter(
-                productcomposition__technology__id__in=link
-            ).distinct() 
+            # Получаем уникальные ID тех операций, которые соответствуют фильтру
+            tech_operations_ids = product_compositions.values_list('techoperation', flat=True).distinct()
+            if tech_operations_ids:
+                operations = TechnologicalOperation.objects.filter(
+                    id__in=tech_operations_ids,
+                ).distinct()
+            else:
+                operations = []  # Если операций нет, возвращаем пустой список
         else:
-            operations = []  # Очищаем список операций, если узлы не выбраны
+            if link_ids and link_ids[0]: 
+                link = TechnologicalLink.objects.filter(
+                    operation_link_name__in=link_ids
+                )
+                operations = TechnologicalOperation.objects.filter(
+                    technologicallinkcomposition__technical_link__id__in=link
+                ).distinct() 
+            else:
+                operations = []  # Очищаем список операций, если узлы не выбраны
+
+
         operation_list2 = [{'id': op.id, 'name': op.operation_link_name, 'formula': op.formula} for op in operations]
+
         operation_list = []
         for ol in operation_list2:
             x = ol['name']
             y = TechnologicalOperation.objects.filter(
                 operation_link_name=x
             )
-            product_compositions = ProductComposition.objects.filter(
-            operation__in=y # Фильтруем по выбранным операциям
-        )[0]
+            # else:
+            #     y = TechnologicalOperation.objects.filter(
+            #         operation_link_name=x
+            #     )
+            # print(y)
+        #     product_compositions = ProductComposition.objects.filter(
+        #     operation__in=y # Фильтруем по выбранным операциям
+        # )[0]
             operation_list.append({
                 'id': ol['id'],
                 'name': ol['name'],  # Предполагаем, что есть поле name у TechnologicalOperation
                 'formula': ol['formula'],  # Предполагаем, что есть поле formula у TechnologicalOperation
-                'link': product_compositions.technology.operation_link_name
+                'link': x
             })
         inner_operations = [] 
         for oper in operation_list:
@@ -235,14 +384,15 @@ def get_technological_operations(request):
                 matching_operations2 = OperationOfTechnologicalOperation.objects.filter(technicological_operation=operation)
                 for op in matching_operations2:
                     inner_operations.append(str(op.production_operation))
+        print('иннер_операйшен')
+        print(inner_operations)
         return JsonResponse({'operations': operation_list, 'inner_operations': inner_operations })
 
 def update_selected_operations(request):
     if request.method == 'POST':
         data = json.loads(request.body)
         selected_operations = data.get('selected_operations')
-        # Извлекаем выделенные операции из POST-запроса
-        print(selected_operations)
+        # print(selected_operations)
         if selected_operations and selected_operations[0]: 
             return JsonResponse({'success': True, 'selected_operations': selected_operations})
         else:
@@ -253,7 +403,7 @@ def update_selected_nomenclature(request):
     if request.method == 'POST':
         data = json.loads(request.body)
         selected_nomenclature = data.get('selected_nomenclature')
-        print(selected_nomenclature)  # Выводим выделенные номенклатуры в консоль для проверки
+        # print(selected_nomenclature)  # Выводим выделенные номенклатуры в консоль для проверки
 
         if selected_nomenclature and selected_nomenclature[0]:
             return JsonResponse({'success': True, 'selected_nomenclature': selected_nomenclature})
@@ -262,24 +412,48 @@ def update_selected_nomenclature(request):
 
     return JsonResponse({'success': False, 'message': 'Неверный метод запроса.'})
 
+from django.db.models import Q  # Импортируем Q для составления сложных запросов
+
 def get_nomenclature(request):
+    # Получаем список выбранных операций
     operations_ids = request.GET.get('operations', '')
     operations_ids_list = operations_ids.split(',') if operations_ids else []
-    if operations_ids_list:
-        techoper = TechnologicalOperation.objects.filter(
-            operation_link_name__in=operations_ids_list
-        ).distinct()
+    
+    # Получаем id выбранного продукта
+    product_id = request.GET.get('product', '')
+    
+    if operations_ids_list and product_id:
+        # Находим все ProductComposition, которые соответствуют выбранному продукту
+        product_compositions = ProductComposition.objects.filter(
+            product_id=product_id,
+            techoperation__in=operations_ids_list  # Отфильтровываем по выбранным операциям
+        )
         
-        nomenclature = MaterialsTechnologicalOperation.objects.filter(
-            technicological_operation__in=techoper
+        # Собираем все уникальные (nomenklatura, technicological_operation) из найденных ProductComposition
+        nomenclature_and_operations = product_compositions.values_list(
+            'nomenclature', 'techoperation'
+        ).distinct()
+
+        # Находим все записи в MaterialsTechnologicalOperation, у которых совпадают nomenklatura и techoperation
+        nomenclature_of_techoperations = MaterialsTechnologicalOperation.objects.filter(
+            Q(nomenklatura__in=[n[0] for n in nomenclature_and_operations]) &
+            Q(technicological_operation__in=[n[1] for n in nomenclature_and_operations])
         ).distinct()
     else:
-        nomenclature = []
-    nomenclature_list = [{'id': item.id, 'name': str(item.nomenklatura), 'technicological_operation': str(item.technicological_operation)} for item in nomenclature]
+        nomenclature_of_techoperations = []
+
+    # Формируем список для возвращаемого ответа
+    nomenclature_list = [{
+        'id': item.id,
+        'name': str(item.nomenklatura), 
+        'technicological_operation': str(item.technicological_operation)
+    } for item in nomenclature_of_techoperations]
+    print(nomenclature_list)
     return JsonResponse({'nomenclature': nomenclature_list})
 
+
 def extract_variables(formula):
-    print(formula)
+    # print(formula)
     return re.findall(r'\b\w+\b', formula)
 def get_all_parameters_without_formula(variable_names):
     variables_without_formula = set() 
@@ -289,38 +463,162 @@ def get_all_parameters_without_formula(variable_names):
         parameter = ParametersOfProducts.objects.filter(formula_name=current_variable).first()
         if parameter and parameter.formula:
             new_variables = extract_variables(parameter.formula)
-            print(new_variables)
+            # print(new_variables)
             next_variables_to_check.update(new_variables) 
         else:
             variables_without_formula.add(current_variable)
 
     return variables_without_formula
 
+def get_parameters_product_bitrix(request):
+    print('get_parameters_product_bitrix')
+
+    # Получаем id и имя товара для поиска
+    goods_id = request.GET.get('goods_id')
+    bitrix_goods_name = request.GET.get('bitrix_goods_name')
+
+    # Получаем типы товаров и их родителей (параметр передается как строка JSON)
+    selected_types_json = request.GET.get('selected_types', '[]')  # Если параметр отсутствует, по умолчанию пустой список
+
+    try:
+        # Преобразуем строку JSON в Python объект (список словарей)
+        selected_types = json.loads(selected_types_json)
+    except json.JSONDecodeError:
+        selected_types = []
+
+    # Логирование для отладки
+    print(f"goods_id: {goods_id}")
+    print(f"bitrix_goods_name: {bitrix_goods_name}")
+    print(f"selected_types: {selected_types}")
+
+    # Здесь можно добавить вашу логику для обработки полученных типов
+    # Например, возвращать параметры для каждого типа товара
+
+    if goods_id and bitrix_goods_name:
+        # Ищем объект Bitrix_Goods по id и bitrix_goods_name
+        bitrix_goods = Bitrix_Goods.objects.filter(id=goods_id, bitrix_goods_name=bitrix_goods_name).first()
+        if not bitrix_goods:
+            return JsonResponse({'error': 'Товар не найден'}, status=404)
+        
+        if selected_types:
+            operations = []  # List to store all TechnologicalOperation objects
+            for selected_type in selected_types:                
+                # Filter the Bitrix_GoodsComposition objects based on the selected type
+                bitrix_goods_composition = Bitrix_GoodsComposition.objects.filter(
+                    goods=bitrix_goods, 
+                    name_type_of_goods=selected_type['parent'], 
+                    type_of_goods=selected_type['type']
+                )
+                
+                if not bitrix_goods_composition.exists():
+                    return JsonResponse({'error': 'Состав товара не найден'}, status=404)
+                
+                
+                # Iterate over the filtered Bitrix_GoodsComposition objects and get the techoperation
+                for composition in bitrix_goods_composition:
+                    tech_operation = composition.techoperation
+                    if not tech_operation:
+                        return JsonResponse({'error': 'Технологическая операция не найдена'}, status=404)
+                    
+                    # Append the tech_operation to the operations list
+                    operations.append(tech_operation)
+
+
+        all_parameters = {}
+        
+        for operation in operations:
+            if operation.formula:
+                initial_variables = extract_variables(operation.formula)
+                variables_without_formula = get_all_parameters_without_formula(initial_variables)
+                matching_parameters = ParametersOfProducts.objects.filter(formula_name__in=variables_without_formula)
+                for item in matching_parameters:
+                    if item.parameters_product not in all_parameters:
+                        all_parameters[item.parameters_product] = {'id': item.id, 'name': item.parameters_product}
+            
+            # Аналогичные действия для других типов операций
+            operation_of_tech_ops = OperationOfTechnologicalOperation.objects.filter(technicological_operation=operation)
+            for op_tech_op in operation_of_tech_ops:
+                if op_tech_op.formula:
+                    initial_variables = extract_variables(op_tech_op.formula)
+                    variables_without_formula = get_all_parameters_without_formula(initial_variables)
+                    matching_parameters = ParametersOfProducts.objects.filter(formula_name__in=variables_without_formula)
+                    for item in matching_parameters:
+                        if item.parameters_product not in all_parameters:
+                            all_parameters[item.parameters_product] = {'id': item.id, 'name': item.parameters_product}
+            
+            material_of_tech_ops = MaterialsTechnologicalOperation.objects.filter(technicological_operation=operation)
+            for material_tech_op in material_of_tech_ops:
+                if material_tech_op.formula:
+                    initial_variables = extract_variables(material_tech_op.formula)
+                    variables_without_formula = get_all_parameters_without_formula(initial_variables)
+                    matching_parameters = ParametersOfProducts.objects.filter(formula_name__in=variables_without_formula)
+                    for item in matching_parameters:
+                        if item.parameters_product not in all_parameters:
+                            all_parameters[item.parameters_product] = {'id': item.id, 'name': item.parameters_product}
+            
+            addmaterial_of_tech_ops = AddingMaterialsTechnologicalOperation.objects.filter(technicological_operation=operation)
+            for addmaterial_tech_op in addmaterial_of_tech_ops:
+                if addmaterial_tech_op.formula:
+                    initial_variables = extract_variables(addmaterial_tech_op.formula)
+                    variables_without_formula = get_all_parameters_without_formula(initial_variables)
+                    matching_parameters = ParametersOfProducts.objects.filter(formula_name__in=variables_without_formula)
+                    for item in matching_parameters:
+                        if item.parameters_product not in all_parameters:
+                            all_parameters[item.parameters_product] = {'id': item.id, 'name': item.parameters_product}
+        print(list(all_parameters.values()))
+        # Возвращаем параметры в виде JSON
+        return JsonResponse({'parameters': list(all_parameters.values())})
+    else:
+        return JsonResponse({'error': 'Параметры товара не переданы'}, status=400)
+    
 def get_parameters_product(request):
+    print('get_parameters_product')
     operations_ids = request.GET.get('operations', '')
     print(operations_ids)
     operations_ids = operations_ids.split(',') if operations_ids else []
     
     if operations_ids:
-        # Получаем все операции, соответствующие переданным именам операций
         operations = TechnologicalOperation.objects.filter(operation_link_name__in=operations_ids)
         
         all_parameters = {}
         
         for operation in operations:
-            print(operation.formula)
             if operation.formula:
-                # Извлекаем переменные из формулы
                 initial_variables = extract_variables(operation.formula)
-                # Получаем параметры, для которых нет формулы
                 variables_without_formula = get_all_parameters_without_formula(initial_variables)
-                # Находим соответствующие параметры продуктов
                 matching_parameters = ParametersOfProducts.objects.filter(formula_name__in=variables_without_formula)
-                # Добавляем параметры в словарь с проверкой уникальности по 'name'
                 for item in matching_parameters:
                     if item.parameters_product not in all_parameters:
                         all_parameters[item.parameters_product] = {'id': item.id, 'name': item.parameters_product}
-        
+            operation_of_tech_ops = OperationOfTechnologicalOperation.objects.filter(technicological_operation=operation)
+            for op_tech_op in operation_of_tech_ops:
+                if op_tech_op.formula:
+                    initial_variables = extract_variables(op_tech_op.formula)
+                    variables_without_formula = get_all_parameters_without_formula(initial_variables)
+                    matching_parameters = ParametersOfProducts.objects.filter(formula_name__in=variables_without_formula)
+                    for item in matching_parameters:
+                        if item.parameters_product not in all_parameters:
+                            all_parameters[item.parameters_product] = {'id': item.id, 'name': item.parameters_product}
+            material_of_tech_ops = MaterialsTechnologicalOperation.objects.filter(technicological_operation=operation)
+            for material_tech_op in material_of_tech_ops:
+                if material_tech_op.formula:
+                    initial_variables = extract_variables(material_tech_op.formula)
+                    variables_without_formula = get_all_parameters_without_formula(initial_variables)
+                    matching_parameters = ParametersOfProducts.objects.filter(formula_name__in=variables_without_formula)
+                    for item in matching_parameters:
+                        if item.parameters_product not in all_parameters:
+                            all_parameters[item.parameters_product] = {'id': item.id, 'name': item.parameters_product}
+            addmaterial_of_tech_ops = AddingMaterialsTechnologicalOperation.objects.filter(technicological_operation=operation)
+            for addmaterial_tech_op in addmaterial_of_tech_ops:
+                if addmaterial_tech_op.formula:
+                    initial_variables = extract_variables(addmaterial_tech_op.formula)
+                    variables_without_formula = get_all_parameters_without_formula(initial_variables)
+                    matching_parameters = ParametersOfProducts.objects.filter(formula_name__in=variables_without_formula)
+                    for item in matching_parameters:
+                        if item.parameters_product not in all_parameters:
+                            all_parameters[item.parameters_product] = {'id': item.id, 'name': item.parameters_product}
+        print(list(all_parameters.values()))
+        print('конец')
         return JsonResponse({'parameters': list(all_parameters.values())})
     else:
         return JsonResponse({'parameters': []})
@@ -382,195 +680,380 @@ from .models import ParametersOfProducts, TechnologicalOperation
 
 @csrf_exempt
 def update_parameters_product(request):
+    print('update_parameters_product')
+
     if request.method == 'POST':
         try:
             def replace_formula_with_calculation(tech_operation):
                 final_formula = tech_operation.formula  # Получаем исходную формулу операции
-                
+                # print(final_formula)
                 while True:
                     initial_formula = final_formula  # Сохраняем текущую формулу для проверки изменений
-                    elements = final_formula.split()  # Разделяем формулу на отдельные элементы
                     
+                    elements = final_formula.split()  # Разделяем формулу на отдельные элементы
+                    # print(initial_formula)
                     # Перебираем все элементы формулы
                     for i, element in enumerate(elements):
+                        # print(i,element)
                         try:
+                            # print(i)
+                            # print(element)
                             # Ищем, является ли элемент представлением
-                            param_obj = ParametersOfProducts.objects.get(Q(formula_name=element))
+                            param_obj = ParametersOfProducts.objects.filter(Q(formula_name=element)).first()
+                            # print(param_obj)
 
-                            if param_obj.formula:
+                            # Проверяем, что param_obj найден и содержит формулу
+                            if param_obj and param_obj.formula:
                                 # Если у представления есть формула расчета, заменяем его на формулу с учетом скобок
                                 elements[i] = f" ( {param_obj.formula} ) "
                         except ParametersOfProducts.DoesNotExist:
                             # Если представление не найдено, продолжаем
                             pass
-
+                    # print(final_formula)
                     # Соединяем все элементы обратно в строку
                     final_formula = ' '.join(elements)
-
+                    # print(final_formula)
                     # Если формула не изменилась, выходим из цикла
                     if final_formula == initial_formula:
                         break
-
                 # Обновляем значение formula у технологической операции
                 tech_operation.formula = final_formula
+                # print(tech_operation.formula)
 
             # Загружаем JSON данные из запроса
             data = json.loads(request.body)
-            # Извлекаем параметры изделия из данных
             product_parameters = data.get('product_parameters', {})
             inner_operations = data.get('inner_operations', {})
             nomenclature_list = data.get('nomenclature_list')
+            # print(nomenclature_list)
             technological_operations = data.get('technological_operations', [])
-            old_tech = technological_operations
-            nomenclature_count = len(nomenclature_list) if nomenclature_list is not None else 0
+            technological_operation_list = TechnologicalOperation.objects.filter(operation_link_name__in=technological_operations)
+            price_cost_with_adds = 0
+            final_prices = 0
 
-            # Перебираем каждый параметр, чтобы сохранить или обновить его
-            parameters_dict = {}
-            for param_name, param_value in product_parameters.items():
-                parameter = ParametersOfProducts.objects.get(parameters_product=param_name)
-                parameters_dict[parameter.formula_name] = param_value
-            for inner_name in inner_operations:
-                
-                operation = ProductionOperation.objects.filter(operation_name=inner_name).first()
-                tarif = ProductionOperationTariffs.objects.filter(production_operation=operation).first()
-                inner_operation = OperationOfTechnologicalOperation.objects.filter(production_operation=operation)
-                for inner in inner_operation:
-                    replace_formula_with_calculation(inner)
-                    tokens = inner.formula.replace('*', ' * ').replace('/', ' / ').split()
-                    cleaned_tokens = []
 
-                    for i in range(len(tokens)):
-                        if tokens[i] in parameters_dict:
-                            tokens[i] = parameters_dict[tokens[i]]
-                    for token in tokens:
-                        try:
-                            value = float(token)
-                            cleaned_tokens.append(str(value))
-                        except (ValueError, TypeError):
-                            if token is None:
-                                cleaned_tokens.append('0')
-                            else:
-                                cleaned_tokens.append(token)
-                    final_formula = ' '.join(cleaned_tokens)
-                    result = eval(final_formula)
-                    
-                    def safe_float(value):
-                        try:
-                            return float(value)
-                        except (ValueError, TypeError):
-                            return 0.0  # Возвращаем 0.0 в случае ошибки
-
-                    # Используем безопасное преобразование
-                    lead_time = safe_float(tarif.lead_time)
-                    preporation_time = safe_float(tarif.preporation_time)
-                    min_time = safe_float(tarif.min_time)
-                    many_people = safe_float(tarif.many_people)
-                    salary = safe_float(operation.job_title.salary)
-
-                    # Проверяем условие и вычисляем result2
-                    if (lead_time + preporation_time) < min_time:
-                        result2 = result * ((min_time * many_people) / 60) * salary
+            def replace_min(tokens):
+                i = 0
+                while i < len(tokens):
+                    # Ищем "Мин" и проверяем, что есть достаточно элементов после него
+                    if tokens[i] == 'Мин' and i + 4 < len(tokens) and tokens[i+1] == '(' and tokens[i+3] == ',' and tokens[i+5] == ')':
+                        # Извлекаем два числа после "Мин"
+                        num1 = tokens[i+2]
+                        num2 = tokens[i+4]
+                        
+                        # Находим меньшее из двух чисел или первое, если они равны
+                        min_value = num1 if num1 <= num2 else num2
+                        
+                        # Заменяем 'Мин', '(', num1, ',', num2, ')' на min_value
+                        tokens = tokens[:i] + [min_value] + tokens[i+6:]  
                     else:
-                        result2 = result * ((lead_time + preporation_time) * many_people / 60) * salary
-                    # Умножаем на количество номенклатуры
-                    result2 = result2 * nomenclature_count
-                    print(f"{inner} -- Результат операции: {result2}")
-                    
-            
+                        i += 1  # Переходим к следующему элементу
+                return tokens
+                            
             operations_prices = []
-
-            for operation in technological_operations:
-                try:
-                    # Задаем начальные значения для переменных накопления
-                    total_nomenclature = 0.0
-                    total_final_price = 0.0
+            operations_fullprices = []
+            for techlink in technological_operation_list:
+                final_price_current_techoperation = 0
+                # print(techlink.operation_link_name)
+                # nomenclature_count = len(nomenclature_list) if nomenclature_list is not None else 0
+                # Перебираем каждый параметр, чтобы сохранить или обновить его
+                parameters_dict = {}
+                for param_name, param_value in product_parameters.items():
                     
-                    if isinstance(operation, str):
-                        operation = [operation]
-                    tech_operations = TechnologicalOperation.objects.filter(operation_link_name__in=operation)
-                    
-                    for tech_operation in tech_operations:
-                        replace_formula_with_calculation(tech_operation)
-                        tokens = tech_operation.formula.replace('*', ' * ').replace('/', ' / ').split()
-                        result_tokens = []
-
+                    parameter = ParametersOfProducts.objects.get(parameters_product=param_name)
+                    parameters_dict[parameter.formula_name] = param_value
+                    # print(parameters_dict)
+                total_inner_operations_sum = 0
+                for inner_name in inner_operations:
+                    # print('Операции')
+                    # print(inner_name)
+                    inner_operation = ProductionOperation.objects.filter(operation_name=inner_name).first()
+                    inner_operations = ProductionOperation.objects.filter(operation_name=inner_name)
+                    tarif = ProductionOperationTariffs.objects.filter(production_operation=inner_operation).first()
+                    inner_operation2 = OperationOfTechnologicalOperation.objects.filter(
+                        production_operation=inner_operation,
+                        technicological_operation=techlink)
+                    for inner in inner_operation2:
+                        # print(inner)
+                        replace_formula_with_calculation(inner)
+                        tokens = inner.formula.replace('*', ' * ').replace('/', ' / ').split()
+                        cleaned_tokens = []
+                        # print(tokens)
+                        for i in range(len(tokens)):
+                            if tokens[i] in parameters_dict:
+                                tokens[i] = parameters_dict[tokens[i]]
+                        
+                        # Присваиваем результат выполнения функции обратно в tokens
+                        tokens = replace_min(tokens)
                         for token in tokens:
-                            if token in parameters_dict:
-                                result_tokens.append(parameters_dict[token])
-                            else:
-                                result_tokens.append(token)
-
-                        new_formula = []
-                        for token in result_tokens:
                             try:
                                 value = float(token)
-                                new_formula.append(f"{value:.2f}")
-                            except ValueError:
-                                parameter = ParametersOfProducts.objects.filter(formula_name=token).first()
-                                if parameter:
-                                    param_value = product_parameters.get(parameter.id, 0)
-                                    new_formula.append(f"{param_value:.2f}")
+                                cleaned_tokens.append(str(value))
+                            except (ValueError, TypeError):
+                                if token is None:
+                                    cleaned_tokens.append('0')
                                 else:
-                                    new_formula.append(token)
+                                    cleaned_tokens.append(token)
+                        final_formula = ' '.join(cleaned_tokens)
+                        result = eval(final_formula)
+                        # print(result)
 
-                        final_formula = ' '.join(new_formula)
-                        print(final_formula)
-                        try:
-                            result = eval(final_formula)
-                        except Exception as e:
-                            print("Ошибка при вычислении формулы:", e)
+                        # print(result)
+                        def safe_float(value):
+                            try:
+                                return float(value)
+                            except (ValueError, TypeError):
+                                return 0.0  # Возвращаем 0.0 в случае ошибки
 
-                        default_parameters = ParametersNormativesInCalculation._meta.get_field('overheads').default
-                        salary_fund_default = ParametersNormativesInCalculation._meta.get_field('salary_fund').default
-                        profit_default = ParametersNormativesInCalculation._meta.get_field('profit').default
-                        payroll_default = ParametersNormativesInCalculation._meta.get_field('payroll').default
+                        # Используем безопасное преобразование
+                        lead_time = safe_float(tarif.lead_time)
+                        # print(lead_time)
+                        preporation_time = safe_float(tarif.preporation_time)
+                        # print(preporation_time)
+                        min_time = safe_float(tarif.min_time)
+                        # print(min_time)
+                        many_people = safe_float(tarif.many_people)
+                        # print(many_people)
+                        salary = safe_float(inner_operation.job_title.salary)
+                        # print(salary)
 
-                        materials_tech_ops = MaterialsTechnologicalOperation.objects.filter(technicological_operation=tech_operation)
-                        matched_nomenklaturas = []
+                        result_to_done = preporation_time + lead_time * result
+                        # print(result_to_done)
+                        # Проверяем условие и вычисляем result2
+                        if result_to_done < min_time:
+                            result2 = ((min_time * many_people) / 60) * salary
+                        else:
+                            result2 = (result_to_done * many_people / 60) * salary
+                        # Умножаем на количество номенклатуры
+                        # result2 = result2 * nomenclature_count
+                        print(f"{inner} -- Результат операции: {result2}")
+                        total_inner_operations_sum += result2
+
+                total_nomenclature_sum = 0
+
+                for nomenclature in nomenclature_list:
+                    # print('Материал')
+                    # print(nomenclature)
+                    # Получаем строковое значение для сравнения, если techlink является объектом
+                    # Проверка совпадения с использованием strip() для строк
+                    if techlink.operation_link_name == nomenclature['operation']:
+                        nomenclature_name = nomenclature['nomenclature']
+                        # print(nomenclature_name)
+                        material_operations = MaterialsTechnologicalOperation.objects.filter(
+                            nomenklatura__nomenklatura_name=nomenclature_name,
+                            technicological_operation=techlink
+                        )
                         
-                        for material in materials_tech_ops:
+                        for material in material_operations:
+                            # print(material.nomenklatura)
+                            if material.formula is None:
+                                material.formula = techlink.formula
+                            # print(material.formula)
+                            replace_formula_with_calculation(material)
+                            
+                            # Обработка формулы
+                            tokens = material.formula.replace('*', ' * ').replace('/', ' / ').split()
+                            cleaned_tokens = [
+                                str(parameters_dict.get(token, token)) if token in parameters_dict else token
+                                for token in tokens
+                            ]
+
+                            final_formula = ' '.join(cleaned_tokens)
+                            result = eval(final_formula)
+
+                            # Дополнительные вычисления
+                            default_parameters = ParametersNormativesInCalculation._meta.get_field('overheads').default
+                            salary_fund_default = ParametersNormativesInCalculation._meta.get_field('salary_fund').default
+                            profit_default = ParametersNormativesInCalculation._meta.get_field('profit').default
+                            payroll_default = ParametersNormativesInCalculation._meta.get_field('payroll').default
+
+                            matched_nomenklaturas = []
+
                             if material.nomenklatura and material.nomenklatura.nomenklatura_name in nomenclature_list:
                                 matched_nomenklaturas.append(material.nomenklatura)
+                            
+                            nomenclature = material.nomenklatura
 
-                        nomenclature_total = 0.0
-                        nomenclature_price_without_percent_total = 0.0
+                                                        # Суммирование цен номенклатур
+                            # Присваиваем 1, если значение отсутствует или является пустой строкой
+                            if not nomenclature.price:
+                                nomenclature.price = 1
+                            if not nomenclature.waste_rate:
+                                nomenclature.waste_rate = 1
+                            if not nomenclature.material_markup:
+                                nomenclature.material_markup = 1
 
-                        for nomenclature in matched_nomenklaturas:
-                            nomenclature_price = float(nomenclature.price) * float(nomenclature.waste_rate) * float(nomenclature.material_markup)
-                            nomenclature_price_without_percent = float(nomenclature.price)
-                            nomenclature_price_without_percent_total += nomenclature_price_without_percent
-                            nomenclature_total += nomenclature_price
+                            # Преобразуем значения в float для последующего использования
+                            nomenclature.price = float(nomenclature.price)
+                            nomenclature.waste_rate = float(nomenclature.waste_rate)
+                            nomenclature.material_markup = float(nomenclature.material_markup)
+                            nomenclature_total = nomenclature.price * nomenclature.waste_rate * nomenclature.material_markup
+                            # nomenclature_price_without_percent_total = sum(
+                            #     float(nomenclature.price) for nomenclature in matched_nomenklaturas
+                            # )
+                            result = nomenclature_total * result
+                            # print(result2)
+                            # print(f"{material} -- Результат номенклатуры: {result}")
+                            total_nomenclature_sum += result
 
-                        price_nomenclatura = result * nomenclature_total + result * nomenclature_total * salary_fund_default / 100 + result * nomenclature_total * profit_default / 100
-                        price_operation = result + result * default_parameters / 100 + result * payroll_default / 100
-                        final_price = price_nomenclatura + price_operation
+                technological_operation = TechnologicalOperation.objects.filter(operation_link_name=techlink).first()
 
-                        operations_prices.append({
-                            'nomenclature_without_percent': nomenclature_price_without_percent_total,
-                            'nomenclature_total': nomenclature_total,
-                            'operation': tech_operation.operation_link_name,
-                            'result': result,
-                            'price_nomenclatura': price_nomenclatura,
-                            'price_operation': price_operation,
-                            'final_price': final_price
-                        })
+                    # Получаем все связанные объекты AddingMaterialsTechnologicalOperation
+                adding_materials_operations = AddingMaterialsTechnologicalOperation.objects.filter(technicological_operation=technological_operation)
+                
+                # Проходимся по всем найденным объектам и выводим их
+                total_adding_material_sum = 0
+                for adding_material in adding_materials_operations:
+                    # print('Добавочные материалы')
+                    # Сохраняем объект Nomenklatura в переменную
+                    nomenklatura_price = adding_material.nomenklatura.price
+                    # print(nomenklatura_price)
+                    if adding_material.formula is None:
+                        adding_material.formula = techlink.formula
+                        # print(adding_material.formula)
+                    # print(adding_material.formula)
+                    replace_formula_with_calculation(adding_material)
+                    # print(adding_material.formula)
+                    # Обработка формулы
+                    tokens = adding_material.formula.replace('*', ' * ').replace('/', ' / ').split()
+                    # print(tokens)
+                    cleaned_tokens = [
+                        str(parameters_dict.get(token, token)) if token in parameters_dict else token
+                        for token in tokens
+                    ]
+                    
+                    final_formula = ' '.join(cleaned_tokens)
+                    # print(final_formula)
+                    result = eval(final_formula)
+                    # print(result)
 
-                        # Суммируем значения из operations_prices
-                        for op in operations_prices:
-                            total_nomenclature += op['nomenclature_without_percent']
-                            total_final_price += op['final_price']
 
-                        print(f"{op['operation']} -- Результат операции: {op['final_price']}")
-                    print("Сумма всех nomenclature_total:", total_nomenclature)
-                    print("Сумма всех final_prices:", total_final_price)
+                    matched_nomenklaturas = []
 
-                except Exception as e:
-                    print(f"Ошибка при вычислении операции {operation}: {e}")
+                    if adding_material.nomenklatura and adding_material.nomenklatura.nomenklatura_name in nomenclature_list:
+                        matched_nomenklaturas.append(adding_material.nomenklatura)
+                    nomenclature = adding_material.nomenklatura
+                    # Суммирование цен номенклатур
+                    if not nomenclature.price:
+                        nomenclature.price = 1
+                    if not nomenclature.waste_rate:
+                        nomenclature.waste_rate = 1
+                    if not nomenclature.material_markup:
+                        nomenclature.material_markup = 1
 
+                    # Преобразуем значения в float для последующего использования
+                    nomenclature.price = float(nomenclature.price)
+                    nomenclature.waste_rate = float(nomenclature.waste_rate)
+                    nomenclature.material_markup = float(nomenclature.material_markup)
+                    nomenclature_total = nomenclature.price * nomenclature.waste_rate * nomenclature.material_markup
+
+                    # nomenclature_price_without_percent_total = sum(
+                    #     float(nomenclature.price) for nomenclature in matched_nomenklaturas
+                    # )
+                    result = nomenclature_total * result
+                    result2 = (
+                        result +
+                        result * salary_fund_default / 100 +
+                        result * profit_default / 100
+                    )
+                    
+                    # print(f"{adding_material} -- Результат номенклатуры: {result2}")
+                    total_adding_material_sum += result2
+                # Теперь добавить AddMaterials и потом всё соединить
+                total_sum_operations = total_inner_operations_sum 
+                total_sum_materials = total_adding_material_sum + total_nomenclature_sum 
+                # print(total_sum_operations)
+                # print(total_sum_materials)
+
+                overheads_default = ParametersNormativesInCalculation._meta.get_field('overheads').default
+                salary_fund_default = ParametersNormativesInCalculation._meta.get_field('salary_fund').default
+                profit_default = ParametersNormativesInCalculation._meta.get_field('profit').default
+                payroll_default = ParametersNormativesInCalculation._meta.get_field('payroll').default
+
+                price_material = total_nomenclature_sum
+                print(f"Материалы: {price_material}")
+                price_add_material = total_adding_material_sum
+                print(f"Дополнительные Материалы: {price_add_material}")
+                price_salary = total_sum_operations
+                print(f"Заработная плата: {price_salary}")
+                price_payroll = total_sum_operations * payroll_default / 100
+                print(f"Отчисления на зарплату: {price_payroll}")
+                price_overheads = total_sum_operations * overheads_default / 100
+                print(f"Накладные расходы: {price_overheads}")
+                price_cost = price_material + price_salary + price_overheads + price_payroll
+                price_cost_with_add = price_cost + price_add_material
+
+                print(f"Себестоимость: {price_cost}")
+                price_profit = price_cost_with_add * profit_default / 100
+                print(f"Прибыль: {price_profit}")
+                price_salary_fund = price_cost_with_add * salary_fund_default / 100
+                print(f"Зарплатный фонд: {price_salary_fund}")
+                final_price = price_cost_with_add + price_profit + price_salary_fund
+                print(f"Цена: {final_price}")
+                price_cost_with_adds += price_cost_with_add
+                # final_prices += final_price
+                final_price_current_techoperation += final_price
+                operations_prices.append({
+                    'operation': techlink.operation_link_name,
+                    'final_price': final_price_current_techoperation
+                })
+                operations_fullprices.append({
+                    'operation': techlink.operation_link_name,
+                    'price_material': price_material,
+                    'price_add_material':price_add_material,
+                    'price_salary':price_salary,
+                    'price_payroll':price_payroll,
+                    'price_overheads':price_overheads,
+                    'price_cost':price_cost,
+                    'price_profit':price_profit,
+                    'price_salary_fund':price_salary_fund,
+                    'price_cost_with_add':price_cost_with_add,
+                    'final_price':final_price_current_techoperation
+                })
+
+
+            all_final_prices = sum(item['final_price'] for item in operations_prices)
+            all_price_material = sum(item['price_material'] for item in operations_fullprices)
+            print(f"Общие Материалы: {all_price_material}")
+
+            all_price_add_material = sum(item['price_add_material'] for item in operations_fullprices)
+            print(f"Общие Дополнительные материалы: {all_price_add_material}")
+
+            all_price_salary = sum(item['price_salary'] for item in operations_fullprices)
+            print(f"Общие Заработная плата: {all_price_salary}")
+
+            all_price_payroll = sum(item['price_payroll'] for item in operations_fullprices)
+            print(f"Общие Отчисления на зарплату: {all_price_payroll}")
+
+            all_price_overheads = sum(item['price_overheads'] for item in operations_fullprices)
+            print(f"Общие Накладные расходы: {all_price_overheads}")
+
+            all_price_cost = sum(item['price_cost'] for item in operations_fullprices)
+            print(f"Общая Себестоимость: {all_price_cost}")
+
+            all_price_profit = sum(item['price_profit'] for item in operations_fullprices)
+            print(f"Общая Прибыль: {all_price_profit}")
+
+            all_price_salary_fund = sum(item['price_salary_fund'] for item in operations_fullprices)
+            print(f"Общий Зарплатный фонд: {all_price_salary_fund}")
+
+            all_price_cost_with_add = sum(item['price_cost_with_add'] for item in operations_fullprices)
+            print(f"Общая Себестоимость с дополнительными материалами: {all_price_cost_with_add}")
+
+            all_final_price = sum(item['final_price'] for item in operations_fullprices)
+            print(f"Общая Итоговая цена: {all_final_price}")
+            # all_final_prices += final_price_current_techoperation
+            price_cost_with_adds += price_cost_with_adds
+            default_parameters = ParametersNormativesInCalculation._meta.get_field('overheads').default
+            salary_fund_default = ParametersNormativesInCalculation._meta.get_field('salary_fund').default
+            profit_default = ParametersNormativesInCalculation._meta.get_field('profit').default
+            payroll_default = ParametersNormativesInCalculation._meta.get_field('payroll').default
+
+            # print(operations_prices)
             response_data = {
                 'success': True,
-                'total_nomenclature': total_nomenclature,
-                'total_final_price': total_final_price,
+                'total_nomenclature': price_cost_with_adds,
+                'total_final_price': all_final_prices,
                 'operations': operations_prices,
                 'default_parameters': {
                     'overheads': default_parameters,
@@ -579,8 +1062,8 @@ def update_parameters_product(request):
                     'payroll': payroll_default
                 }
             }
+            # print(response_data)
             return JsonResponse(response_data)
-
 
         except Exception as e:
             print("Ошибка при обработке запроса:", e)
@@ -823,13 +1306,467 @@ def get_nomenklatura_by_folder(request, folder_id):
     nomenklaturas = Nomenklatura.objects.filter(folder_id=folder_id).values('id', 'nomenklatura_name')
     data = [{'id': n['id'], 'name': n['nomenklatura_name']} for n in nomenklaturas]
     return JsonResponse(data, safe=False)
+    
+def get_technical_operations_by_folder(request, folder_id):
+    operations = TechnologicalOperation.objects.filter(folder_id=folder_id).values('id', 'operation_link_name')
+    data = [{'id': op['id'], 'name': op['operation_link_name']} for op in operations]
+    return JsonResponse(data, safe=False)
 
-def get_folder_by_nomenklatura(request, nomenklatura_id):
+
+def get_production_operation_by_folder(request, folder_id):
+    production_operations = ProductionOperation.objects.filter(folder_id=folder_id).values('id', 'operation_name')
+    data = [{'id': op['id'], 'name': op['operation_name']} for op in production_operations]
+    return JsonResponse(data, safe=False)
+
+def get_add_nomenklature_by_folder(request, folder_id):
+    # Получаем все номенклатуры, которые относятся к выбранной папке
+    nomenklaturas = Nomenklatura.objects.filter(folder_id=folder_id).values('id', 'nomenklatura_name')
+    data = [{'id': n['id'], 'name': n['nomenklatura_name']} for n in nomenklaturas]
+    return JsonResponse(data, safe=False)
+
+
+def get_filtered_fields(request):
+    folder_id = request.GET.get('folder_id')  # Получаем ID папки
+    field_name = request.GET.get('field_name')  # Получаем имя поля для фильтрации
+    if not folder_id or not field_name:
+        return JsonResponse({'error': 'Missing folder_id or field_name'}, status=400)
+    folder = Folder.objects.get(id=folder_id)
+    if field_name == 'technology':
+        options = TechnologicalLink.objects.filter(folder=folder).values('id', 'operation_link_name')
+    else:
+        return JsonResponse({'error': 'Invalid field_name'}, status=400)
+    # Формируем список опций
+    options_list = list(options)
+    return JsonResponse({'options': options_list})
+
+def get_technology_of_product(request):
+    technology_id = request.GET.get('technology_id')
+    
+    # Проверяем, что ID узла был передан
+    if not technology_id:
+        return JsonResponse({'error': 'Missing technology_id'}, status=400)
+
     try:
-        nomenklatura = Nomenklatura.objects.get(id=nomenklatura_id)
-        folder = nomenklatura.folder  # Получаем папку, связанную с номенклатурой
-        return JsonResponse({'folder_id': folder.id}, safe=False)
-    except Nomenklatura.DoesNotExist:
-        return JsonResponse({'error': 'Nomenklatura not found'}, status=404)
+        # Получаем объект технологического узла по ID
+        technology = TechnologicalLink.objects.get(id=technology_id)
+        
+        # Находим все технологические операции, связанные с данным узлом
+        operations = TechnologicalLinkComposition.objects.filter(technical_link=technology).select_related('technical_operation')
+        
+        # Формируем список операций с нужными полями
+        operations_data = [
+            {
+                'id': operation.technical_operation.id,
+                'operation_link_name': operation.technical_operation.operation_link_name,
+            }
+            for operation in operations
+        ]
+
+        # Возвращаем данные
+        return JsonResponse({'operations': operations_data})
+
+    except TechnologicalLink.DoesNotExist:
+        return JsonResponse({'error': 'Technology not found'}, status=404)
+def get_technology_of_goods(request):
+    technology_id = request.GET.get('technology_id')
+    
+    # Проверяем, что ID узла был передан
+    if not technology_id:
+        return JsonResponse({'error': 'Missing technology_id'}, status=400)
+
+    try:
+        # Получаем объект технологического узла по ID
+        technology = TechnologicalLink.objects.get(id=technology_id)
+        
+        # Находим все технологические операции, связанные с данным узлом
+        operations = TechnologicalLinkComposition.objects.filter(technical_link=technology).select_related('technical_operation')
+        
+        # Формируем список операций с нужными полями
+        operations_data = [
+            {
+                'id': operation.technical_operation.id,
+                'operation_link_name': operation.technical_operation.operation_link_name,
+            }
+            for operation in operations
+        ]
+
+        # Возвращаем данные
+        return JsonResponse({'operations': operations_data})
+
+    except TechnologicalLink.DoesNotExist:
+        return JsonResponse({'error': 'Technology not found'}, status=404)
     
 
+def get_nomenclature_by_techoperation(request):
+    tech_operation_id = request.GET.get('tech_operation_id')
+    if not tech_operation_id:
+        return JsonResponse({'error': 'Missing tech_operation_id'}, status=400)
+    
+    # Находим все записи в MaterialsTechnologicalOperation, связанные с этой технологической операцией
+    materials_operations = MaterialsTechnologicalOperation.objects.filter(technicological_operation_id=tech_operation_id)
+
+    # Собираем номенклатуру, связанную с каждой найденной записью
+    nomenclature_options = []
+    for item in materials_operations:
+        nomenclature = item.nomenklatura
+        if nomenclature:
+            nomenclature_options.append({
+                'id': nomenclature.id,
+                'nomenklatura_name': nomenclature.nomenklatura_name,
+            })
+
+    return JsonResponse({'options': nomenclature_options})
+
+
+def get_folder_name_by_technology(request):
+    technology_id = request.GET.get('technology_id')
+    print(technology_id)
+    if not technology_id:
+        return JsonResponse({'error': 'Missing technology_id'}, status=400)
+
+    try:
+        # Получаем объект технологического узла
+        technology = TechnologicalLink.objects.get(id=technology_id)
+        print(technology)
+        folder = Folder.objects.filter(folder_type='Технологические узлы').get(id=technology.folder.id)
+        print(folder.name)
+        print(folder.id)
+
+        # Получаем имя папки, связанной с этим узлом
+        # folder_name = technology.folder.name if technology.folder else None
+        return JsonResponse({'folder_name': folder.name, 'folder_id': folder.id})
+
+    except TechnologicalLink.DoesNotExist:
+        return JsonResponse({'error': 'Technology not found'}, status=404)
+    
+
+
+
+@csrf_exempt
+def update_parameters_product_bitrix(request):
+    print('update_parameters_product')
+
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            selected_types = data.get('selectedTypes', [])
+            selected_product_id = data.get('selectedProductId')
+            bitrix_goods = Bitrix_Goods.objects.filter(id=selected_product_id).first()
+            if not bitrix_goods:
+                return JsonResponse({'error': 'Товар не найден'}, status=404)
+            def replace_formula_with_calculation(tech_operation):
+                final_formula = tech_operation.formula  # Получаем исходную формулу операции
+                # print(final_formula)
+                while True:
+                    initial_formula = final_formula  # Сохраняем текущую формулу для проверки изменений
+                    
+                    elements = final_formula.split()  # Разделяем формулу на отдельные элементы
+                    # print(initial_formula)
+                    # Перебираем все элементы формулы
+                    for i, element in enumerate(elements):
+                        # print(i,element)
+                        try:
+                            # print(i)
+                            # print(element)
+                            # Ищем, является ли элемент представлением
+                            param_obj = ParametersOfProducts.objects.filter(Q(formula_name=element)).first()
+                            # print(param_obj)
+
+                            # Проверяем, что param_obj найден и содержит формулу
+                            if param_obj and param_obj.formula:
+                                # Если у представления есть формула расчета, заменяем его на формулу с учетом скобок
+                                elements[i] = f" ( {param_obj.formula} ) "
+                        except ParametersOfProducts.DoesNotExist:
+                            # Если представление не найдено, продолжаем
+                            pass
+                    # print(final_formula)
+                    # Соединяем все элементы обратно в строку
+                    final_formula = ' '.join(elements)
+                    # print(final_formula)
+                    # Если формула не изменилась, выходим из цикла
+                    if final_formula == initial_formula:
+                        break
+                # Обновляем значение formula у технологической операции
+                tech_operation.formula = final_formula
+                # print(tech_operation.formula)
+            if selected_types:
+                nomenclature_list = []  # List to store all TechnologicalOperation objects
+                inner_operations = []  # List to store all TechnologicalOperation objects
+                operations = []  # List to store all TechnologicalOperation objects
+                compositions = []
+                for selected_type in selected_types:                
+                    # Filter the Bitrix_GoodsComposition objects based on the selected type
+                    bitrix_goods_composition = Bitrix_GoodsComposition.objects.filter(
+                        goods=bitrix_goods, 
+                        name_type_of_goods=selected_type['parent'], 
+                        type_of_goods=selected_type['type']
+                    )
+                    if not bitrix_goods_composition.exists():
+                        return JsonResponse({'error': 'Состав товара не найден'}, status=404)
+                    for composition in bitrix_goods_composition:
+                        tech_operation = composition.techoperation
+                        nomenclature_in = composition.nomenclature
+                        inner_operations_of = OperationOfTechnologicalOperation.objects.filter(technicological_operation = tech_operation)
+                        for inner in inner_operations_of:
+                            inner_operation_in = inner.production_operation
+                            print(inner_operation_in)
+                        
+                        if not tech_operation:
+                            return JsonResponse({'error': 'Технологическая операция не найдена'}, status=404)
+
+                        operations.append(tech_operation)
+                        nomenclature_list.append(nomenclature_in)
+                        inner_operations.append(inner_operation_in)
+                        compositions.append({
+                            'composition': composition,
+                            'operations': tech_operation,
+                            'nomenclature': nomenclature_in,
+                            'inner_operations': inner_operation_in,
+                        })
+                        
+            product_parameters = data.get('product_parameters', {})
+            technological_operation_list = operations
+            price_cost_with_adds = 0
+            final_prices = 0
+            def replace_min(tokens):
+                i = 0
+                while i < len(tokens):
+                    # Ищем "Мин" и проверяем, что есть достаточно элементов после него
+                    if tokens[i] == 'Мин' and i + 4 < len(tokens) and tokens[i+1] == '(' and tokens[i+3] == ',' and tokens[i+5] == ')':
+                        # Извлекаем два числа после "Мин"
+                        num1 = tokens[i+2]
+                        num2 = tokens[i+4]
+                        
+                        # Находим меньшее из двух чисел или первое, если они равны
+                        min_value = num1 if num1 <= num2 else num2
+                        
+                        # Заменяем 'Мин', '(', num1, ',', num2, ')' на min_value
+                        tokens = tokens[:i] + [min_value] + tokens[i+6:]  
+                    else:
+                        i += 1  # Переходим к следующему элементу
+                return tokens
+            operations_prices = []
+            operations_fullprices = []
+            for techlink in technological_operation_list:
+                print(techlink)
+                final_price_current_techoperation = 0
+                parameters_dict = {}
+                for param_name, param_value in product_parameters.items():
+                    parameter = ParametersOfProducts.objects.get(parameters_product=param_name)
+                    parameters_dict[parameter.formula_name] = param_value
+                total_inner_operations_sum = 0
+                for inner_name in inner_operations:
+                    inner_operation = ProductionOperation.objects.filter(operation_name=inner_name).first()
+                    inner_operations = ProductionOperation.objects.filter(operation_name=inner_name)
+                    tarif = ProductionOperationTariffs.objects.filter(production_operation=inner_operation).first()
+                    inner_operation2 = OperationOfTechnologicalOperation.objects.filter(
+                        production_operation=inner_operation,
+                        technicological_operation=techlink)
+                    for inner in inner_operation2:
+                        replace_formula_with_calculation(inner)
+                        tokens = inner.formula.replace('*', ' * ').replace('/', ' / ').split()
+                        cleaned_tokens = []
+                        for i in range(len(tokens)):
+                            if tokens[i] in parameters_dict:
+                                tokens[i] = parameters_dict[tokens[i]]
+                        tokens = replace_min(tokens)
+                        for token in tokens:
+                            try:
+                                value = float(token)
+                                cleaned_tokens.append(str(value))
+                            except (ValueError, TypeError):
+                                if token is None:
+                                    cleaned_tokens.append('0')
+                                else:
+                                    cleaned_tokens.append(token)
+                        final_formula = ' '.join(cleaned_tokens)
+                        result = eval(final_formula)
+                        def safe_float(value):
+                            try:
+                                return float(value)
+                            except (ValueError, TypeError):
+                                return 0.0  # Возвращаем 0.0 в случае ошибки
+                        lead_time = safe_float(tarif.lead_time)
+                        preporation_time = safe_float(tarif.preporation_time)
+                        min_time = safe_float(tarif.min_time)
+                        many_people = safe_float(tarif.many_people)
+                        salary = safe_float(inner_operation.job_title.salary)
+                        result_to_done = preporation_time + lead_time * result
+                        if result_to_done < min_time:
+                            result2 = ((min_time * many_people) / 60) * salary
+                        else:
+                            result2 = (result_to_done * many_people / 60) * salary
+                        print(f"{inner} -- Результат операции: {result2}")
+                        total_inner_operations_sum += result2
+                total_nomenclature_sum = 0
+                for nomenclature in nomenclature_list:
+                    nomenclature2 = None  # Инициализируем переменную перед циклом
+
+                    for composition in compositions:
+                        # Используем ключ 'operations', так как composition — словарь
+                        techoperation = composition['operations']
+                        if techoperation.operation_link_name == techlink.operation_link_name:
+                            nomenclature2 = composition['nomenclature']
+                    # Проверяем, присвоено ли значение nomenclature2, прежде чем сравнивать
+                    if nomenclature2 and nomenclature2 == nomenclature:
+                        material_operations = MaterialsTechnologicalOperation.objects.filter(
+                            nomenklatura=nomenclature,
+                            technicological_operation=techlink
+                        )
+                        for material in material_operations:
+                            if material.formula is None:
+                                material.formula = techlink.formula
+                            replace_formula_with_calculation(material)
+                            tokens = material.formula.replace('*', ' * ').replace('/', ' / ').split()
+                            cleaned_tokens = [
+                                str(parameters_dict.get(token, token)) if token in parameters_dict else token
+                                for token in tokens
+                            ]
+                            final_formula = ' '.join(cleaned_tokens)
+                            result = eval(final_formula)
+                            default_parameters = ParametersNormativesInCalculation._meta.get_field('overheads').default
+                            salary_fund_default = ParametersNormativesInCalculation._meta.get_field('salary_fund').default
+                            profit_default = ParametersNormativesInCalculation._meta.get_field('profit').default
+                            payroll_default = ParametersNormativesInCalculation._meta.get_field('payroll').default
+                            matched_nomenklaturas = []
+                            if material.nomenklatura and material.nomenklatura.nomenklatura_name in nomenclature_list:
+                                matched_nomenklaturas.append(material.nomenklatura)
+                            nomenclature = material.nomenklatura
+                            if not nomenclature.price:
+                                nomenclature.price = 1
+                            if not nomenclature.waste_rate:
+                                nomenclature.waste_rate = 1
+                            if not nomenclature.material_markup:
+                                nomenclature.material_markup = 1
+                            nomenclature.price = float(nomenclature.price)
+                            nomenclature.waste_rate = float(nomenclature.waste_rate)
+                            nomenclature.material_markup = float(nomenclature.material_markup)
+                            nomenclature_total = nomenclature.price * nomenclature.waste_rate * nomenclature.material_markup
+                            result = nomenclature_total * result
+                            total_nomenclature_sum += result
+                technological_operation = TechnologicalOperation.objects.filter(operation_link_name=techlink).first()
+                adding_materials_operations = AddingMaterialsTechnologicalOperation.objects.filter(technicological_operation=technological_operation)
+                total_adding_material_sum = 0
+                for adding_material in adding_materials_operations:
+                    nomenklatura_price = adding_material.nomenklatura.price
+                    if adding_material.formula is None:
+                        adding_material.formula = techlink.formula
+                    replace_formula_with_calculation(adding_material)
+                    tokens = adding_material.formula.replace('*', ' * ').replace('/', ' / ').split()
+                    cleaned_tokens = [
+                        str(parameters_dict.get(token, token)) if token in parameters_dict else token
+                        for token in tokens
+                    ]
+                    final_formula = ' '.join(cleaned_tokens)
+                    result = eval(final_formula)
+                    matched_nomenklaturas = []
+                    if adding_material.nomenklatura and adding_material.nomenklatura.nomenklatura_name in nomenclature_list:
+                        matched_nomenklaturas.append(adding_material.nomenklatura)
+                    nomenclature = adding_material.nomenklatura
+                    # Суммирование цен номенклатур
+                    if not nomenclature.price:
+                        nomenclature.price = 1
+                    if not nomenclature.waste_rate:
+                        nomenclature.waste_rate = 1
+                    if not nomenclature.material_markup:
+                        nomenclature.material_markup = 1
+                    nomenclature.price = float(nomenclature.price)
+                    nomenclature.waste_rate = float(nomenclature.waste_rate)
+                    nomenclature.material_markup = float(nomenclature.material_markup)
+                    nomenclature_total = nomenclature.price * nomenclature.waste_rate * nomenclature.material_markup
+                    result = nomenclature_total * result
+                    result2 = (
+                        result +
+                        result * salary_fund_default / 100 +
+                        result * profit_default / 100
+                    )
+                    total_adding_material_sum += result2
+                total_sum_operations = total_inner_operations_sum 
+                total_sum_materials = total_adding_material_sum + total_nomenclature_sum 
+                overheads_default = ParametersNormativesInCalculation._meta.get_field('overheads').default
+                salary_fund_default = ParametersNormativesInCalculation._meta.get_field('salary_fund').default
+                profit_default = ParametersNormativesInCalculation._meta.get_field('profit').default
+                payroll_default = ParametersNormativesInCalculation._meta.get_field('payroll').default
+                price_material = total_nomenclature_sum
+                print(f"Материалы: {price_material}")
+                price_add_material = total_adding_material_sum
+                print(f"Дополнительные Материалы: {price_add_material}")
+                price_salary = total_sum_operations
+                print(f"Заработная плата: {price_salary}")
+                price_payroll = total_sum_operations * payroll_default / 100
+                print(f"Отчисления на зарплату: {price_payroll}")
+                price_overheads = total_sum_operations * overheads_default / 100
+                print(f"Накладные расходы: {price_overheads}")
+                price_cost = price_material + price_salary + price_overheads + price_payroll
+                price_cost_with_add = price_cost + price_add_material
+                print(f"Себестоимость: {price_cost}")
+                price_profit = price_cost_with_add * profit_default / 100
+                print(f"Прибыль: {price_profit}")
+                price_salary_fund = price_cost_with_add * salary_fund_default / 100
+                print(f"Зарплатный фонд: {price_salary_fund}")
+                final_price = price_cost_with_add + price_profit + price_salary_fund
+                print(f"Цена: {final_price}")
+                price_cost_with_adds += price_cost_with_add
+                final_price_current_techoperation += final_price
+                operations_prices.append({
+                    'operation': techlink.operation_link_name,
+                    'final_price': final_price_current_techoperation
+                })
+                operations_fullprices.append({
+                    'operation': techlink.operation_link_name,
+                    'price_material': price_material,
+                    'price_add_material':price_add_material,
+                    'price_salary':price_salary,
+                    'price_payroll':price_payroll,
+                    'price_overheads':price_overheads,
+                    'price_cost':price_cost,
+                    'price_profit':price_profit,
+                    'price_salary_fund':price_salary_fund,
+                    'price_cost_with_add':price_cost_with_add,
+                    'final_price':final_price_current_techoperation
+                })
+            all_final_prices = sum(item['final_price'] for item in operations_prices)
+            all_price_material = sum(item['price_material'] for item in operations_fullprices)
+            print(f"Общие Материалы: {all_price_material}")
+            all_price_add_material = sum(item['price_add_material'] for item in operations_fullprices)
+            print(f"Общие Дополнительные материалы: {all_price_add_material}")
+            all_price_salary = sum(item['price_salary'] for item in operations_fullprices)
+            print(f"Общие Заработная плата: {all_price_salary}")
+            all_price_payroll = sum(item['price_payroll'] for item in operations_fullprices)
+            print(f"Общие Отчисления на зарплату: {all_price_payroll}")
+            all_price_overheads = sum(item['price_overheads'] for item in operations_fullprices)
+            print(f"Общие Накладные расходы: {all_price_overheads}")
+            all_price_cost = sum(item['price_cost'] for item in operations_fullprices)
+            print(f"Общая Себестоимость: {all_price_cost}")
+            all_price_profit = sum(item['price_profit'] for item in operations_fullprices)
+            print(f"Общая Прибыль: {all_price_profit}")
+            all_price_salary_fund = sum(item['price_salary_fund'] for item in operations_fullprices)
+            print(f"Общий Зарплатный фонд: {all_price_salary_fund}")
+            all_price_cost_with_add = sum(item['price_cost_with_add'] for item in operations_fullprices)
+            print(f"Общая Себестоимость с дополнительными материалами: {all_price_cost_with_add}")
+            all_final_price = sum(item['final_price'] for item in operations_fullprices)
+            print(f"Общая Итоговая цена: {all_final_price}")
+            price_cost_with_adds += price_cost_with_adds
+            default_parameters = ParametersNormativesInCalculation._meta.get_field('overheads').default
+            salary_fund_default = ParametersNormativesInCalculation._meta.get_field('salary_fund').default
+            profit_default = ParametersNormativesInCalculation._meta.get_field('profit').default
+            payroll_default = ParametersNormativesInCalculation._meta.get_field('payroll').default
+            response_data = {
+                'success': True,
+                'total_nomenclature': price_cost_with_adds,
+                'total_final_price': all_final_prices,
+                'operations': operations_prices,
+                'default_parameters': {
+                    'overheads': default_parameters,
+                    'salary_fund': salary_fund_default,
+                    'profit': profit_default,
+                    'payroll': payroll_default
+                }
+            }
+            return JsonResponse(response_data)
+
+        except Exception as e:
+            print("Ошибка при обработке запроса:", e)
+            return JsonResponse({'success': False, 'message': str(e)}, status=400)
+
+    return JsonResponse({'success': False, 'message': 'Неверный метод запроса'}, status=405)

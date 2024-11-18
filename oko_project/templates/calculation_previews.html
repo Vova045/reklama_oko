@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Список изделий</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            justify-content: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            width: 80%;
+            max-width: 1000px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .product {
+            display: flex;
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .product-image {
+            width: 20%;
+            height: 100px;
+            background-color: #f9f9f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 8px;
+            color: #777;
+            font-size: 14px;
+            margin-right: 20px;
+        }
+
+        .product-details {
+            width: 75%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .label {
+            font-weight: bold;
+            color: #555;
+        }
+
+        .value {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Список изделий</h1>
+
+    <!-- Примерные данные для 5 изделий -->
+    <div class="product">
+        <div class="product-image">Изображение изделия</div>
+        <div class="product-details">
+            <div class="detail-row"><span class="label">Изделие:</span> <span class="value">Продукт 1</span></div>
+            <div class="detail-row"><span class="label">Вид изделия:</span> <span class="value">Вид 1.1</span></div>
+            <div class="detail-row"><span class="label">Параметры:</span> <span class="value">Ширина: 50 см, Высота: 30 см</span></div>
+            <div class="detail-row"><span class="label">Номер калькуляции:</span> <span class="value">12345</span></div>
+            <div class="detail-row"><span class="label">Сумма:</span> <span class="value">5000 руб.</span></div>
+        </div>
+    </div>
+
+    <div class="product">
+        <div class="product-image">Изображение изделия</div>
+        <div class="product-details">
+            <div class="detail-row"><span class="label">Изделие:</span> <span class="value">Продукт 2</span></div>
+            <div class="detail-row"><span class="label">Вид изделия:</span> <span class="value">Вид 2.3</span></div>
+            <div class="detail-row"><span class="label">Параметры:</span> <span class="value">Ширина: 60 см, Высота: 35 см</span></div>
+            <div class="detail-row"><span class="label">Номер калькуляции:</span> <span class="value">23456</span></div>
+            <div class="detail-row"><span class="label">Сумма:</span> <span class="value">7500 руб.</span></div>
+        </div>
+    </div>
+
+    <div class="product">
+        <div class="product-image">Изображение изделия</div>
+        <div class="product-details">
+            <div class="detail-row"><span class="label">Изделие:</span> <span class="value">Продукт 3</span></div>
+            <div class="detail-row"><span class="label">Вид изделия:</span> <span class="value">Вид 3.2</span></div>
+            <div class="detail-row"><span class="label">Параметры:</span> <span class="value">Ширина: 55 см, Высота: 28 см</span></div>
+            <div class="detail-row"><span class="label">Номер калькуляции:</span> <span class="value">34567</span></div>
+            <div class="detail-row"><span class="label">Сумма:</span> <span class="value">6200 руб.</span></div>
+        </div>
+    </div>
+
+    <div class="product">
+        <div class="product-image">Изображение изделия</div>
+        <div class="product-details">
+            <div class="detail-row"><span class="label">Изделие:</span> <span class="value">Продукт 4</span></div>
+            <div class="detail-row"><span class="label">Вид изделия:</span> <span class="value">Вид 4.1</span></div>
+            <div class="detail-row"><span class="label">Параметры:</span> <span class="value">Ширина: 52 см, Высота: 31 см</span></div>
+            <div class="detail-row"><span class="label">Номер калькуляции:</span> <span class="value">45678</span></div>
+            <div class="detail-row"><span class="label">Сумма:</span> <span class="value">6700 руб.</span></div>
+        </div>
+    </div>
+
+    <div class="product">
+        <div class="product-image">Изображение изделия</div>
+        <div class="product-details">
+            <div class="detail-row"><span class="label">Изделие:</span> <span class="value">Продукт 5</span></div>
+            <div class="detail-row"><span class="label">Вид изделия:</span> <span class="value">Вид 5.3</span></div>
+            <div class="detail-row"><span class="label">Параметры:</span> <span class="value">Ширина: 48 см, Высота: 29 см</span></div>
+            <div class="detail-row"><span class="label">Номер калькуляции:</span> <span class="value">56789</span></div>
+            <div class="detail-row"><span class="label">Сумма:</span> <span class="value">5900 руб.</span></div>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>

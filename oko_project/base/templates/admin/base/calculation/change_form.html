@@ -80,7 +80,7 @@
 
     <!-- Перемещаем JavaScript-код сюда -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script>
+    <!-- <script>
         $(document).ready(function() {
             // Функция для получения текущего пользователя
             function fetchCurrentUser() {
@@ -108,7 +108,7 @@
             // Вызов функции при загрузке страницы
             fetchCurrentUser();
         });
-        </script>
+        </script> -->
     <script>
         const allHrElements = document.querySelectorAll('hr');  // Находим все элементы <hr>
 
@@ -187,18 +187,104 @@
     fetch(url)
         .then(response => response.json())
         .then(data => {
-            const container = document.getElementById('technological-links-container');
-            container.innerHTML = '';
-            data.links.forEach(link => {
-                const label = document.createElement('label');
-                label.innerHTML = `
-                    <input type="checkbox" name="technological_links" value="${link.id}" onchange="handleTechnologicalLinkChange(this)">
-                    ${link.name}
-                `;
-                container.appendChild(label);
-                container.appendChild(document.createElement('br'));
-            });
+    const open_status = data.open;
+    const container = document.getElementById('technological-links-container');
+    container.style.height = `${window.innerHeight / 3}px`;
+    container.style.overflowY = 'auto';
+    container.innerHTML = '';
+
+    const displayedFolders = new Set();
+
+    function darkenColor(color, factor) {
+        const hex = parseInt(color.slice(1), 16);
+        const r = Math.max(0, (hex >> 16) - factor);
+        const g = Math.max(0, ((hex >> 8) & 0x00FF) - factor);
+        const b = Math.max(0, (hex & 0x0000FF) - factor);
+        return `#${(1 << 24) | (r << 16) | (g << 8) | b}`.toString(16).slice(1).toUpperCase();
+    }
+
+    function displayFolder(folder, parentContainer, level = 0) {
+        if (displayedFolders.has(folder.folder_id)) return;
+        displayedFolders.add(folder.folder_id);
+
+        const folderLabel = document.createElement('h3');
+        folderLabel.textContent = `${folder.folder}`;
+
+        let color = '#FFFFFF';
+        if (level > 0) {
+            color = darkenColor('#FFFFFF', level * 15);
+        }
+
+        folderLabel.style.color = color;
+        folderLabel.style.fontWeight = level === 0 ? 'bold' : 'normal';
+        folderLabel.style.marginLeft = `${level * 10}px`;
+        folderLabel.style.cursor = 'pointer';
+
+        const childFolderContainer = document.createElement('div');
+        childFolderContainer.id = `child-folder-${folder.folder_id}`;
+        childFolderContainer.style.display = open_status ? 'block' : 'none'; // Используем open_status для управления видимостью
+
+        const itemsContainer = document.createElement('div');
+        itemsContainer.classList.add('items-container');
+        itemsContainer.style.marginLeft = `${(level + 1) * 10}px`;
+        itemsContainer.style.display = open_status ? 'block' : 'none'; // Используем open_status для управления видимостью
+
+        folderLabel.onclick = function() {
+            if (childFolderContainer.style.display === 'none') {
+                childFolderContainer.style.display = 'block';
+                itemsContainer.style.display = 'block';
+            } else {
+                childFolderContainer.style.display = 'none';
+                itemsContainer.style.display = 'none';
+            }
+        };
+
+        parentContainer.appendChild(folderLabel);
+        parentContainer.appendChild(childFolderContainer);
+        parentContainer.appendChild(itemsContainer);
+
+        const childFolders = data.folders.filter(link => link.parent_id === folder.folder_id);
+        childFolders.sort((a, b) => a.folder.localeCompare(b.folder));
+        childFolders.forEach(childFolder => {
+            displayFolder(childFolder, childFolderContainer, level + 1);
         });
+
+        const itemsInFolder = data.links.filter(link => link.folder_id === folder.folder_id);
+        itemsInFolder.sort((a, b) => a.name.localeCompare(b.name));
+        itemsInFolder.forEach(item => {
+            const label = document.createElement('label');
+            label.classList.add('link-item');
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.name = 'technological_links';
+            checkbox.value = item.id;
+            checkbox.style.display = 'none';
+
+            const span = document.createElement('span');
+            span.textContent = `${item.name}`;
+
+            label.onclick = function () {
+                checkbox.checked = !checkbox.checked;
+                label.classList.toggle('selected', checkbox.checked);
+                handleTechnologicalLinkChange(checkbox);
+            };
+
+            label.appendChild(checkbox);
+            label.appendChild(span);
+            itemsContainer.appendChild(label);
+            itemsContainer.appendChild(document.createElement('br'));
+        });
+    }
+
+    const topLevelFolders = data.folders.filter(link => link.parent_id === null);
+    topLevelFolders.sort((a, b) => a.folder.localeCompare(b.folder));
+    topLevelFolders.forEach(topLevelFolder => {
+        displayFolder(topLevelFolder, container);
+    });
+});
+
+
 }
 
 // Функция для исключения операций, связанных с невыбранным узлом
@@ -256,11 +342,11 @@ function updateTechnologicalOperations() {
     console.log('updateTechnologicalOperations');
     const selectedLinks = Array.from(document.querySelectorAll('input[name="technological_links"]:checked'))
         .map(checkbox => checkbox.parentNode.textContent.trim());
-
     const url = `/api/technological-operations/`;
-
+    const current_product = document.getElementById('product-select').value
     const formData = {
         links: selectedLinks,
+        current_product: current_product
     };
 
     // console.log("FormData:", formData);  // Проверяем данные перед отправкой
@@ -275,59 +361,108 @@ function updateTechnologicalOperations() {
     })
     .then(response => response.json())
     .then(data => {
-        const operationContainer = document.getElementById('technological-operations-container');
-        operationContainer.innerHTML = '';
-        const inneroperationContainer = document.getElementById('operation-container');
-        inneroperationContainer.innerHTML = '';
+    const operationContainer = document.getElementById('technological-operations-container');
+    const inneroperationContainer = document.getElementById('operation-container');
 
-        innerOperations.length = 0;
+    // Очищаем контейнеры перед добавлением новых данных
+    operationContainer.innerHTML = '';
+    inneroperationContainer.innerHTML = '';
+    innerOperations.length = 0;
+    // Группировка операций по 'operation.link'
+    const groupedOperations = data.operations.reduce((groups, operation) => {
+        if (!groups[operation.link]) {
+            groups[operation.link] = [];
+        }
+        groups[operation.link].push(operation);
+        return groups;
+    }, {});
 
-        // Группировка операций по 'operation.link'
-        const groupedOperations = data.operations.reduce((groups, operation) => {
-            if (!groups[operation.link]) {
-                groups[operation.link] = [];
-            }
-            groups[operation.link].push(operation);
-            return groups;
-        }, {});
-        // Проходим по каждой группе и выводим её на страницу
-        Object.keys(groupedOperations).forEach(link => {
-            const linkTitle = document.createElement('h3');
-            linkTitle.textContent = link;  // Заголовок группы по operation.link
-            operationContainer.appendChild(linkTitle);
+    // Проходим по каждой группе и выводим её на страницу
+    Object.keys(groupedOperations).forEach(link => {
+        const linkTitle = document.createElement('h3');
+        linkTitle.textContent = link;  // Заголовок группы по operation.link
+        operationContainer.appendChild(linkTitle);
 
-            groupedOperations[link].forEach(operation => {
-                const label = document.createElement('label');
-                label.innerHTML = `
-                    <input type="checkbox" name="technological_operations" value="${operation.id}" onchange="handleOperationChange(this, '${operation.formula}','${operation.name}')">
-                    ${operation.name} 
-                `;
-                operationContainer.appendChild(label);
-                operationContainer.appendChild(document.createElement('br'));
-            });
-            updateCheckboxSelection(selectedOperationsGlobal)
-            
+
+        // Контейнер для группы операций, который будет скрываться/показываться
+        let operationGroupContainer = document.getElementById(`operation-group-${link}`);
+
+        // Проверка наличия существующего контейнера для группы
+        if (operationGroupContainer) {
+            operationGroupContainer.remove();
+        }
+
+        // Создаем новый контейнер для группы операций
+        operationGroupContainer = document.createElement('div');
+        operationGroupContainer.classList.add('operation-group'); // Добавляем класс для стилей
+        operationGroupContainer.id = `operation-group-${link}`; // Уникальный ID для каждой группы
+        operationGroupContainer.style.display = 'none';  // Скрыт по умолчанию
+
+        // Добавление операций в контейнер группы
+        groupedOperations[link].forEach(operation => {
+            const label = document.createElement('label');
+            label.innerHTML = `
+                <input type="checkbox" name="technological_operations" value="${operation.id}" onchange="handleOperationChange(this, '${operation.formula}', '${operation.name}')">
+                ${operation.name}
+            `;
+            operationGroupContainer.appendChild(label);
+            operationGroupContainer.appendChild(document.createElement('br'));
+
+            // console.log(`Добавлена операция "${operation.name}" в группу "${link}"`);
         });
 
-        // Обработка внутренних операций
-        if (data.inner_operations && data.inner_operations.length) {
-            data.inner_operations.forEach(inner_op => {
-                innerOperations.push(inner_op);
+        // Переключение видимости при клике по названию группы
+        linkTitle.onclick = function () {
+            // console.log(`Клик по заголовку группы "${link}"`);
+            // console.log("Состояние перед изменением видимости:", operationGroupContainer);
 
-                const label2 = document.createElement('label');
-                label2.innerHTML = `
-                    ${inner_op}
-                `;
-                inneroperationContainer.appendChild(label2);
-                inneroperationContainer.appendChild(document.createElement('br'));
-                
-            });
+            // Проверяем, существует ли контейнер и переключаем его видимость
+            if (operationGroupContainer.style.display === 'none') {
+                operationGroupContainer.style.display = 'block';  // Показываем, если скрыто
+                // console.log(`Группа "${link}" отображена`);
+            } else {
+                operationGroupContainer.style.display = 'none';   // Скрываем, если показано
+                // console.log(`Группа "${link}" скрыта`);
+
+                // Удаляем все дочерние элементы из контейнера, чтобы избежать дублирования
+                // console.log(`Очистка содержимого контейнера для группы "${link}"`);
+                operationGroupContainer.innerHTML = '';
+            }
+            // console.log("Состояние после изменения видимости:", operationGroupContainer);
+        };
+
+        // Проверка установки обработчика клика
+        if (linkTitle.onclick) {
+            // console.log(`Обработчик клика установлен для группы "${link}"`);
         } else {
-            const noOperationsMessage = document.createElement('label');
-            noOperationsMessage.innerHTML = 'Нет доступных внутренних операций.';
-            inneroperationContainer.appendChild(noOperationsMessage);
+            // console.error(`Не удалось установить обработчик клика для группы "${link}"`);
         }
-    })
+
+        // Добавляем контейнер группы в основной контейнер
+        operationContainer.appendChild(operationGroupContainer);
+    });
+
+    // Обновляем состояние чекбоксов после рендеринга
+    updateCheckboxSelection(selectedOperationsGlobal);
+
+    // Обработка внутренних операций
+    if (data.inner_operations && data.inner_operations.length) {
+        data.inner_operations.forEach(inner_op => {
+            innerOperations.push(inner_op);
+
+            const label2 = document.createElement('label');
+            label2.textContent = inner_op;
+            inneroperationContainer.appendChild(label2);
+            inneroperationContainer.appendChild(document.createElement('br'));
+        });
+    } else {
+        const noOperationsMessage = document.createElement('label');
+        noOperationsMessage.textContent = 'Нет доступных внутренних операций.';
+        inneroperationContainer.appendChild(noOperationsMessage);
+    }
+
+    // console.log("===== Завершение обработки данных операций =====");
+})
     .catch(error => {
         console.error('Ошибка:', error);
     });
@@ -438,7 +573,6 @@ function updateCheckboxSelection(selectedOperations) {
     // Проходим по всем чекбоксам и обновляем их состояние в зависимости от данных с сервера
     document.querySelectorAll('input[name="technological_operations"]').forEach(checkbox => {
         const operationName = checkbox.parentNode.textContent.trim();
-        
         if (selectedOperations.includes(operationName)) {
             checkbox.checked = true;  // Оставляем выделенным
             
@@ -485,19 +619,26 @@ function handleOperationChange(checkbox, formula, operation_name) {
 }
 
 
-        function updateNomenclatureAndOperations() {
-            console.log('updateNomenclatureAndOperations');
-        const selectedOperations = Array.from(document.querySelectorAll('input[name="technological_operations"]:checked'))
-            .map(checkbox => checkbox.parentNode.textContent.trim());
-            removeOperationsFromDeselectedLink(selectedOperations)
-            console.log("селект"+selectedOperations)
-        const url = selectedOperations.length > 0 
-            ? `/api/nomenclature/?operations=${selectedOperations.join(',')}`
-            : `/api/nomenclature/`;
+function updateNomenclatureAndOperations() {
+    console.log('updateNomenclatureAndOperations');
+    
+    const current_product = document.getElementById('product-select').value;  // Get selected product
+    // Получаем ID выбранных операций (например, value чекбокса)
+    const selectedOperations = Array.from(document.querySelectorAll('input[name="technological_operations"]:checked'))
+        .map(checkbox => checkbox.value);  // Получаем ID операций, а не текст
 
-        fetch(url)
-            .then(response => response.json())
-            .then(data => {
+    removeOperationsFromDeselectedLink(selectedOperations);
+    console.log("Selected operations: " + selectedOperations);
+    
+    // Формируем URL запроса с ID операций и product_id
+    const url = selectedOperations.length > 0 
+        ? `/api/nomenclature/?operations=${selectedOperations.join(',')}&product=${current_product}`
+        : `/api/nomenclature/?product=${current_product}`;
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            console.log(data)
             const nomenclatureContainer = document.getElementById('nomenclature-container');
             nomenclatureContainer.innerHTML = '';
 
@@ -511,14 +652,12 @@ function handleOperationChange(checkbox, formula, operation_name) {
                     return groups;
                 }, {});
 
-                // Проходим по каждой группе и выводим её на страницу
+                // Отображаем сгруппированную номенклатуру
                 Object.keys(groupedNomenclature).forEach(operation => {
-                    // Создаем заголовок для каждой группы technicological_operation
                     const operationTitle = document.createElement('h3');
-                    operationTitle.textContent = operation;  // Заголовок группы
+                    operationTitle.textContent = operation;
                     nomenclatureContainer.appendChild(operationTitle);
 
-                    // Проходим по элементам группы и создаем чекбоксы
                     groupedNomenclature[operation].forEach(item => {
                         const label = document.createElement('label');
                         label.innerHTML = `
@@ -528,18 +667,19 @@ function handleOperationChange(checkbox, formula, operation_name) {
                         nomenclatureContainer.appendChild(label);
                         nomenclatureContainer.appendChild(document.createElement('br'));
                     });
-                    updateNomenclatureSelection(selectedNomenclatureGlobal)
+                    updateNomenclatureSelection(selectedNomenclatureGlobal);
                 });
             } else {
                 console.warn("Nomenclature is undefined or not an array", data.nomenclature);
             }
-            updateNomenclaturePrice()
-
+            updateNomenclaturePrice();
         })
-            .catch(error => {
-                console.error("Error fetching nomenclature:", error);
-            });
+        .catch(error => {
+            console.error("Error fetching nomenclature:", error);
+        });
 }
+
+
 function updateParametersProductAndOperations() {
     console.log('updateParametersProductAndOperations');
     const parametersProductContainer = document.getElementById('parameters_product-container');
@@ -705,16 +845,38 @@ function updateNomenclaturePrice() {
 function updateFinalPrice(pricePerSquareMeter, productParameters) {
     console.log('updateFinalPrice');
 
-    const selectedNomenclature = Array.from(document.querySelectorAll('input[name="nomenclature"]:checked'))
+const selectedNomenclature = Array.from(document.querySelectorAll('input[name="nomenclature"]:checked'))
     .map(checkbox => {
-        // Получаем родительский элемент label и извлекаем его текст
-        return checkbox.parentNode.textContent.trim(); // Используем trim() для удаления лишних пробелов
+        // Получаем текст номенклатуры
+        const nomenclatureText = checkbox.parentNode.textContent.trim();
+
+        // Находим все h3 элементы, чтобы правильно выбрать нужный заголовок для текущего checkbox
+        let currentHeader = '';
+        let previousSibling = checkbox.closest('label').previousElementSibling;
+        
+        while (previousSibling) {
+            if (previousSibling.tagName === 'H3') {
+                currentHeader = previousSibling.textContent.trim();
+                break;
+            }
+            previousSibling = previousSibling.previousElementSibling;
+        }
+
+        return {
+            operation: currentHeader,
+            nomenclature: nomenclatureText
+        };
     });
+
     const selectedTechOperation = Array.from(document.querySelectorAll('input[name="technological_operations"]:checked'))
     .map(checkbox => {
-        // Получаем родительский элемент label и извлекаем его текст
         return checkbox.parentNode.textContent.trim(); // Используем trim() для удаления лишних пробелов
     });
+    
+    console.log('тут1')
+    console.log(productParameters)
+    console.log(selectedNomenclature)
+    console.log(selectedTechOperation)
     fetch('/api/update_parameters/', {
         method: 'POST',
         headers: {
@@ -774,17 +936,34 @@ function sendParameterDataToServer() {
             return params;
         }, {});
     console.log(productParameters)
-    const selectedTechnologicalOperations = Array.from(document.querySelectorAll('input[name="technological_operations"]:checked'))
+    const selectedTechOperation = Array.from(document.querySelectorAll('input[name="technological_operations"]:checked'))
     .map(checkbox => {
         return checkbox.parentNode.textContent.trim(); // Используем trim() для удаления лишних пробелов
     });
-    console.log(selectedTechnologicalOperations)
-    const selectedNomenclature = Array.from(document.querySelectorAll('input[name="nomenclature"]:checked'))
-        .map(checkbox => {
-            // Получаем родительский элемент label и извлекаем его текст
-            return checkbox.parentNode.textContent.trim(); // Используем trim() для удаления лишних пробелов
-        });
-    console.log(selectedNomenclature)
+    console.log(selectedTechOperation)
+const selectedNomenclature = Array.from(document.querySelectorAll('input[name="nomenclature"]:checked'))
+    .map(checkbox => {
+        // Получаем текст номенклатуры
+        const nomenclatureText = checkbox.parentNode.textContent.trim();
+
+        // Находим все h3 элементы, чтобы правильно выбрать нужный заголовок для текущего checkbox
+        let currentHeader = '';
+        let previousSibling = checkbox.closest('label').previousElementSibling;
+        
+        while (previousSibling) {
+            if (previousSibling.tagName === 'H3') {
+                currentHeader = previousSibling.textContent.trim();
+                break;
+            }
+            previousSibling = previousSibling.previousElementSibling;
+        }
+
+        return {
+            operation: currentHeader,
+            nomenclature: nomenclatureText
+        };
+    });
+    console.log(productParameters)
 
     fetch('/api/update_parameters/', {
         method: 'POST',
@@ -794,7 +973,7 @@ function sendParameterDataToServer() {
         },
         body: JSON.stringify({
             product_parameters: productParameters,
-            technological_operations: selectedTechnologicalOperations,
+            technological_operations: selectedTechOperation,
             inner_operations: innerOperations,
             nomenclature_price: nomenclaturePrice,
             nomenclature_list: selectedNomenclature
@@ -802,6 +981,7 @@ function sendParameterDataToServer() {
     })
     .then(response => response.json())
     .then(data => {
+    
     const container2 = document.getElementById('price-container2');
     container2.innerHTML = ''; // Очищаем контейнер перед выводом новых данных
     const finalPriceElement = document.createElement('div');
@@ -810,21 +990,21 @@ function sendParameterDataToServer() {
         console.log(`Итоговая Цена: ${data.total_final_price} руб.`)
     if (data.success) {
         // Проверяем, получены ли данные по операциям
-        if (nomenclaturePrice && data.operations.length > 0) {
-            data.operations.forEach(operation => {
-                // Создаем новый элемент для каждой операции
-                const operationElement = document.createElement('div');
-                
-                // Форматируем цену для текущей операции
-                const finalPrice = Math.floor(operation.final_price);
-                operationElement.textContent = `Операция: ${operation.operation}, Цена: ${finalPrice} руб.`;
+        // if (nomenclaturePrice && data.operations.length > 0) {
+        data.operations.forEach(operation => {
+            // Создаем новый элемент для каждой операции
+            const operationElement = document.createElement('div');
+            
+            // Форматируем цену для текущей операции
+            const finalPrice = Math.floor(operation.final_price);
+            operationElement.textContent = `Операция: ${operation.operation}, Цена: ${finalPrice} руб.`;
 
-                // Добавляем элемент в контейнер
-                container2.appendChild(operationElement);
-            });
-        } else {
-            container2.textContent = 'Цена не найдена';
-        }
+            // Добавляем элемент в контейнер
+            container2.appendChild(operationElement);
+        });
+        // } else {
+        //     container2.textContent = 'Цена не найдена';
+        // }
     } else {
         console.error('Ошибка при обновлении параметров:', data.message);
         container2.textContent = 'Параметр в цене не выбран';
@@ -878,4 +1058,44 @@ function sendParameterDataToServer() {
 //     }
 
     </script>
+    <style>
+        /* Стили для папок */
+.folder-item {
+    cursor: pointer;
+    font-weight: bold;
+    color: #007bff;
+    margin-top: 5px;
+}
+
+.folder-item:hover {
+    color: #0056b3;
+}
+
+/* Стили для объектов внутри папок */
+.link-item {
+    display: block;
+    margin-left: 20px;
+    cursor: pointer;
+    padding: 5px 0;
+}
+
+.link-item {
+    color: #7bbbe6; /* Подсветка объекта при наведении */
+}
+.link-item:hover {
+    color: #3192d3; /* Подсветка объекта при наведении */
+}
+
+/* Стили для выделенного объекта */
+.selected {
+    font-weight: bold;  /* Жирный шрифт для выделенного объекта */
+    color: #0056b3;  /* Цвет текста для выделенного объекта */
+}
+
+/* Стили для чекбокса, чтобы он был скрыт, но функционален */
+.link-item input[type="checkbox"] {
+    display: none;
+}
+
+    </style>
 {% endblock %}

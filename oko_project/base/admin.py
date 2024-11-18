@@ -4,8 +4,8 @@ from django.urls import reverse
 from django.shortcuts import redirect
 from django.http import JsonResponse
 from .models import (
-    MeasureUnit,
-    Product,
+    MeasureUnit, GoodsComposition,
+    Product, Goods,
     TechnologicalLink,
     Nomenklatura,
     TechnologicalOperation,
@@ -40,30 +40,129 @@ class MeasureUnitAdmin(admin.ModelAdmin):
     list_display = ('id', 'measure_name')
     search_fields = ('measure_name',)
 
+class ProductCompositionForm(forms.ModelForm):
+    class Meta:
+        model = ProductComposition
+        fields = '__all__'
+
+    # Для каждого поля папки создаем временные поля, чтобы фильтровать узлы
+    folder_technology = forms.ModelChoiceField(
+        queryset=Folder.objects.filter(folder_type='Технологические узлы'),
+        required=False,
+        widget=HierarchicalFolderWidget(),  # Use custom widget for hierarchical display
+        label='Папка для Технологии'
+    )
+
+    folder_techoperation = forms.ModelChoiceField(
+        queryset=Folder.objects.filter(folder_type='Технологические операции'),
+        required=False,
+        widget=HierarchicalFolderWidget(),
+        label='Папка для Техоперации'
+    )
+
+    folder_nomenclature = forms.ModelChoiceField(
+        queryset=Folder.objects.filter(folder_type='Номенклатура'),
+        required=False,
+        widget=HierarchicalFolderWidget(),
+        label='Папка для Номенклатуры'
+    )
+
+    folder_operation = forms.ModelChoiceField(
+        queryset=Folder.objects.filter(folder_type='Операция производства'),
+        required=False,
+        widget=HierarchicalFolderWidget(),
+        label='Папка для Операции'
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # For each folder field, update the widget choices
+        self.fields['folder_technology'].widget.update_choices(self.fields['folder_technology'].queryset)
+        self.fields['folder_techoperation'].widget.update_choices(self.fields['folder_techoperation'].queryset)
+        self.fields['folder_nomenclature'].widget.update_choices(self.fields['folder_nomenclature'].queryset)
+        self.fields['folder_operation'].widget.update_choices(self.fields['folder_operation'].queryset)
+
+        # Additional filtering for nodes (like Technologies, Techoperations, etc.)
+        self.fields['technology'].queryset = TechnologicalLink.objects.all()
+        self.fields['techoperation'].queryset = TechnologicalOperation.objects.all()
+        self.fields['nomenclature'].queryset = Nomenklatura.objects.all()
+        self.fields['operation'].queryset = OperationOfTechnologicalOperation.objects.all()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        folder_technology = cleaned_data.get("folder_technology")
+        # You can add additional validations if needed
+        return cleaned_data
+
+
 class ProductCompositionInline(admin.TabularInline):
     model = ProductComposition
-    extra = 1
-    fields = ('technology', 'operation', 'nomenclature', 'default_selected')
+    form = ProductCompositionForm  # Use the form with hierarchical fields
+    extra = 0
+    fields = (
+        'folder_technology', 'technology',
+        'techoperation',
+        'nomenclature',
+        'operation',
+        'default_selected'
+    )
     verbose_name = "Состав изделия"
     verbose_name_plural = "Составы изделий"
 
-    def get_formset(self, request, obj=None, **kwargs):
-        formset = super().get_formset(request, obj, **kwargs)
-        # Добавляем классы для селекторов
-        formset.form.base_fields['operation'].widget.attrs.update({'class': 'operation-select'})
-        formset.form.base_fields['nomenclature'].widget.attrs.update({'class': 'nomenclature-select', 'disabled': 'disabled'})
-        return formset
-
     class Media:
-        js = ('admin/js/filter_nomenclature.js',)
+        js = ('admin/js/filter_product.js',)  # Ensure your custom JS is included
 
+    def formfield_for_foreignkey(self, db_field, request=None, **kwargs):
+        # Filter based on selected folder
+        folder_technology_id = request.GET.get('folder_technology', None)
+        folder_techoperation_id = request.GET.get('folder_techoperation', None)
+        folder_nomenclature_id = request.GET.get('folder_nomenclature', None)
+        folder_operation_id = request.GET.get('folder_operation', None)
+
+        if folder_technology_id and db_field.name == "technology":
+            kwargs['queryset'] = TechnologicalLink.objects.filter(folder_id=folder_technology_id)
+        elif folder_techoperation_id and db_field.name == "techoperation":
+            kwargs['queryset'] = TechnologicalOperation.objects.filter(folder_id=folder_techoperation_id)
+        elif folder_nomenclature_id and db_field.name == "nomenclature":
+            kwargs['queryset'] = Nomenklatura.objects.filter(folder_id=folder_nomenclature_id)
+        elif folder_operation_id and db_field.name == "operation":
+            kwargs['queryset'] = OperationOfTechnologicalOperation.objects.filter(folder_id=folder_operation_id)
+
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+
+class ProductForm(forms.ModelForm):
+    folder = forms.ModelChoiceField(
+        queryset=Folder.objects.filter(folder_type="Изделия"),
+        required=False,
+        label="Папка Изделий"
+    )
+
+    class Meta:
+        model = Product
+        fields = ['folder', 'product_name']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # If there is an existing folder, set it as the initial value
+        if self.instance and self.instance.folder:
+            folder = self.instance.folder
+            self.fields['folder'].initial = folder
+
+        # Restrict queryset to only show folders of type "Изделия"
+        self.fields['folder'].queryset = Folder.objects.filter(folder_type='Изделия')
+        self.fields['folder'].widget = HierarchicalFolderWidget()  # Custom widget for hierarchical display
+        self.fields['folder'].widget.update_choices(self.fields['folder'].queryset)  # Update choices for hierarchy
 
 
 # Настраиваем админ-класс для Product
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('product_code', 'product_name')
+    list_display = ('product_code', 'product_name', 'folder')
     inlines = [ProductCompositionInline]  # Включаем inline модель в админ-панель
+    form = ProductForm
 
     class Media:
         css = {
@@ -77,17 +176,203 @@ class ProductAdmin(admin.ModelAdmin):
             obj.save()
         else:
             super().save_model(request, obj, form, change)
+            
+class GoodsCompositionForm(forms.ModelForm):
+    class Meta:
+        model = GoodsComposition
+        fields = '__all__'
+
+    # Для каждого поля папки создаем временные поля, чтобы фильтровать узлы
+    folder_technology = forms.ModelChoiceField(
+        queryset=Folder.objects.filter(folder_type='Технологические узлы'),
+        required=False,
+        widget=HierarchicalFolderWidget(),  # Use custom widget for hierarchical display
+        label='Папка для Технологии'
+    )
+
+    folder_techoperation = forms.ModelChoiceField(
+        queryset=Folder.objects.filter(folder_type='Технологические операции'),
+        required=False,
+        widget=HierarchicalFolderWidget(),
+        label='Папка для Техоперации'
+    )
+
+    folder_nomenclature = forms.ModelChoiceField(
+        queryset=Folder.objects.filter(folder_type='Номенклатура'),
+        required=False,
+        widget=HierarchicalFolderWidget(),
+        label='Папка для Номенклатуры'
+    )
+
+    folder_operation = forms.ModelChoiceField(
+        queryset=Folder.objects.filter(folder_type='Операция производства'),
+        required=False,
+        widget=HierarchicalFolderWidget(),
+        label='Папка для Операции'
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # For each folder field, update the widget choices
+        self.fields['folder_technology'].widget.update_choices(self.fields['folder_technology'].queryset)
+        self.fields['folder_techoperation'].widget.update_choices(self.fields['folder_techoperation'].queryset)
+        self.fields['folder_nomenclature'].widget.update_choices(self.fields['folder_nomenclature'].queryset)
+        self.fields['folder_operation'].widget.update_choices(self.fields['folder_operation'].queryset)
+
+        # Additional filtering for nodes (like Technologies, Techoperations, etc.)
+        self.fields['technology'].queryset = TechnologicalLink.objects.all()
+        self.fields['techoperation'].queryset = TechnologicalOperation.objects.all()
+        self.fields['nomenclature'].queryset = Nomenklatura.objects.all()
+        self.fields['operation'].queryset = OperationOfTechnologicalOperation.objects.all()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        folder_technology = cleaned_data.get("folder_technology")
+        # You can add additional validations if needed
+        return cleaned_data
+
+
+class GoodsCompositionInline(admin.TabularInline):
+    model = GoodsComposition
+    form = GoodsCompositionForm  # Use the form with hierarchical fields
+    extra = 0
+    fields = (
+        'folder_technology', 'technology',
+        'techoperation',
+        'nomenclature',
+        'operation',
+        'name_type_of_goods','type_of_goods',
+        'default_selected'
+    )
+    verbose_name = "Состав товара"
+    verbose_name_plural = "Составы товаров"
+
+    class Media:
+        js = ('admin/js/filter_goods.js',)  # Ensure your custom JS is included
+
+    def formfield_for_foreignkey(self, db_field, request=None, **kwargs):
+        # Filter based on selected folder
+        folder_technology_id = request.GET.get('folder_technology', None)
+        folder_techoperation_id = request.GET.get('folder_techoperation', None)
+        folder_nomenclature_id = request.GET.get('folder_nomenclature', None)
+        folder_operation_id = request.GET.get('folder_operation', None)
+
+        if folder_technology_id and db_field.name == "technology":
+            kwargs['queryset'] = TechnologicalLink.objects.filter(folder_id=folder_technology_id)
+        elif folder_techoperation_id and db_field.name == "techoperation":
+            kwargs['queryset'] = TechnologicalOperation.objects.filter(folder_id=folder_techoperation_id)
+        elif folder_nomenclature_id and db_field.name == "nomenclature":
+            kwargs['queryset'] = Nomenklatura.objects.filter(folder_id=folder_nomenclature_id)
+        elif folder_operation_id and db_field.name == "operation":
+            kwargs['queryset'] = OperationOfTechnologicalOperation.objects.filter(folder_id=folder_operation_id)
+
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+
+class GoodsForm(forms.ModelForm):
+    folder = forms.ModelChoiceField(
+        queryset=Folder.objects.filter(folder_type="Товар"),
+        required=False,
+        label="Папка Товаров"
+    )
+
+    class Meta:
+        model = Goods
+        fields = ['folder', 'goods_name']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # If there is an existing folder, set it as the initial value
+        if self.instance and self.instance.folder:
+            folder = self.instance.folder
+            self.fields['folder'].initial = folder
+
+        # Restrict queryset to only show folders of type "Изделия"
+        self.fields['folder'].queryset = Folder.objects.filter(folder_type='Товар')
+        self.fields['folder'].widget = HierarchicalFolderWidget()  # Custom widget for hierarchical display
+        self.fields['folder'].widget.update_choices(self.fields['folder'].queryset)  # Update choices for hierarchy
+
+
+# Настраиваем админ-класс для Product
+@admin.register(Goods)
+class GoodsAdmin(admin.ModelAdmin):
+    list_display = ('goods_code', 'goods_name', 'folder')
+    inlines = [GoodsCompositionInline]  # Включаем inline модель в админ-панель
+    form = GoodsForm
+
+    class Media:
+        css = {
+            'all': ('admin/css/custom_admin.css',)  # Путь к вашему CSS файлу
+        }
+
+    def save_model(self, request, obj, form, change):
+        if not obj.goods_code:
+            super().save_model(request, obj, form, change)
+            obj.goods_code = f"TOV-{obj.id}"
+            obj.save()
+        else:
+            super().save_model(request, obj, form, change)
+
+class TechnologicalLinkCompositionForm(forms.ModelForm):
+    folder = forms.ModelChoiceField(
+        queryset=Folder.objects.filter(folder_type="Технологические операции"),
+        required=False,
+        label="Папка Технологической операции"
+    )
+
+    class Meta:
+        model = TechnologicalLinkComposition
+        fields = ['folder', 'technical_operation', 'order']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Если уже есть выбранная номенклатура, обновляем папку
+        if self.instance and self.instance.technical_operation:
+            technical_operation = self.instance.technical_operation
+            # Находим папку, соответствующую выбранной номенклатуре
+            folder = technical_operation.folder
+            self.fields['folder'].initial = folder  # Устанавливаем начальное значение для поля папки
+        
+        self.fields['folder'].queryset = Folder.objects.filter(folder_type='Технологические операции')
+        self.fields['folder'].widget = HierarchicalFolderWidget()
+        self.fields['folder'].widget.update_choices(self.fields['folder'].queryset)  # Обновляем опции для иерархии
+
 
 class TechnologicalLinkCompositionInline(admin.TabularInline):
     model = TechnologicalLinkComposition
-    extra = 1  # Количество пустых форм, которые будут отображаться
+    extra = 0  # Количество пустых форм, которые будут отображаться
+    form = TechnologicalLinkCompositionForm
+    fields = ['order', 'folder', 'technical_operation']
+
+    class Media:
+        js = ('admin/js/operation_filter.js',)  # Укажите путь к вашему JavaScript файлу
+
+
+
+class TechnologicalLinkForm(forms.ModelForm):
+    class Meta:
+        model = TechnologicalLink
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        self.fields['folder'].queryset = Folder.objects.filter(folder_type='Технологические узлы')
+        self.fields['folder'].widget = HierarchicalFolderWidget()
+        self.fields['folder'].widget.update_choices(self.fields['folder'].queryset)  # Обновляем опции для иерархии
+
 
 
 @admin.register(TechnologicalLink)
 class TechnologicalLinkAdmin(admin.ModelAdmin):
-    list_display = ('operation_link_code', 'operation_link_name', 'parent')
+    list_display = ('operation_link_code', 'operation_link_name', 'folder')
     search_fields = ('operation_link_code', 'operation_link_name')
-    list_filter = ('parent',)
+    list_filter = ('folder',)
+    exclude = ('operation_link_code',)
+    form = TechnologicalLinkForm
     actions = ['duplicate_selected']
     inlines = [TechnologicalLinkCompositionInline]  # Добавляем инлайн для TechnologicalLinkComposition
 
@@ -160,20 +445,76 @@ class NomenklaturaAdmin(admin.ModelAdmin):
                                           _('Удалить выбранные элементы'))
         return actions
 
+class OperationOfTechnologicalOperationForm(forms.ModelForm):
+    folder = forms.ModelChoiceField(
+        queryset=Folder.objects.filter(folder_type="Технологические операции"),
+        required=False,
+        label="Папка Операций"
+    )
+    class Meta:
+        model = OperationOfTechnologicalOperation
+        fields = ['folder', 'production_operation', 'formula']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Устанавливаем папку, если production_operation уже выбрана
+        if self.instance and self.instance.production_operation:
+            production_operation = self.instance.production_operation
+            folder = production_operation.folder
+            self.fields['folder'].initial = folder
+
+        self.fields['folder'].queryset = Folder.objects.filter(folder_type='Операция производства')
+        self.fields['folder'].widget = HierarchicalFolderWidget()
+        self.fields['folder'].widget.update_choices(self.fields['folder'].queryset)
+
+
 class OperationOfTechnologicalOperationInline(admin.TabularInline):
     model = OperationOfTechnologicalOperation
-    extra = 1  # Количество пустых полей для добавления
-    fields = ['production_operation', 'formula']  # Поля, которые хотите видеть
-    fk_name = 'technicological_operation'  # Поле, которое связывает с основной моделью
+    form = OperationOfTechnologicalOperationForm
+    extra = 0
+    fields = ['folder', 'production_operation', 'formula']
+
+    class Media:
+        js = ('admin/js/production_operation_filter.js',)
 
 from django import forms
 from .models import AddingMaterialsTechnologicalOperation, Folder, Nomenklatura
 
+
+class AddingMaterialsTechnologicalOperationForm(forms.ModelForm):
+    folder = forms.ModelChoiceField(
+        queryset=Folder.objects.filter(folder_type="Номенклатура"),
+        required=False,
+        label="Папка Номенклатуры"
+    )
+
+    class Meta:
+        model = AddingMaterialsTechnologicalOperation
+        fields = ['folder', 'nomenklatura', 'chapter_calculation', 'formula']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Устанавливаем папку, если номенклатура уже выбрана
+        if self.instance and self.instance.nomenklatura:
+            nomenklatura = self.instance.nomenklatura
+            folder = nomenklatura.folder
+            self.fields['folder'].initial = folder
+
+        self.fields['folder'].queryset = Folder.objects.filter(folder_type='Номенклатура')
+        self.fields['folder'].widget = HierarchicalFolderWidget()
+        self.fields['folder'].widget.update_choices(self.fields['folder'].queryset)
+
+
 class AddingMaterialsTechnologicalOperationInline(admin.TabularInline):
     model = AddingMaterialsTechnologicalOperation
+    form = AddingMaterialsTechnologicalOperationForm
     extra = 0
-    fields = ['nomenklatura', 'chapter_calculation', 'formula']
-    fk_name = 'technicological_operation'
+    fields = ['folder', 'nomenklatura', 'chapter_calculation', 'formula']
+
+    class Media:
+        js = ('admin/js/nomenklatura_filter_add.js',)
 
 
 class MaterialsTechnologicalOperationForm(forms.ModelForm):
@@ -252,12 +593,47 @@ class TechnologicalOperationAdmin(admin.ModelAdmin):
 
     def available_formulas(self, obj):
         formulas = Formulas.objects.values_list('formula_name', flat=True)
-        formulas_list = [f'<span class="formula-item" style="cursor: pointer;">{formula}</span>' for formula in formulas]
-        return mark_safe(", ".join(formulas_list)) if formulas else "Нет доступных формул"
-    available_formulas.short_description = 'Список всех формул'
+        formulas_list = [f'<li class="formula-item">{formula}</li>' for formula in formulas]
+
+        # HTML-код для кнопки, поля поиска и прокручиваемого списка
+        html = f"""
+        <button type="button" onclick="toggleFormulas()">Показать формулы</button>
+        <div id="formula-container" style="display: none;">
+            <input type="text" id="formula-search" placeholder="Поиск формулы..." onkeyup="filterFormulas()" style="margin-top: 10px; width: 100%;">
+            <ul id="formula-list" style="max-height: 200px; overflow-y: auto; padding-left: 20px;">
+                {" ".join(formulas_list)}
+            </ul>
+        </div>
+        <script>
+            function toggleFormulas() {{
+                var container = document.getElementById('formula-container');
+                if (container.style.display === 'none') {{
+                    container.style.display = 'block';
+                    initFormulaClickHandlers();  // Инициализируем обработчики кликов
+                }} else {{
+                    container.style.display = 'none';
+                }}
+            }}
+
+            function filterFormulas() {{
+                var input = document.getElementById('formula-search');
+                var filter = input.value.toLowerCase();
+                var ul = document.getElementById('formula-list');
+                var items = ul.getElementsByTagName('li');
+                
+                for (var i = 0; i < items.length; i++) {{
+                    var text = items[i].textContent || items[i].innerText;
+                    items[i].style.display = text.toLowerCase().indexOf(filter) > -1 ? "" : "none";
+                }}
+            }}
+        </script>
+        """
+        return mark_safe(html) if formulas else "Нет доступных формул"
+
+
 
     def available_math_symbols(self, obj):
-        symbols = [' + ', ' - ', ' * ', ' / ', ' ( ', ' ) ']
+        symbols = [' + ', ' - ', ' * ', ' / ', ' ( ', ' ) ',' , ',' Мин ',' Макс ',' Окр ']
         symbols_list = [f'<span class="math-symbol" style="cursor: pointer;">{symbol}</span>' for symbol in symbols]
         return mark_safe(", ".join(symbols_list))
     available_math_symbols.short_description = 'Список всех математических знаков'
@@ -299,27 +675,20 @@ class TechnologicalOperationAdmin(admin.ModelAdmin):
         # Сохраняем объект с новым кодом, если он был установлен
         super().save(*args, **kwargs)  # Сохраняем объект с новым кодом
 
-@admin.register(ProductComposition)
-class ProductCompositionAdmin(admin.ModelAdmin):
-    list_display = ('product', 'technology', 'operation', 'nomenclature', 'default_selected')
-    search_fields = ('product__product_name', 'operation__operation_link_name')
-    list_filter = ('default_selected',)
 
+@admin.register(TechnologicalLinkComposition)
 class TechnologicalLinkCompositionAdmin(admin.ModelAdmin):
-    list_display = ('technical_link', 'get_technological_operations', 'order')
+    form = TechnologicalLinkCompositionForm
+    list_display = ('technical_link', 'technical_operation', 'order')
     list_filter = ('technical_link',)
 
-    def get_technological_operations(self, obj):
-        return ", ".join([operation.operation_link_name for operation in obj.technical_operation.all()])
-    get_technological_operations.short_description = "Технологическая операция"
+    # def get_technological_operations(self, obj):
+    #     return ", ".join([operation.operation_name for operation in obj.technical_operation.all()])
+    # get_technological_operations.short_description = "Технологическая операция"
 
-    def get_form(self, request, obj=None, **kwargs):
-        form = super().get_form(request, obj, **kwargs)
-        # Изменяем поле для выбора технологических операций
-        form.base_fields['technical_operation'].queryset = TechnologicalOperation.objects.all()
-        return form
+    class Media:
+        js = ('admin/js/operation_filter.js',)  # Укажите путь к вашему JavaScript файлу
 
-admin.site.register(TechnologicalLinkComposition, TechnologicalLinkCompositionAdmin)
 
 @admin.register(ChapterCalculation)
 class ChapterCalculationAdmin(admin.ModelAdmin):
@@ -364,7 +733,7 @@ class JopTitlesAdmin(admin.ModelAdmin):
 @admin.register(OperationOfTechnologicalOperation)
 class OperationOfTechnologicalOperationAdmin(admin.ModelAdmin):
     list_display = ('technicological_operation', 'production_operation', 'formula')
-    search_fields = ('formula',)
+    search_fields = ('technicological_operation__operation_link_name',)
     actions = ['duplicate_selected']
     readonly_fields = ('available_formulas', 'available_math_symbols')
 
@@ -378,7 +747,7 @@ class OperationOfTechnologicalOperationAdmin(admin.ModelAdmin):
     available_formulas.short_description = 'Список всех формул'
 
     def available_math_symbols(self, obj):
-        symbols = [' + ', ' - ', ' * ', ' / ', ' ( ', ' ) ']
+        symbols = [' + ', ' - ', ' * ', ' / ', ' ( ', ' ) ',' , ',' Мин ',' Макс ',' Окр ']
         symbols_list = [f'<span class="math-symbol" style="cursor: pointer;">{symbol}</span>' for symbol in symbols]
         return mark_safe(", ".join(symbols_list))
     available_math_symbols.short_description = 'Список всех математических знаков'
@@ -447,6 +816,7 @@ from django.utils.safestring import mark_safe
 class ParametersOfProductsAdmin(admin.ModelAdmin):
     list_display = ('parameters_product','formula_name', 'formula')
     readonly_fields = ('available_formulas','available_math_symbols')
+    search_fields = ['formula_name']
 
     class Media:
         js = ('admin/js/copy_formula.js',) 
@@ -460,7 +830,7 @@ class ParametersOfProductsAdmin(admin.ModelAdmin):
     available_formulas.short_description = 'Список всех формул'
 
     def available_math_symbols(self, obj):
-        symbols = [' + ', ' - ', ' * ', ' / ',' ( ', ' ) ']
+        symbols = [' + ', ' - ', ' * ', ' / ', ' ( ', ' ) ',' , ',' Мин ',' Макс ',' Окр ']
         symbols_list = [f'<span class="math-symbol" style="cursor: pointer;">{symbol}</span>' for symbol in symbols]
         return mark_safe(", ".join(symbols_list))
     available_math_symbols.short_description = 'Список всех математических знаков'
@@ -522,6 +892,7 @@ class CalculationAdmin(admin.ModelAdmin):
         extra_context.update(self.get_default_parameters_normatives())  
 
         return super().change_view(request, object_id, form_url, extra_context=extra_context)
+    
 from django.contrib import admin
 from .models import ParametersNormativesInCalculation
 from django.urls import path
