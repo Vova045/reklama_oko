@@ -94,8 +94,7 @@ if (isset($data['auth_code'])) {
             if (isset($refreshTokenData['access_token'])) {
                 logMessage("Этап 5 завершен: Обновленный токен доступа получен");
 
-                // Все этапы завершены успешно, редиректим на домен
-                // header('Location: https://reklamaoko.ru'); // Закомментировано для отладки
+                // Выводим успешный JSON ответ
                 echo json_encode([
                     'status' => 'success',
                     'message' => 'Токены обновлены и процесс завершен.',
@@ -106,7 +105,6 @@ if (isset($data['auth_code'])) {
                 exit();
             } else {
                 logMessage("Ошибка обновления токенов: " . ($refreshTokenData['error_description'] ?? 'Неизвестная ошибка'));
-                // Вывод ошибки
                 echo json_encode([
                     'status' => 'error',
                     'message' => 'Ошибка обновления токенов: ' . ($refreshTokenData['error_description'] ?? 'Неизвестная ошибка'),
@@ -115,7 +113,6 @@ if (isset($data['auth_code'])) {
             }
         } else {
             logMessage("Ошибка: Не получен refresh_token");
-            // Вывод ошибки
             echo json_encode([
                 'status' => 'error',
                 'message' => 'Не получен refresh_token.',
@@ -124,7 +121,6 @@ if (isset($data['auth_code'])) {
         }
     } else {
         logMessage("Ошибка: Токен не получен");
-        // Вывод ошибки
         echo json_encode([
             'status' => 'error',
             'message' => 'Ошибка получения access_token.',
@@ -133,7 +129,6 @@ if (isset($data['auth_code'])) {
     }
 } else {
     logMessage("Ошибка: Не передан код авторизации");
-    // Вывод ошибки
     echo json_encode([
         'status' => 'error',
         'message' => 'Не передан код авторизации.',
@@ -141,3 +136,8 @@ if (isset($data['auth_code'])) {
     exit();
 }
 ?>
+<script type="text/javascript">
+    <?php if (isset($tokenData['access_token'])): ?>
+        alert('Токены успешно обновлены!');
+    <?php endif; ?>
+</script>
