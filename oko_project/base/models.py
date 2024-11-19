@@ -1,6 +1,9 @@
 from django.db import models
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
+from datetime import datetime, timedelta
+from django.utils import timezone
+
 
 class Folder(models.Model):
     name = models.CharField(max_length=100, verbose_name="Название папки")
@@ -407,15 +410,25 @@ class ParametersNormativesInCalculation(models.Model):
     def __str__(self):
         return f"{self.calculation} - {self.overheads} - {self.salary_fund}  - {self.profit}"
 
+from django.utils.timezone import now
 
 class BitrixUser(models.Model):
-    member_id = models.CharField(max_length=255, unique=True)  # Идентификатор пользователя Bitrix
-    domain = models.CharField(max_length=255)  # Домен пользователя в Bitrix
-    auth_token = models.CharField(max_length=255)  # Access token для доступа к API Bitrix
-    refresh_token = models.CharField(max_length=255)  # Refresh token для обновления access token
-    created_at = models.DateTimeField(auto_now_add=True)  # Дата установки приложения
-    updated_at = models.DateTimeField(auto_now=True)  # Дата обновления токенов
+    member_id = models.CharField(max_length=255, unique=True)
+    domain = models.CharField(max_length=255)
+    auth_token = models.CharField(max_length=255)
+    refresh_token = models.CharField(max_length=255)
+    expires_at = models.DateTimeField(null=True, blank=True)  # Срок действия access_token
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    refresh_token_created_at = models.DateTimeField()
+    refresh_token_ttl = models.IntegerField(default=30)  # Срок действия refresh_token в днях
+
+    def is_refresh_token_expired(self):
+        """Проверяет, истёк ли refresh_token."""
+        if not self.refresh_token_created_at:
+            return True
+        expiration_date = self.refresh_token_created_at + timedelta(days=self.refresh_token_ttl)
+        return now() > expiration_date
 
     def __str__(self):
         return f"Bitrix User {self.member_id} - Domain: {self.domain}"
-    
