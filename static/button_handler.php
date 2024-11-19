@@ -77,11 +77,12 @@ if (isset($data['auth_code'])) {
                 'client_secret' => $clientSecret,
                 'refresh_token' => $tokenData['refresh_token'],
                 'grant_type' => 'refresh_token',
+                'redirect_uri' => $redirectUri,
             ];
 
             $curl = curl_init();
             curl_setopt_array($curl, [
-                CURLOPT_URL => $endpoint . '?' . http_build_query($refreshParams),
+                CURLOPT_URL => 'https://oauth.bitrix24.ru/oauth/token/' . '?' . http_build_query($refreshParams),
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_SSL_VERIFYPEER => false,
             ]);
@@ -89,24 +90,54 @@ if (isset($data['auth_code'])) {
             curl_close($curl);
 
             $refreshTokenData = json_decode($refreshResult, true);
+
             if (isset($refreshTokenData['access_token'])) {
                 logMessage("Этап 5 завершен: Обновленный токен доступа получен");
 
                 // Все этапы завершены успешно, редиректим на домен
-                header('Location: https://reklamaoko.ru');
+                // header('Location: https://reklamaoko.ru'); // Закомментировано для отладки
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => 'Токены обновлены и процесс завершен.',
+                    'access_token' => $refreshTokenData['access_token'],
+                    'refresh_token' => $refreshTokenData['refresh_token'],
+                    'expires_in' => $refreshTokenData['expires_in'] ?? 3600,
+                ]);
+                exit();
+            } else {
+                logMessage("Ошибка обновления токенов: " . ($refreshTokenData['error_description'] ?? 'Неизвестная ошибка'));
+                // Вывод ошибки
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Ошибка обновления токенов: ' . ($refreshTokenData['error_description'] ?? 'Неизвестная ошибка'),
+                ]);
                 exit();
             }
+        } else {
+            logMessage("Ошибка: Не получен refresh_token");
+            // Вывод ошибки
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'Не получен refresh_token.',
+            ]);
+            exit();
         }
     } else {
         logMessage("Ошибка: Токен не получен");
-        // Если токен не получен, можно сделать редирект на страницу ошибки
-        header('Location: https://reklamaoko.ru/error');
+        // Вывод ошибки
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Ошибка получения access_token.',
+        ]);
         exit();
     }
 } else {
     logMessage("Ошибка: Не передан код авторизации");
-    // Если нет кода авторизации, можно сделать редирект на страницу ошибки
-    header('Location: https://reklamaoko.ru/error');
+    // Вывод ошибки
+    echo json_encode([
+        'status' => 'error',
+        'message' => 'Не передан код авторизации.',
+    ]);
     exit();
 }
 ?>
