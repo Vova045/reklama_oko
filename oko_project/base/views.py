@@ -1240,6 +1240,9 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse, HttpResponseRedirect
 from .models import BitrixUser
 
+from datetime import timedelta
+from django.utils.timezone import now
+
 @csrf_exempt
 def install(request):
     # Чтение параметров из GET и POST
@@ -1247,16 +1250,17 @@ def install(request):
     auth_token = request.POST.get('AUTH_ID')
     refresh_token = request.POST.get('REFRESH_ID')
     member_id = request.POST.get('member_id')
+    expires_in = request.POST.get('AUTH_EXPIRES')  # Время действия токена в секундах (если доступно)
 
-    # Проверка, какие параметры получены
+    # Проверка полученных параметров
     received_params = {
         'DOMAIN': domain,
         'AUTH_ID': auth_token,
         'REFRESH_ID': refresh_token,
-        'member_id': member_id
+        'member_id': member_id,
+        'AUTH_EXPIRES': expires_in
     }
 
-    # Если не все параметры получены, возвращаем ошибку
     if not all([domain, auth_token, refresh_token, member_id]):
         return JsonResponse({
             'status': 'error',
@@ -1264,36 +1268,45 @@ def install(request):
             'received_params': received_params
         }, status=400)
 
-    # Сохраняем или обновляем запись пользователя в базе данных
+    # Расчет времени истечения access_token
+    expires_at = None
+    if expires_in:
+        try:
+            expires_in = int(expires_in)
+            expires_at = now() + timedelta(seconds=expires_in)
+        except ValueError:
+            expires_in = None  # Игнорируем, если значение неверно
+
+    # Сохранение или обновление записи пользователя
     bitrix_user, created = BitrixUser.objects.update_or_create(
         member_id=member_id,
         defaults={
             'domain': domain,
             'auth_token': auth_token,
             'refresh_token': refresh_token,
+            'expires_at': expires_at,
+            'refresh_token_created_at': now(),
         }
     )
 
     # Установка обработчика места встраивания
-    access_token = auth_token  # Используйте полученный токен для авторизации
-    placement = 'CRM_DEAL_DETAIL_TAB'  # Место встраивания
-    handler_url = 'https://reklamaoko.ru/static/admin/js/custom_button.js'  # Ваш URL для обработки
-    title = 'Калькуляции'  # Заголовок кнопки
+    access_token = auth_token
+    placement = 'CRM_DEAL_DETAIL_TAB'
+    handler_url = 'https://reklamaoko.ru/static/admin/js/custom_button.js'
+    title = 'Калькуляции'
 
-    # Проверьте, установлен ли уже обработчик
+    # Проверяем существующий обработчик
     check_url = f'https://{domain}/rest/placement.get/?access_token={access_token}&PLACEMENT={placement}'
     check_response = requests.get(check_url)
     check_data = check_response.json()
 
     if check_data.get('result'):
-        # Если обработчик уже установлен, удаляем его
+        # Удаляем старый обработчик, если он существует
         unbind_url = f'https://{domain}/rest/placement.unbind/?access_token={access_token}&PLACEMENT={placement}'
         requests.post(unbind_url)
 
-    # Формируем URL для запроса установки обработчика
+    # Устанавливаем новый обработчик
     bind_url = f'https://{domain}/rest/placement.bind/?access_token={access_token}&PLACEMENT={placement}&HANDLER={handler_url}&TITLE={title}'
-
-    # Выполняем запрос на установку обработчика
     response = requests.post(bind_url)
     response_data = response.json()
 
@@ -1303,8 +1316,18 @@ def install(request):
             'message': 'Ошибка установки обработчика: ' + response_data.get('error_description', 'Неизвестная ошибка'),
         }, status=400)
 
-    # Перенаправляем пользователя на нужный URL после успешной установки
-    return HttpResponseRedirect('https://reklamaoko.ru')
+    return JsonResponse({
+        'status': 'success',
+        'message': 'Токены обновлены и обработчик установлен.',
+        'bitrix_user': {
+            'member_id': bitrix_user.member_id,
+            'domain': bitrix_user.domain,
+            'auth_token': bitrix_user.auth_token,
+            'expires_at': bitrix_user.expires_at,
+            'refresh_token_created_at': bitrix_user.refresh_token_created_at,
+        }
+    })
+
 
 def get_nomenklatura_by_folder(request, folder_id):
     # Получаем все номенклатуры, которые относятся к выбранной папке
