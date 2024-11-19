@@ -1989,7 +1989,7 @@ logger = logging.getLogger(__name__)
 
 CLIENT_ID = "local.671fe1a5771b80.36776378"  # Ваш client_id
 CLIENT_SECRET = "rxXLQH8AI2Ig9Uvgx7VmcsVKD39Qs46vIMiRGZiu2GsxHrAfE2"  # Ваш client_secret
-REDIRECT_URI = "https://reklamaoko.ru/static/button_handler.php"  # Ваш redirect_uri
+REDIRECT_URI = "https://reklamaoko.ru/static/update_tokens.php"  # Ваш redirect_uri
 
 def get_authorization_url():
     """Генерация URL для авторизации."""
