@@ -3,6 +3,8 @@
 $clientId = 'local.671fe1a5771b80.36776378';
 $clientSecret = 'rxXLQH8AI2Ig9Uvgx7VmcsVKD39Qs46vIMiRGZiu2GsxHrAfE2';
 $redirectUri = 'https://reklamaoko.ru/static/button_handler.php';
+$mainPageUrl = 'https://reklamaoko.ru'; // URL главной страницы
+$djangoApiUrl = 'https://reklamaoko.ru/install/'; // URL API Django для сохранения данных
 
 // Буферизация вывода для предотвращения ошибок с header()
 ob_start();
@@ -53,42 +55,44 @@ if (isset($_GET['code'])) {
         $domain = $_GET['domain'] ?? 'unknown'; // Получите домен, если он передается
         $member_id = $_GET['member_id'] ?? 'unknown'; // Получите member_id, если он передается
 
-        // Логируем токены
-        echo "Авторизация успешна! Access token: " . htmlspecialchars($access_token) . "<br>";
-        echo "Refresh token: " . htmlspecialchars($refresh_token);
-
-        // Формируем данные для отправки в Django
-        $postData = [
+        // Сохраняем токены в базу данных Django
+        $djangoParams = [
             'DOMAIN' => $domain,
             'AUTH_ID' => $access_token,
             'REFRESH_ID' => $refresh_token,
             'member_id' => $member_id,
-            'AUTH_EXPIRES' => $expires_in,
         ];
 
-        // Отправка данных в Django
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, "https://reklamaoko.ru/install/");
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        $djangoCurl = curl_init();
+        curl_setopt_array($djangoCurl, [
+            CURLOPT_URL => $djangoApiUrl,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $djangoParams,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_SSL_VERIFYPEER => false,
+        ]);
 
-        $response = curl_exec($ch);
-        $curlError = curl_error($ch);
-        curl_close($ch);
+        $djangoResponse = curl_exec($djangoCurl);
+        $djangoError = curl_error($djangoCurl);
+        curl_close($djangoCurl);
 
-        if ($curlError) {
-            die("Ошибка при отправке данных в Django: " . htmlspecialchars($curlError));
+        if ($djangoError) {
+            die("Ошибка отправки данных в Django: " . htmlspecialchars($djangoError));
         }
 
-        // Логируем ответ от Django
-        echo "Ответ от Django: " . htmlspecialchars($response);
+        $djangoResult = json_decode($djangoResponse, true);
+        if ($djangoResult['status'] !== 'success') {
+            die("Ошибка записи данных в Django: " . htmlspecialchars($djangoResult['message'] ?? 'Неизвестная ошибка'));
+        }
+
+        // Перенаправление на главную страницу после успешной авторизации и записи данных
+        header("Location: $mainPageUrl");
+        exit();
     } else {
         // Ошибка при получении токенов
         echo "Ошибка авторизации: " . htmlspecialchars($data['error_description'] ?? 'Неизвестная ошибка');
     }
-    
+
     // Очищаем буфер и завершаем
     ob_end_flush();
     exit();
