@@ -8,7 +8,6 @@ $redirectUri = 'https://reklamaoko.ru/static/button_handler.php';
 if (!isset($_GET['code'])) {
     // Переадресация на страницу авторизации Bitrix
     $authUrl = "https://oauth.bitrix.info/oauth/authorize?client_id={$clientId}&redirect_uri={$redirectUri}&response_type=code";
-    echo "<script>console.log('Этап 1: Переадресация на страницу авторизации Bitrix');</script>";
     header("Location: $authUrl");
     exit();
 }
@@ -18,7 +17,6 @@ if (isset($_GET['code'])) {
     $code = $_GET['code'];
     $domain = $_GET['domain'] ?? '';
     $state = $_GET['state'] ?? '';
-    $redirectUrl = $_GET['redirect_url'] ?? '/';  // Получаем redirect_url для возвращения после авторизации
 
     echo "<script>console.log('Этап 2: Получен код авторизации');</script>";
 
@@ -55,7 +53,7 @@ if (isset($_GET['code'])) {
         // Этап 4: Использование access_token для работы с REST API
         echo "<script>console.log('Этап 4: Использование токена для работы с REST API');</script>";
 
-        $endpoint = "https://{your_domain}/rest/user.get.json";
+        $endpoint = "https://{$domain}/rest/some_endpoint/";
         $params = [
             'auth' => $access_token,
             // Дополнительные параметры для REST-запроса
@@ -109,10 +107,5 @@ if (isset($_GET['code'])) {
             echo "<script>console.log('Ошибка обновления токена: " . json_encode($data['error_description']) . "');</script>";
         }
     }
-    
-    // После успешной авторизации или обновления токена перенаправляем пользователя на исходную ссылку
-    echo "<script>console.log('Перенаправление на исходную ссылку: " . $redirectUrl . "');</script>";
-    header("Location: $redirectUrl");
-    exit();
 }
 ?>
