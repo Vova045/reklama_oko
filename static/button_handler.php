@@ -9,111 +9,54 @@ function logMessage($message) {
     file_put_contents('log.txt', date('Y-m-d H:i:s') . " - $message" . PHP_EOL, FILE_APPEND);
 }
 
-// Этап 1: Переадресация на авторизацию, если нет кода
-if (!isset($_GET['code'])) {
-    $authUrl = "https://oauth.bitrix.info/oauth/authorize?client_id={$clientId}&redirect_uri={$redirectUri}&response_type=code";
-    header("Location: $authUrl");
-    exit();
-}
+// Получение входных данных
+$input = file_get_contents('php://input');
+$data = json_decode($input, true);
 
-// Этап 2: Получение и обработка `code`
-if (isset($_GET['code'])) {
-    $code = $_GET['code'];
-    $domain = $_GET['domain'] ?? '';
-    $state = $_GET['state'] ?? '';
+// Лог входных данных
+logMessage("Получен входной запрос: " . print_r($data, true));
 
-    if (empty($domain)) {
-        logMessage("Ошибка: параметр domain отсутствует.");
-        die("Ошибка: домен не указан.");
-    }
+// Проверка входных данных
+if (isset($data['auth'])) {
+    $authData = $data['auth'];
+    $domain = $authData['domain'] ?? 'Домен не указан';
+    $memberId = $authData['member_id'] ?? 'ID не указан';
+    $authToken = $authData['access_token'] ?? 'Токен не указан';
+    
+    logMessage("Получены данные: Домен - $domain, Участник - $memberId");
 
-    // Этап 3: Запрос токенов с использованием code
-    $tokenUrl = 'https://oauth.bitrix.info/oauth/token/';
+    // Пример использования REST API с токеном
+    $endpoint = "https://{$domain}/rest/some_endpoint/";
     $params = [
-        'grant_type' => 'authorization_code',
-        'client_id' => $clientId,
-        'client_secret' => $clientSecret,
-        'redirect_uri' => $redirectUri,
-        'code' => $code
+        'auth' => $authToken,
+        // Добавьте параметры для запроса
     ];
 
     $curl = curl_init();
     curl_setopt_array($curl, [
-        CURLOPT_URL => $tokenUrl . '?' . http_build_query($params),
+        CURLOPT_URL => $endpoint . '?' . http_build_query($params),
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_SSL_VERIFYPEER => false,
     ]);
 
-    $response = curl_exec($curl);
+    $result = curl_exec($curl);
     curl_close($curl);
 
-    $data = json_decode($response, true);
+    logMessage("Результат REST API: " . $result);
 
-    if (isset($data['access_token'])) {
-        $accessToken = $data['access_token'];
-        $refreshToken = $data['refresh_token'];
-
-        logMessage("Этап 3: Токен доступа получен. Access Token: {$accessToken}");
-
-        // Этап 4: Пример использования REST API
-        $endpoint = "https://{$domain}/rest/some_endpoint/";
-        $apiParams = [
-            'auth' => $accessToken,
-            // Здесь добавьте дополнительные параметры для запроса
-        ];
-
-        $curl = curl_init();
-        curl_setopt_array($curl, [
-            CURLOPT_URL => $endpoint . '?' . http_build_query($apiParams),
-            CURLOPT_RETURNTRANSFER => true,
-        ]);
-
-        $result = curl_exec($curl);
-        curl_close($curl);
-
-        $resultData = json_decode($result, true);
-
-        if (isset($resultData['error'])) {
-            logMessage("Ошибка REST API: " . $resultData['error_description']);
-            echo "Ошибка REST API: " . htmlspecialchars($resultData['error_description']);
-        } else {
-            logMessage("Успешный REST API запрос: " . print_r($resultData, true));
-            echo "Результат запроса: " . print_r($resultData, true);
-        }
-    } else {
-        logMessage("Ошибка получения токенов: " . json_encode($data));
-        echo "Ошибка: " . htmlspecialchars($data['error_description']);
-    }
-
-    // Этап 5: Обновление токенов с использованием refresh_token
-    if (!empty($refreshToken)) {
-        $refreshUrl = 'https://oauth.bitrix.info/oauth/token/';
-        $refreshParams = [
-            'grant_type' => 'refresh_token',
-            'client_id' => $clientId,
-            'client_secret' => $clientSecret,
-            'refresh_token' => $refreshToken,
-        ];
-
-        $curl = curl_init();
-        curl_setopt_array($curl, [
-            CURLOPT_URL => $refreshUrl . '?' . http_build_query($refreshParams),
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_SSL_VERIFYPEER => false,
-        ]);
-
-        $refreshResponse = curl_exec($curl);
-        curl_close($curl);
-
-        $refreshData = json_decode($refreshResponse, true);
-
-        if (isset($refreshData['access_token'])) {
-            logMessage("Обновленный токен получен. Access Token: " . $refreshData['access_token']);
-        } else {
-            logMessage("Ошибка обновления токенов: " . json_encode($refreshData));
-            echo "Ошибка обновления токенов: " . htmlspecialchars($refreshData['error_description']);
-        }
-    } else {
-        logMessage("Отсутствует refresh_token, обновление невозможно.");
-    }
+    // Возврат успешного ответа
+    header('Content-Type: application/json');
+    echo json_encode([
+        'status' => 'success',
+        'domain' => $domain,
+        'auth_token' => $authToken,
+        'message' => 'Данные обработаны успешно.',
+    ]);
+    exit();
+} else {
+    // Обработка ошибок
+    logMessage("Ошибка: Не переданы данные авторизации.");
+    header('Content-Type: application/json');
+    echo json_encode(['status' => 'error', 'message' => 'Не переданы данные авторизации.']);
+    exit();
 }
