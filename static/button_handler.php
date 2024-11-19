@@ -53,7 +53,7 @@ if (isset($_GET['code'])) {
         // Этап 4: Использование access_token для работы с REST API
         echo "<script>console.log('Этап 4: Использование токена для работы с REST API');</script>";
 
-        $endpoint = "https://{$domain}/rest/some_endpoint/";
+        $endpoint = "https://{$domain}";
         $params = [
             'auth' => $access_token,
             // Дополнительные параметры для REST-запроса
