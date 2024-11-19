@@ -81,13 +81,17 @@ if (isset($_GET['code'])) {
         }
 
         $djangoResult = json_decode($djangoResponse, true);
-        if ($djangoResult['status'] !== 'success') {
+        if (!$djangoResult || $djangoResult['status'] !== 'success') {
             die("Ошибка записи данных в Django: " . htmlspecialchars($djangoResult['message'] ?? 'Неизвестная ошибка'));
         }
 
-        // Перенаправление на главную страницу после успешной авторизации и записи данных
-        header("Location: $mainPageUrl");
+        // Успешная обработка — перенаправление или JSON-ответ для Bitrix24
+        echo "<script>window.top.location.href = '$mainPageUrl';</script>";
         exit();
+
+        // Альтернативный вариант (если нужен JSON-ответ):
+        // echo json_encode(['status' => 'success', 'redirect' => $mainPageUrl]);
+        // exit();
     } else {
         // Ошибка при получении токенов
         echo "Ошибка авторизации: " . htmlspecialchars($data['error_description'] ?? 'Неизвестная ошибка');
