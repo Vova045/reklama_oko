@@ -44,14 +44,8 @@ if (isset($data['auth'])) {
 
     logMessage("Результат REST API: " . $result);
 
-    // Возврат успешного ответа
-    header('Content-Type: application/json');
-    echo json_encode([
-        'status' => 'success',
-        'domain' => $domain,
-        'auth_token' => $authToken,
-        'message' => 'Данные обработаны успешно.',
-    ]);
+    // Возврат успешного ответа и редирект на главную страницу
+    header('Location: https://reklamaoko.ru');
     exit();
 } else {
     // Обработка ошибок
