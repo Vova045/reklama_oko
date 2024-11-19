@@ -4,108 +4,109 @@ $clientId = 'local.671fe1a5771b80.36776378';
 $clientSecret = 'rxXLQH8AI2Ig9Uvgx7VmcsVKD39Qs46vIMiRGZiu2GsxHrAfE2';
 $redirectUri = 'https://reklamaoko.ru/static/button_handler.php';
 
-// Этап 1: Переадресация пользователя на страницу авторизации Bitrix24
-if (!isset($_GET['code'])) {
-    // Переадресация на страницу авторизации Bitrix
-    $authUrl = "https://oauth.bitrix.info/oauth/authorize?client_id={$clientId}&redirect_uri={$redirectUri}&response_type=code";
-    header("Location: $authUrl");
-    exit();
+// Функция для логирования
+function logMessage($message) {
+    file_put_contents('log.txt', date('Y-m-d H:i:s') . " - $message" . PHP_EOL, FILE_APPEND);
 }
 
-// Этап 2: Обработка редиректа после авторизации и получение code
-if (isset($_GET['code'])) {
-    $code = $_GET['code'];
-    $domain = $_GET['domain'] ?? '';
-    $state = $_GET['state'] ?? '';
+// Логируем этапы выполнения
+logMessage("Этап 2: Получен код авторизации");
 
-    echo "<script>console.log('Этап 2: Получен код авторизации');</script>";
+// Получение кода авторизации
+$input = file_get_contents('php://input');
+$data = json_decode($input, true);
 
-    // Этап 3: Запрос токенов с использованием code
-    echo "<script>console.log('Этап 3: Запрос токенов с использованием code');</script>";
+// Проверка наличия кода
+if (isset($data['auth_code'])) {
+    logMessage("Этап 3: Запрос токенов с использованием code");
 
-    $tokenUrl = 'https://oauth.bitrix.info/oauth/token/';
+    $authCode = $data['auth_code'];
+
+    // Получение токена с использованием кода авторизации
+    // Этот запрос к API Bitrix24 для получения токенов
+    $endpoint = 'https://oauth.bitrix24.ru/oauth/token/';
     $params = [
-        'grant_type' => 'authorization_code',
         'client_id' => $clientId,
         'client_secret' => $clientSecret,
+        'code' => $authCode,
+        'grant_type' => 'authorization_code',
         'redirect_uri' => $redirectUri,
-        'code' => $code
     ];
 
-    // Выполнение запроса cURL для получения токенов
     $curl = curl_init();
     curl_setopt_array($curl, [
-        CURLOPT_URL => $tokenUrl . '?' . http_build_query($params),
+        CURLOPT_URL => $endpoint . '?' . http_build_query($params),
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_SSL_VERIFYPEER => false,
     ]);
-
-    $response = curl_exec($curl);
+    $result = curl_exec($curl);
     curl_close($curl);
 
-    $data = json_decode($response, true);
+    $tokenData = json_decode($result, true);
 
-    if (isset($data['access_token'])) {
-        $access_token = $data['access_token'];
-        $refresh_token = $data['refresh_token'];
-        echo "<script>console.log('Этап 3: Токен доступа получен');</script>";
+    if (isset($tokenData['access_token'])) {
+        logMessage("Этап 3: Токен доступа получен");
 
-        // Этап 4: Использование access_token для работы с REST API
-        echo "<script>console.log('Этап 4: Использование токена для работы с REST API');</script>";
+        // Токен получен, теперь используем его для работы с API (если нужно)
+        logMessage("Этап 4: Использование токена для работы с REST API");
 
-        $endpoint = "https://{$domain}";
+        // Пример запроса к REST API
+        $endpoint = 'https://example.bitrix24.ru/rest/some_endpoint/';
         $params = [
-            'auth' => $access_token,
-            // Дополнительные параметры для REST-запроса
+            'auth' => $tokenData['access_token'],
         ];
 
-        // Выполнение REST-запроса
         $curl = curl_init();
         curl_setopt_array($curl, [
             CURLOPT_URL => $endpoint . '?' . http_build_query($params),
             CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_SSL_VERIFYPEER => false,
         ]);
-
         $result = curl_exec($curl);
         curl_close($curl);
 
-        echo "<script>console.log('Этап 4 завершен: Результат запроса - ' + " . json_encode($result) . ");</script>";
-    } else {
-        echo "<script>console.log('Ошибка авторизации: " . json_encode($data['error_description']) . "');</script>";
-    }
+        logMessage("Этап 4 завершен: Результат запроса - " . $result);
 
-    // Этап 5: Обновление токена с использованием refresh_token
-    if (isset($refresh_token)) {
-        echo "<script>console.log('Этап 5: Обновление токена с использованием refresh_token');</script>";
+        // Если все прошло успешно, обновляем токен с использованием refresh_token
+        if (isset($tokenData['refresh_token'])) {
+            logMessage("Этап 5: Обновление токена с использованием refresh_token");
 
-        $refreshUrl = 'https://oauth.bitrix.info/oauth/token/';
-        $params = [
-            'grant_type' => 'refresh_token',
-            'client_id' => $clientId,
-            'client_secret' => $clientSecret,
-            'refresh_token' => $refresh_token,
-        ];
+            // Обновление токена с помощью refresh_token
+            $refreshParams = [
+                'client_id' => $clientId,
+                'client_secret' => $clientSecret,
+                'refresh_token' => $tokenData['refresh_token'],
+                'grant_type' => 'refresh_token',
+            ];
 
-        // Запрос обновленного токена cURL
-        $curl = curl_init();
-        curl_setopt_array($curl, [
-            CURLOPT_URL => $refreshUrl . '?' . http_build_query($params),
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_SSL_VERIFYPEER => false,
-        ]);
+            $curl = curl_init();
+            curl_setopt_array($curl, [
+                CURLOPT_URL => $endpoint . '?' . http_build_query($refreshParams),
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_SSL_VERIFYPEER => false,
+            ]);
+            $refreshResult = curl_exec($curl);
+            curl_close($curl);
 
-        $response = curl_exec($curl);
-        curl_close($curl);
+            $refreshTokenData = json_decode($refreshResult, true);
+            if (isset($refreshTokenData['access_token'])) {
+                logMessage("Этап 5 завершен: Обновленный токен доступа получен");
 
-        $data = json_decode($response, true);
-
-        if (isset($data['access_token'])) {
-            $access_token = $data['access_token'];
-            $refresh_token = $data['refresh_token'];
-            echo "<script>console.log('Этап 5 завершен: Обновленный токен доступа получен');</script>";
-        } else {
-            echo "<script>console.log('Ошибка обновления токена: " . json_encode($data['error_description']) . "');</script>";
+                // Все этапы завершены успешно, редиректим на домен
+                header('Location: https://reklamaoko.ru');
+                exit();
+            }
         }
+    } else {
+        logMessage("Ошибка: Токен не получен");
+        // Если токен не получен, можно сделать редирект на страницу ошибки
+        header('Location: https://reklamaoko.ru/error');
+        exit();
     }
+} else {
+    logMessage("Ошибка: Не передан код авторизации");
+    // Если нет кода авторизации, можно сделать редирект на страницу ошибки
+    header('Location: https://reklamaoko.ru/error');
+    exit();
 }
 ?>
