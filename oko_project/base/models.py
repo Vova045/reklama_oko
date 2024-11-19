@@ -410,25 +410,35 @@ class ParametersNormativesInCalculation(models.Model):
     def __str__(self):
         return f"{self.calculation} - {self.overheads} - {self.salary_fund}  - {self.profit}"
 
-from django.utils.timezone import now
+from django.db import models
+from datetime import timedelta
+from django.utils import timezone
 
 class BitrixUser(models.Model):
     member_id = models.CharField(max_length=255, unique=True)
     domain = models.CharField(max_length=255)
     auth_token = models.CharField(max_length=255)
     refresh_token = models.CharField(max_length=255)
-    expires_at = models.DateTimeField(null=True, blank=True)  # Срок действия access_token
+    expires_at = models.DateTimeField(null=True, blank=True)  # Время истечения access_token
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     refresh_token_created_at = models.DateTimeField()
     refresh_token_ttl = models.IntegerField(default=30)  # Срок действия refresh_token в днях
 
+    def is_token_expired(self):
+        """Проверяет, истёк ли access_token"""
+        if not self.expires_at:
+            print("Expires_at is missing.")
+            return True
+        return timezone.now() >= self.expires_at
+
     def is_refresh_token_expired(self):
-        """Проверяет, истёк ли refresh_token."""
+        """Проверяет, истёк ли refresh_token"""
         if not self.refresh_token_created_at:
+            print("Refresh token creation date is missing.")
             return True
         expiration_date = self.refresh_token_created_at + timedelta(days=self.refresh_token_ttl)
-        return now() > expiration_date
+        return timezone.now() > expiration_date
 
     def __str__(self):
         return f"Bitrix User {self.member_id} - Domain: {self.domain}"

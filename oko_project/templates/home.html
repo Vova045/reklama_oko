@@ -457,35 +457,37 @@ function sendParameterDataToServer(){
 
 
 function createDealInBitrix() {
-    const container = document.getElementById('PriceContainer');
-    const priceText = container.textContent;
-    const price = priceText ? parseFloat(priceText.replace('Общая стоимость: ', '')) : null;
-    console.log(price)
-    if (!price) {
-        alert('Цена не найдена, невозможно создать сделку');
-        return;
-    }
+    getUserCurrent();
+    // const container = document.getElementById('PriceContainer');
+    // const priceText = container.textContent;
+    // const price = priceText ? parseFloat(priceText.replace('Общая стоимость: ', '')) : null;
+    // console.log(price)
+    // if (!price) {
+    //     alert('Цена не найдена, невозможно создать сделку');
+    //     return;
+    // }
 
-    fetch('/create-deal/', {  // URL эндпоинта вашего Django-приложения
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCsrfToken(),  // Убедитесь, что CSRF-токен передается
-        },
-        body: JSON.stringify({ price: price })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.deal_id) {
-            alert('Сделка успешно создана! ID сделки: ' + data.deal_id);
-        } else {
-            alert('Ошибка при создании сделки: ' + (data.error || 'Неизвестная ошибка'));
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Произошла ошибка при создании сделки.');
-    });
+    // fetch('/create-deal/', {  // URL эндпоинта вашего Django-приложения
+    //     method: 'POST',
+    //     headers: {
+    //         'Content-Type': 'application/json',
+    //         'X-CSRFToken': getCsrfToken(),  // Убедитесь, что CSRF-токен передается
+    //     },
+    //     body: JSON.stringify({ price: price })
+    // })
+    // .then(response => response.json())
+    // .then(data => {
+    //     console.log('Ответ от сервера:', data);
+    //     if (data.deal_id) {
+    //         alert('Сделка успешно создана! ID сделки: ' + data.deal_id);
+    //     } else {
+    //         alert('Ошибка при создании сделки: ' + (data.error || 'Неизвестная ошибка'));
+    //     }
+    // })
+    // .catch(error => {
+    //     console.error('Error:', error);
+    //     alert('Произошла ошибка при создании сделки.');
+    // });
 }
 
 function getCsrfToken() {
@@ -499,6 +501,47 @@ function getCsrfToken() {
     }
     return '';
 }
+
+
+
+// Получаем CSRF-токен из cookies
+function getCsrfToken() {
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+        const [name, value] = cookie.trim().split('=');
+        if (name === 'csrftoken') {
+            return value;
+        }
+    }
+    return '';
+}
+function getUserCurrent() {
+    fetch('/api/user-current/', {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': getCsrfToken(),
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.user_info) {
+            console.log('Информация о пользователе:', data.user_info);
+        } else if (data.authorization_url) {
+            // Логируем URL для авторизации в консоли
+            console.log('Полученная ссылка для авторизации:', data.authorization_url);
+            
+            // Перенаправляем пользователя на страницу авторизации
+            window.location.href = data.authorization_url;
+        } else {
+            console.log('Ошибка получения данных:', data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Ошибка запроса:', error);
+    });
+}
+
+// Вызов функции при загрузке страницы
 
 
 </script>
