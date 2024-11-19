@@ -29,6 +29,7 @@ urlpatterns = [
     path('api/bitrix/bind/', views.bind_application, name='bind_application'),
     path('api/bitrix/get_available_placements/', views.get_available_placements, name='get_available_placements'),
     path('install/', views.install, name='bitrix_install'),
+    path('change_tokens/', views.change_tokens, name='bitrix_change_tokens'),
     path('get_nomenklatura_by_folder/<int:folder_id>/', views.get_nomenklatura_by_folder, name='get_nomenklatura_by_folder'),
     path('get_production_operation_by_folder/<int:folder_id>/', views.get_production_operation_by_folder, name='get_production_operation_by_folder'),
     path('get_add_nomenklature_by_folder/<int:folder_id>/', views.get_add_nomenklature_by_folder, name='get_add_nomenklature_by_folder'),

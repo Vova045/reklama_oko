@@ -1327,6 +1327,57 @@ def install(request):
             'refresh_token_created_at': bitrix_user.refresh_token_created_at,
         }
     })
+def update_tokens(request):
+    """
+    Обновляет токены пользователя в базе данных.
+    """
+    # Получение параметров из POST-запроса
+    member_id = request.POST.get('member_id')
+    domain = request.POST.get('DOMAIN')
+    auth_token = request.POST.get('AUTH_ID')
+    refresh_token = request.POST.get('REFRESH_ID')
+    expires_in = request.POST.get('AUTH_EXPIRES')  # Время действия токена в секундах (опционально)
+
+    # Проверка необходимых параметров
+    if not all([member_id, domain, auth_token, refresh_token]):
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Необходимые параметры не переданы.'
+        }, status=400)
+
+    # Расчет времени истечения токена (если предоставлено)
+    expires_at = None
+    if expires_in:
+        try:
+            expires_in = int(expires_in)
+            expires_at = now() + timedelta(seconds=expires_in)
+        except ValueError:
+            expires_at = None  # Игнорируем, если значение неверное
+
+    # Обновление или создание записи пользователя
+    bitrix_user, _ = BitrixUser.objects.update_or_create(
+        member_id=member_id,
+        defaults={
+            'domain': domain,
+            'auth_token': auth_token,
+            'refresh_token': refresh_token,
+            'expires_at': expires_at,
+            'refresh_token_created_at': now(),
+        }
+    )
+
+    # Возвращение успешного ответа
+    return JsonResponse({
+        'status': 'success',
+        'message': 'Токены успешно обновлены.',
+        'bitrix_user': {
+            'member_id': bitrix_user.member_id,
+            'domain': bitrix_user.domain,
+            'auth_token': bitrix_user.auth_token,
+            'expires_at': bitrix_user.expires_at,
+            'refresh_token_created_at': bitrix_user.refresh_token_created_at,
+        }
+    })
 
 
 def get_nomenklatura_by_folder(request, folder_id):
