@@ -3,36 +3,33 @@
 $clientId = 'local.671fe1a5771b80.36776378';
 $clientSecret = 'rxXLQH8AI2Ig9Uvgx7VmcsVKD39Qs46vIMiRGZiu2GsxHrAfE2';
 $redirectUri = 'https://reklamaoko.ru/static/button_handler.php';
+$mainPageUrl = 'https://reklamaoko.ru'; // URL главной страницы
+$djangoApiUrl = 'https://reklamaoko.ru/install/'; // URL API Django для сохранения данных
+
+// Буферизация вывода для предотвращения ошибок с header()
+ob_start();
 
 // Этап 1: Переадресация пользователя на страницу авторизации Bitrix24
 if (!isset($_GET['code'])) {
-    // Переадресация на страницу авторизации Bitrix
     $authUrl = "https://oauth.bitrix.info/oauth/authorize?client_id={$clientId}&redirect_uri={$redirectUri}&response_type=code";
     header("Location: $authUrl");
     exit();
 }
 
-// Этап 2: Обработка редиректа после авторизации и получение code
+// Этап 2: Обработка редиректа после авторизации и получение токенов
 if (isset($_GET['code'])) {
     $code = $_GET['code'];
-    $domain = $_GET['domain'] ?? '';
-    $state = $_GET['state'] ?? '';
 
-    echo "<script>console.log('Этап 2: Получен код авторизации');</script>";
-
-    // Этап 3: Запрос токенов с использованием code
-    echo "<script>console.log('Этап 3: Запрос токенов с использованием code');</script>";
-
+    // Запрос токенов с использованием кода авторизации
     $tokenUrl = 'https://oauth.bitrix.info/oauth/token/';
     $params = [
         'grant_type' => 'authorization_code',
         'client_id' => $clientId,
         'client_secret' => $clientSecret,
         'redirect_uri' => $redirectUri,
-        'code' => $code
+        'code' => $code,
     ];
 
-    // Выполнение запроса cURL для получения токенов
     $curl = curl_init();
     curl_setopt_array($curl, [
         CURLOPT_URL => $tokenUrl . '?' . http_build_query($params),
@@ -41,71 +38,67 @@ if (isset($_GET['code'])) {
     ]);
 
     $response = curl_exec($curl);
+    $curlError = curl_error($curl);
     curl_close($curl);
+
+    if ($curlError) {
+        die("Ошибка cURL: " . htmlspecialchars($curlError));
+    }
 
     $data = json_decode($response, true);
 
     if (isset($data['access_token'])) {
+        // Успешно получили токены
         $access_token = $data['access_token'];
         $refresh_token = $data['refresh_token'];
-        echo "<script>console.log('Этап 3: Токен доступа получен');</script>";
+        $expires_in = $data['expires_in'] ?? 3600; // Время жизни access_token в секундах
+        $domain = $_GET['domain'] ?? 'unknown'; // Получите домен, если он передается
+        $member_id = $_GET['member_id'] ?? 'unknown'; // Получите member_id, если он передается
 
-        // Этап 4: Использование access_token для работы с REST API
-        echo "<script>console.log('Этап 4: Использование токена для работы с REST API');</script>";
-
-        $endpoint = "https://{$domain}/rest/some_endpoint/";
-        $params = [
-            'auth' => $access_token,
-            // Дополнительные параметры для REST-запроса
+        // Сохраняем токены в базу данных Django
+        $djangoParams = [
+            'DOMAIN' => $domain,
+            'AUTH_ID' => $access_token,
+            'REFRESH_ID' => $refresh_token,
+            'member_id' => $member_id,
         ];
 
-        // Выполнение REST-запроса
-        $curl = curl_init();
-        curl_setopt_array($curl, [
-            CURLOPT_URL => $endpoint . '?' . http_build_query($params),
-            CURLOPT_RETURNTRANSFER => true,
-        ]);
-
-        $result = curl_exec($curl);
-        curl_close($curl);
-
-        echo "<script>console.log('Этап 4 завершен: Результат запроса - ' + " . json_encode($result) . ");</script>";
-    } else {
-        echo "<script>console.log('Ошибка авторизации: " . json_encode($data['error_description']) . "');</script>";
-    }
-
-    // Этап 5: Обновление токена с использованием refresh_token
-    if (isset($refresh_token)) {
-        echo "<script>console.log('Этап 5: Обновление токена с использованием refresh_token');</script>";
-
-        $refreshUrl = 'https://oauth.bitrix.info/oauth/token/';
-        $params = [
-            'grant_type' => 'refresh_token',
-            'client_id' => $clientId,
-            'client_secret' => $clientSecret,
-            'refresh_token' => $refresh_token,
-        ];
-
-        // Запрос обновленного токена cURL
-        $curl = curl_init();
-        curl_setopt_array($curl, [
-            CURLOPT_URL => $refreshUrl . '?' . http_build_query($params),
+        $djangoCurl = curl_init();
+        curl_setopt_array($djangoCurl, [
+            CURLOPT_URL => $djangoApiUrl,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $djangoParams,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_SSL_VERIFYPEER => false,
         ]);
 
-        $response = curl_exec($curl);
-        curl_close($curl);
+        $djangoResponse = curl_exec($djangoCurl);
+        $djangoError = curl_error($djangoCurl);
+        curl_close($djangoCurl);
 
-        $data = json_decode($response, true);
-
-        if (isset($data['access_token'])) {
-            $access_token = $data['access_token'];
-            $refresh_token = $data['refresh_token'];
-            echo "<script>console.log('Этап 5 завершен: Обновленный токен доступа получен');</script>";
-        } else {
-            echo "<script>console.log('Ошибка обновления токена: " . json_encode($data['error_description']) . "');</script>";
+        if ($djangoError) {
+            die("Ошибка отправки данных в Django: " . htmlspecialchars($djangoError));
         }
+
+        $djangoResult = json_decode($djangoResponse, true);
+        if (!$djangoResult || $djangoResult['status'] !== 'success') {
+            die("Ошибка записи данных в Django: " . htmlspecialchars($djangoResult['message'] ?? 'Неизвестная ошибка'));
+        }
+
+        // Успешная обработка — перенаправление или JSON-ответ для Bitrix24
+        echo "<script>window.top.location.href = '$mainPageUrl';</script>";
+        exit();
+
+        // Альтернативный вариант (если нужен JSON-ответ):
+        // echo json_encode(['status' => 'success', 'redirect' => $mainPageUrl]);
+        // exit();
+    } else {
+        // Ошибка при получении токенов
+        echo "Ошибка авторизации: " . htmlspecialchars($data['error_description'] ?? 'Неизвестная ошибка');
     }
+
+    // Очищаем буфер и завершаем
+    ob_end_flush();
+    exit();
 }
 ?>
