@@ -95,29 +95,49 @@ if (isset($data['auth_code'])) {
                 logMessage("Этап 5 завершен: Обновленный токен доступа получен");
 
                 // Все этапы завершены успешно, редиректим на домен
-                header('Location: https://reklamaoko.ru');
+                // header('Location: https://reklamaoko.ru'); // Закомментировано для отладки
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => 'Токены обновлены и процесс завершен.',
+                    'access_token' => $refreshTokenData['access_token'],
+                    'refresh_token' => $refreshTokenData['refresh_token'],
+                    'expires_in' => $refreshTokenData['expires_in'] ?? 3600,
+                ]);
                 exit();
             } else {
                 logMessage("Ошибка обновления токенов: " . ($refreshTokenData['error_description'] ?? 'Неизвестная ошибка'));
-                // Если обновление токенов не удалось, перенаправляем на страницу ошибки
-                header('Location: https://reklamaoko.ru/error');
+                // Вывод ошибки
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Ошибка обновления токенов: ' . ($refreshTokenData['error_description'] ?? 'Неизвестная ошибка'),
+                ]);
                 exit();
             }
         } else {
             logMessage("Ошибка: Не получен refresh_token");
-            header('Location: https://reklamaoko.ru/error');
+            // Вывод ошибки
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'Не получен refresh_token.',
+            ]);
             exit();
         }
     } else {
         logMessage("Ошибка: Токен не получен");
-        // Если токен не получен, можно сделать редирект на страницу ошибки
-        header('Location: https://reklamaoko.ru/error');
+        // Вывод ошибки
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Ошибка получения access_token.',
+        ]);
         exit();
     }
 } else {
     logMessage("Ошибка: Не передан код авторизации");
-    // Если нет кода авторизации, можно сделать редирект на страницу ошибки
-    header('Location: https://reklamaoko.ru/error');
+    // Вывод ошибки
+    echo json_encode([
+        'status' => 'error',
+        'message' => 'Не передан код авторизации.',
+    ]);
     exit();
 }
 ?>
