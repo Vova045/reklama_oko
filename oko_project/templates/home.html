@@ -454,40 +454,40 @@ function sendParameterDataToServer(){
 
 
 
+// getUserCurrent();
 
 
 function createDealInBitrix() {
-    getUserCurrent();
-    // const container = document.getElementById('PriceContainer');
-    // const priceText = container.textContent;
-    // const price = priceText ? parseFloat(priceText.replace('Общая стоимость: ', '')) : null;
-    // console.log(price)
-    // if (!price) {
-    //     alert('Цена не найдена, невозможно создать сделку');
-    //     return;
-    // }
+    const container = document.getElementById('PriceContainer');
+    const priceText = container.textContent;
+    const price = priceText ? parseFloat(priceText.replace('Общая стоимость: ', '')) : null;
+    console.log(price)
+    if (!price) {
+        alert('Цена не найдена, невозможно создать сделку');
+        return;
+    }
 
-    // fetch('/create-deal/', {  // URL эндпоинта вашего Django-приложения
-    //     method: 'POST',
-    //     headers: {
-    //         'Content-Type': 'application/json',
-    //         'X-CSRFToken': getCsrfToken(),  // Убедитесь, что CSRF-токен передается
-    //     },
-    //     body: JSON.stringify({ price: price })
-    // })
-    // .then(response => response.json())
-    // .then(data => {
-    //     console.log('Ответ от сервера:', data);
-    //     if (data.deal_id) {
-    //         alert('Сделка успешно создана! ID сделки: ' + data.deal_id);
-    //     } else {
-    //         alert('Ошибка при создании сделки: ' + (data.error || 'Неизвестная ошибка'));
-    //     }
-    // })
-    // .catch(error => {
-    //     console.error('Error:', error);
-    //     alert('Произошла ошибка при создании сделки.');
-    // });
+    fetch('/create-deal/', {  // URL эндпоинта вашего Django-приложения
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken(),  // Убедитесь, что CSRF-токен передается
+        },
+        body: JSON.stringify({ price: price })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Ответ от сервера:', data);
+        if (data.deal_id) {
+            alert('Сделка успешно создана! ID сделки: ' + data.deal_id);
+        } else {
+            alert('Ошибка при создании сделки: ' + (data.error || 'Неизвестная ошибка'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Произошла ошибка при создании сделки.');
+    });
 }
 
 function getCsrfToken() {
@@ -501,6 +501,7 @@ function getCsrfToken() {
     }
     return '';
 }
+
 
 function getUserCurrent() {
     fetch('/api/user-current/', {

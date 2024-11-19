@@ -1856,121 +1856,6 @@ def get_valid_token(user_data):
         return refresh_bitrix_token(user_data.refresh_token)
     return user_data.auth_token
 
-# @method_decorator(csrf_exempt, name='dispatch')
-
-@csrf_exempt
-def create_deal(request):
-    print('сделка')
-    if request.method == 'POST':
-        user_id = request.user.id  # Получите идентификатор текущего пользователя (или передайте его в запросе)
-        print(user_id)
-        data = json.loads(request.body)
-        price = data.get('price')
-        # price = request.POST.get('price')  # Получите цену из запроса
-        print(price)
-
-        if not price:
-            return JsonResponse({'error': 'Price not provided'}, status=400)
-        
-        try:
-            user_data = BitrixUser.objects.all().first()
-            print(user_data)
-            # Проверяем, истёк ли токен
-            if is_token_expired(user_data):
-                print('тут')
-                access_token = refresh_bitrix_token(user_data.refresh_token)
-            else:
-                print('тут2')
-
-                access_token = user_data.auth_token
-
-            # Формируем запрос
-            deal_data = {
-                "fields": {
-                    "TITLE": "Сделка по калькуляции",
-                    "OPPORTUNITY": float(price),
-                    "CURRENCY_ID": "RUB",
-                    "STAGE_ID": "NEW",
-                }
-            }
-            url = f"https://{user_data.domain}/rest/crm.deal.add.json"
-            headers = {
-                "Authorization": f"Bearer {access_token}",
-                "Content-Type": "application/json"
-            }
-            response = requests.post(url, json=deal_data, headers=headers)
-            response_data = response.json()
-
-            if "result" in response_data:
-                return JsonResponse({'message': 'Deal created successfully', 'deal_id': response_data['result']})
-            else:
-                return JsonResponse({'error': response_data.get('error_description', 'Unknown error')}, status=400)
-
-        except BitrixUser.DoesNotExist:
-            return JsonResponse({'error': 'User not registered in Bitrix'}, status=400)
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-
-
-
-
-
-
-
-
-
-# from datetime import timedelta
-# from django.utils.timezone import now
-
-# from django.http import JsonResponse
-# import logging
-
-# logger = logging.getLogger(__name__)
-
-# def refresh_bitrix_token(refresh_token):
-#     try:
-#         user_data = BitrixUser.objects.get(refresh_token=refresh_token)
-
-#         # Формируем запрос для обновления токена
-#         url = "https://oauth.bitrix.info/oauth/token/"
-#         params = {
-#             "grant_type": "refresh_token",
-#             "client_id": CLIENT_ID,
-#             "client_secret": CLIENT_SECRET,
-#             "refresh_token": refresh_token,
-#         }
-
-#         # Логируем параметры запроса
-#         logger.info(f"Sending request to refresh token: {params}")
-        
-#         response = requests.post(url, data=params)
-#         print(response)
-#         data = response.json()
-#         # Логируем полный ответ от Bitrix
-#         logger.info(f"Response from Bitrix token refresh: {data}")
-
-#         if "access_token" in data:
-#             user_data.auth_token = data["access_token"]
-#             user_data.refresh_token = data["refresh_token"]
-#             user_data.save()
-#             return data["access_token"]
-#         else:
-#             error_description = data.get("error_description", "Unknown error")
-#             if data.get("error") == "invalid_grant":
-#                 raise Exception("invalid_grant: Refresh token недействителен.")
-#             else:
-#                 raise Exception(f"Ошибка обновления токена: {error_description}")
-
-#     except Exception as e:
-#         logger.error(f"Ошибка при обновлении токена: {str(e)}")
-#         if "invalid_grant" in str(e):
-#             logger.error("Refresh token недействителен, требуется авторизация.")
-#             auth_url = get_authorization_url()  # Генерируем новый URL для авторизации
-#             return JsonResponse({
-#                 "error": "Authorization required. Please reauthorize the application.",
-#                 "authorization_url": auth_url,
-#             }, status=401)
-#         raise
 
 import logging
 import requests
@@ -1985,8 +1870,150 @@ CLIENT_ID = "local.671fe1a5771b80.36776378"  # Ваш client_id
 CLIENT_SECRET = "rxXLQH8AI2Ig9Uvgx7VmcsVKD39Qs46vIMiRGZiu2GsxHrAfE2"  # Ваш client_secret
 REDIRECT_URI = "https://reklamaoko.ru/static/update_tokens.php"  # Ваш redirect_uri
 
+
+# @csrf_exempt
+# def create_deal(request):
+#     print('сделка')
+#     if request.method == 'POST':
+#         user_id = request.user.id  # Получите идентификатор текущего пользователя (или передайте его в запросе)
+#         print(user_id)
+#         data = json.loads(request.body)
+#         price = data.get('price')
+#         # price = request.POST.get('price')  # Получите цену из запроса
+#         print(price)
+
+#         if not price:
+#             return JsonResponse({'error': 'Price not provided'}, status=400)
+        
+#         try:
+#             user_data = BitrixUser.objects.all().first()
+#             print(user_data)
+#             # Проверяем, истёк ли токен
+#             if is_token_expired(user_data):
+#                 print('тут')
+#                 access_token = refresh_bitrix_token(user_data.refresh_token)
+#             else:
+#                 print('тут2')
+
+#                 access_token = user_data.auth_token
+
+#             # Формируем запрос
+#             deal_data = {
+#                 "fields": {
+#                     "TITLE": "Сделка по калькуляции",
+#                     "OPPORTUNITY": float(price),
+#                     "CURRENCY_ID": "RUB",
+#                     "STAGE_ID": "NEW",
+#                 }
+#             }
+#             url = f"https://{user_data.domain}/rest/crm.deal.add.json"
+#             headers = {
+#                 "Authorization": f"Bearer {access_token}",
+#                 "Content-Type": "application/json"
+#             }
+#             response = requests.post(url, json=deal_data, headers=headers)
+#             response_data = response.json()
+
+#             if "result" in response_data:
+#                 return JsonResponse({'message': 'Deal created successfully', 'deal_id': response_data['result']})
+#             else:
+#                 return JsonResponse({'error': response_data.get('error_description', 'Unknown error')}, status=400)
+
+#         except BitrixUser.DoesNotExist:
+#             return JsonResponse({'error': 'User not registered in Bitrix'}, status=400)
+#         except Exception as e:
+#             return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+def create_deal(request):
+    """Создание сделки в Bitrix CRM."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+    try:
+        # Получение данных из запроса
+        data = json.loads(request.body)
+        price = data.get('price')
+
+        if not price:
+            return JsonResponse({'error': 'Price not provided'}, status=400)
+
+        # Проверяем, зарегистрирован ли пользователь в Bitrix
+        user_data = BitrixUser.objects.first()
+        if not user_data:
+            return JsonResponse({'error': 'User not registered in Bitrix'}, status=404)
+
+        # Проверяем, истек ли токен доступа
+        access_token = None
+        if is_token_expired(user_data):
+            try:
+                access_token = refresh_bitrix_token(user_data.refresh_token)
+            except Exception as e:
+                logger.error(f"Ошибка обновления токена: {str(e)}")
+                # Если токен недействителен, генерируем URL для авторизации
+                if "invalid_grant" in str(e):
+                    logger.info("Недействительный refresh token. Требуется повторная авторизация.")
+                    auth_url = get_authorization_url()
+                    return JsonResponse({
+                        "error": "Authorization required. Please reauthorize the application.",
+                        "authorization_url": auth_url
+                    }, status=401)
+        else:
+            access_token = user_data.auth_token
+
+        # Если access_token недоступен, требуется авторизация
+        if not access_token:
+            auth_url = get_authorization_url()
+            return JsonResponse({
+                "error": "Authorization required. Please reauthorize the application.",
+                "authorization_url": auth_url
+            }, status=401)
+
+        # Формирование данных для создания сделки
+        deal_data = {
+            "fields": {
+                "TITLE": "Сделка по калькуляции",
+                "OPPORTUNITY": float(price),
+                "CURRENCY_ID": "RUB",
+                "STAGE_ID": "NEW",
+            }
+        }
+
+        # Отправка запроса в Bitrix CRM
+        url = f"https://{user_data.domain}/rest/crm.deal.add.json"
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json"
+        }
+        response = requests.post(url, json=deal_data, headers=headers)
+        response_data = response.json()
+
+        # Обработка ответа от Bitrix
+        if "result" in response_data:
+            return JsonResponse({'message': 'Deal created successfully', 'deal_id': response_data['result']})
+        else:
+            return JsonResponse({'error': response_data.get('error_description', 'Unknown error')}, status=400)
+
+    except BitrixUser.DoesNotExist:
+        return JsonResponse({'error': 'User not registered in Bitrix'}, status=404)
+    except Exception as e:
+        logger.error(f"Ошибка при создании сделки: {str(e)}")
+        # Обработка недействительного refresh token
+        if "invalid_grant" in str(e):
+            auth_url = get_authorization_url()
+            return JsonResponse({
+                "error": "Authorization required. Please reauthorize the application.",
+                "authorization_url": auth_url
+            }, status=401)
+
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+
+
 def get_authorization_url():
     """Генерация URL для авторизации."""
+
     auth_url = f"https://oauth.bitrix.info/oauth/authorize?client_id={CLIENT_ID}&redirect_uri={REDIRECT_URI}&response_type=code"
     logger.info(f"Redirecting user to authorization URL: {auth_url}")
     return auth_url
@@ -2064,17 +2091,16 @@ def get_user_current(request):
         if isinstance(access_token, JsonResponse):
             # Если access_token вернул JsonResponse, это значит, что требуется авторизация
             logger.info("Необходима повторная авторизация.")
+            
             return JsonResponse({
                 "authorization_url": get_authorization_url(),
                 "redirect_url": redirect_url
             }, status=401)  # Возвращаем URL для авторизации и ссылку для возврата после
-
         # Запрос к Bitrix24 API для получения информации о текущем пользователе
         url = f"https://{user_data.domain}/rest/user.current.json"
         headers = {
             "Authorization": f"Bearer {access_token}"
         }
-
         response = requests.get(url, headers=headers)
         response_data = response.json()
         logger.info(f"Response from Bitrix: {response_data}")
