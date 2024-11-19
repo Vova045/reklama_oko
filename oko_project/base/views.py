@@ -1976,6 +1976,9 @@ def refresh_bitrix_token(refresh_token):
 def get_user_current(request):
     """Получение информации о текущем пользователе."""
     try:
+        # Получаем URL для редиректа после авторизации (если передан)
+        redirect_url = request.GET.get('redirect_url', '/')
+        
         # Получаем данные о пользователе
         user_data = BitrixUser.objects.all().first()
         if not user_data:
@@ -1993,7 +1996,10 @@ def get_user_current(request):
         if isinstance(access_token, JsonResponse):
             # Если access_token вернул JsonResponse, это значит, что требуется авторизация
             logger.info("Необходима повторная авторизация.")
-            return access_token  # Это отправит ссылку для повторной авторизации
+            return JsonResponse({
+                "authorization_url": get_authorization_url(),
+                "redirect_url": redirect_url
+            }, status=401)  # Возвращаем URL для авторизации и ссылку для возврата после
 
         # Запрос к Bitrix24 API для получения информации о текущем пользователе
         url = f"https://{user_data.domain}/rest/user.current.json"
@@ -2017,7 +2023,11 @@ def get_user_current(request):
         if "invalid_grant" in str(e):
             logger.error("Refresh token недействителен, требуется повторная авторизация.")
             auth_url = get_authorization_url()  # Генерация URL для авторизации
-            return JsonResponse({"error": "Токен недействителен, требуется повторная авторизация", "auth_url": auth_url}, status=401)
+            return JsonResponse({
+                "error": "Токен недействителен, требуется повторная авторизация",
+                "auth_url": auth_url,
+                "redirect_url": redirect_url
+            }, status=401)
 
         return JsonResponse({"error": str(e)}, status=500)
 

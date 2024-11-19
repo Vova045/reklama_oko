@@ -530,7 +530,8 @@ function getUserCurrent() {
             // Логируем URL для авторизации в консоли
             console.log('Полученная ссылка для авторизации:', data.authorization_url);
             
-            // Перенаправляем пользователя на страницу авторизации
+            // Сохраняем текущий URL и перенаправляем на страницу авторизации
+            sessionStorage.setItem('redirect_after_auth', window.location.href);  // Сохраняем ссылку
             window.location.href = data.authorization_url;
         } else {
             console.log('Ошибка получения данных:', data.error);
@@ -540,6 +541,7 @@ function getUserCurrent() {
         console.error('Ошибка запроса:', error);
     });
 }
+
 
 // Вызов функции при загрузке страницы
 
