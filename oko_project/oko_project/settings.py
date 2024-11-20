@@ -14,6 +14,8 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 load_dotenv()
+import pymysql
+pymysql.install_as_MySQLdb()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -74,15 +76,26 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'oko_project.wsgi.application'
 
-
+# DATABASE_ROUTERS = ['oko_project.database_routers.DatabaseRouter']
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
-
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': {  # Основная база данных (MySQL)
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'u2534371_reklama_oko_db',
+        'USER': 'u2534371_reklama',
+        'PASSWORD': 'vyrpyx-tetji5-gigsiM',
+        'HOST': '31.31.196.187',
+        'PORT': '3306',
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+            'sql_mode': 'STRICT_ALL_TABLES',  # Включение строгого режима
+        },
+    },
+    # 'sqlite': {  # Дополнительная база данных (SQLite)
+    #     'ENGINE': 'django.db.backends.sqlite3',
+    #     'NAME': BASE_DIR / 'db.sqlite3',
+    # }
 }
 
 
