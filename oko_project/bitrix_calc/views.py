@@ -29,3 +29,13 @@ def calculation_add(request):
 
     # Передаем данные в шаблон
     return render(request, "home.html", {"goods": goods, "grouped_compositions": grouped_compositions})
+
+import requests
+
+def get_clients_from_php():
+    url = 'https://reklamaoko.ru/static/bitrix_clients.php'
+    response = requests.get(url)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        raise Exception(f"Ошибка: {response.status_code}")

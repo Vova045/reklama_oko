@@ -60,18 +60,8 @@ def install(request):
         {
             'placement': 'CRM_DEAL_DETAIL_TAB',
             'handler_url': 'https://reklamaoko.ru/calculation_list',
-            'title': 'Калькуляции',
-        },
-        {
-            'placement': 'CRM_DEAL_DETAIL_TAB',
-            'handler_url': 'https://reklamaoko.ru/calculation_add',
-            'title': 'Сделать расчет',
-        },
-        # {
-        #     'placement': 'CRM_LEAD_DETAIL_TAB',
-        #     'handler_url': 'https://yourdomain.com/handler_page_3',
-        #     'title': 'Лиды',
-        # },
+            'title': 'Список калькуляций',
+        }
     ]
 
     for placement_data in placements:
