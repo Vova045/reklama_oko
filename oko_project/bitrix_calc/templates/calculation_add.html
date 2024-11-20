@@ -65,6 +65,7 @@
             display: none;
         }
 
+        /* Стили для nameTypeElement */
         .name-type {
             cursor: pointer;
             font-weight: bold;
@@ -77,6 +78,7 @@
             background-color: #f0f0f0;
         }
 
+        /* Активный элемент */
         .name-type.active {
             background-color: #007bff;
             color: white;
@@ -88,13 +90,11 @@
             padding-left: 0;
             list-style: none;
         }
-
-        .inner_name-type.selected {
+            .inner_name-type.selected {
             background-color: #007bff;
             color: white;
             font-weight: bold;
         }
-
         .image-frame {
             width: 80%;
             height: 50%;
@@ -174,7 +174,6 @@
         <button class="submit-button" onclick="createDealInBitrix()">Создать</button>
     </div>
 </div>
-
 <div class="client-search">
     <h3>Поиск клиента</h3>
     <div class="input-group">
@@ -183,131 +182,288 @@
     </div>
     <ul id="clientList"></ul>
 </div>
-
 <script>
     let selectedProductId = null;
-    let selectedProductName = null;
+let selectedProductName = null;
 
-    function loadItemTypes(element) {
-        const productId = element.getAttribute("data-product-id");
-        const productName = element.getAttribute("data-name");
-        selectedProductId = productId;
-        selectedProductName = productName;
+function loadItemTypes(element) {
+    const productId = element.getAttribute("data-product-id");
+    const productName = element.getAttribute("data-name");
+    selectedProductId = productId;
+    selectedProductName = productName;
 
-        const itemTypesList = document.getElementById("itemTypesList");
+    const itemTypesList = document.getElementById("itemTypesList");
 
-        // Если виды уже отображаются для текущего продукта, скрываем их
-        if (element.classList.contains("active")) {
-            itemTypesList.innerHTML = ""; // Очищаем список видов
-            element.classList.remove("active");
-            return;
-        }
+    // Если виды уже отображаются для текущего продукта, скрываем их
+    if (element.classList.contains("active")) {
+        itemTypesList.innerHTML = ""; // Очищаем список видов
+        element.classList.remove("active");
+        return;
+    }
 
-        // Убираем активный класс с других продуктов
-        const productListItems = document.querySelectorAll("#productList li");
-        productListItems.forEach(item => item.classList.remove("active"));
+    // Убираем активный класс с других продуктов
+    const productListItems = document.querySelectorAll("#productList li");
+    productListItems.forEach(item => item.classList.remove("active"));
 
-        // Добавляем активный класс для текущего продукта
-        element.classList.add("active");
+    // Добавляем активный класс для текущего продукта
+    element.classList.add("active");
 
-        // Загружаем данные через AJAX
-        fetch(`/get-item-types/${productId}/`)
-            .then(response => response.json())
-            .then(data => {
-                // Очищаем список видов перед добавлением новых
-                itemTypesList.innerHTML = "";
+    // Загружаем данные через AJAX
+    fetch(`/get-item-types/${productId}/`)
+        .then(response => response.json())
+        .then(data => {
+            // Очищаем список видов перед добавлением новых
+            itemTypesList.innerHTML = "";
 
-                for (const [nameType, types] of Object.entries(data)) {
-                    const nameTypeElement = document.createElement("li");
-                    nameTypeElement.classList.add("name-type");
-                    nameTypeElement.textContent = nameType;
+            for (const [nameType, types] of Object.entries(data)) {
+                const nameTypeElement = document.createElement("li");
+                nameTypeElement.classList.add("name-type");
+                nameTypeElement.textContent = nameType;
 
-                    const typeList = document.createElement("ul");
-                    typeList.classList.add("hidden");
+                const typeList = document.createElement("ul");
+                typeList.classList.add("hidden");
 
-                    types.forEach(type => {
-                        const typeElement = document.createElement("li");
-                        typeElement.textContent = type;
-                        typeElement.classList.add("inner_name-type");  // Adding the class
-                        typeElement.onclick = () => toggleSelection(type, nameType, typeElement); // Adding the click handler
-                        typeList.appendChild(typeElement);
+                types.forEach(type => {
+                    const typeElement = document.createElement("li");
+                    typeElement.textContent = type;
+                    typeElement.classList.add("inner_name-type");  // Adding the class
+                    typeElement.onclick = () => toggleSelection(type, nameType, typeElement); // Adding the click handler
+                    typeList.appendChild(typeElement);
+                });
+
+
+                // Добавляем nameTypeElement и typeList как отдельные элементы
+                itemTypesList.appendChild(nameTypeElement);
+                itemTypesList.appendChild(typeList);
+
+                // Однократный клик для открытия списка типов
+                nameTypeElement.onclick = () => toggleTypes(typeList);
+                // Двойной клик для сворачивания всех видов этого продукта
+                nameTypeElement.ondblclick = () => collapseProductTypes();
+            }
+        })
+        .catch(error => console.error("Ошибка загрузки видов товаров:", error));
+}
+
+function toggleTypes(typeList) {
+    if (typeList.classList.contains("hidden")) {
+        typeList.classList.remove("hidden");
+    } else {
+        typeList.classList.add("hidden");
+    }
+}
+
+function collapseProductTypes() {
+    const itemTypesList = document.getElementById("itemTypesList");
+    itemTypesList.innerHTML = ""; // Скрыть все виды товаров для текущего продукта
+}
+
+// Массив для хранения всех выбранных элементов
+let selectedItems = [];
+
+// Управление выделением элементов
+function toggleSelection(type, nameType, typeElement) {
+    console.log('клик' + type, nameType, typeElement);
+    if (!typeElement) {
+        console.error('Element is null or undefined');
+        return;
+    }
+
+    // Переключаем выделение элемента
+    if (typeElement.classList.contains('selected')) {
+        typeElement.classList.remove('selected');
+    } else {
+        typeElement.classList.add('selected');
+    }
+
+    // Обновляем параметры для всех выбранных элементов
+    fetchParametersForSelectedTypes(nameType);
+}
+
+// Обновление параметров для всех выделенных элементов
+function fetchParametersForSelectedTypes(nameType) {
+    const parametersProductContainer = document.getElementById('paramsContainer');
+
+    // Собираем все выделенные типы товаров и их родителей
+    const selectedTypes = Array.from(document.querySelectorAll('.inner_name-type.selected'))
+        .map(li => {
+            const parentLi = li.closest('ul').previousElementSibling; // Ищем предыдущий элемент <li class="name-type">
+            return {
+                type: li.textContent.trim(),
+                parent: parentLi ? parentLi.textContent.trim() : '' // Получаем текст родителя
+            };
+        });
+
+    console.log("Выбранные типы товаров с родителями:", selectedTypes);
+
+    // Формируем запрос с передачей всех выделенных типов и их родителей
+    const url = selectedTypes.length > 0
+        ? `/api/parameters_product_bitrix/?goods_id=${selectedProductId}&bitrix_goods_name=${selectedProductName}&name_type_of_goods=${nameType}&selected_types=${JSON.stringify(selectedTypes)}`
+        : `/api/parameters_product_bitrix/?goods_id=${selectedProductId}&bitrix_goods_name=${selectedProductName}&name_type_of_goods=${nameType}`;
+
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            parametersProductContainer.innerHTML = ''; // Очищаем контейнер с параметрами
+
+            if (data.parameters && Array.isArray(data.parameters)) {
+                // Создаем форму с параметрами
+                data.parameters.forEach(param => {
+                    const label = document.createElement('label');
+                    label.innerHTML = `
+                        <span>${param.name}:</span>
+                        <input type="text" name="${param.name}" value="" placeholder="Введите значение для ${param.name}">
+                    `;
+                    const inputField = label.querySelector('input');
+                    inputField.addEventListener('input', () => {
+                        sendParameterDataToServer();
                     });
+                    parametersProductContainer.appendChild(label);
+                    parametersProductContainer.appendChild(document.createElement('br'));
+                });
+            } else {
+                parametersProductContainer.innerHTML = '<p>Нет параметров для отображения.</p>';
+            }
+        })
+        .catch(error => {
+            console.error("Ошибка при загрузке параметров:", error);
+            parametersProductContainer.innerHTML = '<p>Произошла ошибка при загрузке параметров.</p>';
+        });
+}
 
-                    // Добавляем nameTypeElement и typeList как отдельные элементы
-                    itemTypesList.appendChild(nameTypeElement);
-                    itemTypesList.appendChild(typeList);
 
-                    // Однократный клик для открытия списка типов
-                    nameTypeElement.onclick = () => toggleTypes(typeList);
-                    // Двойной клик для сворачивания всех видов этого продукта
-                    nameTypeElement.ondblclick = () => collapseProductTypes();
-                }
-            })
-            .catch(error => console.error("Ошибка загрузки видов товаров:", error));
-    }
+function submitForm() {
+    const width = document.getElementById("width").value;
+    const height = document.getElementById("height").value;
+    alert(`Создано изделие с размерами: ширина - ${width}, высота - ${height}`);
+}
 
-    function toggleTypes(typeList) {
-        if (typeList.classList.contains("hidden")) {
-            typeList.classList.remove("hidden");
-        } else {
-            typeList.classList.add("hidden");
-        }
-    }
+function sendParameterDataToServer(){
+    const productParameters = Array.from(document.querySelectorAll('#paramsContainer input'))
+        .reduce((params, input) => {
+            if (input.value) {
+                params[input.name] = parseFloat(input.value) || input.value;
+            }
+            return params;
+        }, {});
+    console.log(productParameters)
+    const selectedTypes = Array.from(document.querySelectorAll('.inner_name-type.selected'))
+        .map(li => {
+            const parentLi = li.closest('ul').previousElementSibling; // Ищем предыдущий элемент <li class="name-type">
+            return {
+                type: li.textContent.trim(),
+                parent: parentLi ? parentLi.textContent.trim() : '' // Получаем текст родителя
+            };
+        });
+    console.log(selectedTypes)
+    const parentUl = document.querySelector('#productList'); // Select the <ul> element with id="productList"
+    const activeLi = parentUl.querySelector('li.active'); // Select the <li> element with class="active" inside <ul>
 
-    function collapseProductTypes() {
-        const itemTypesList = document.getElementById("itemTypesList");
-        itemTypesList.innerHTML = ""; // Скрыть все виды товаров для текущего продукта
-    }
+    const selectedProductId = activeLi ? activeLi.getAttribute('data-product-id') : null; // Get the value of data-product-id
+    fetch('/api/update_parameters_product_bitrix/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            product_parameters: productParameters,
+            selectedTypes: selectedTypes,
+            selectedProductId: selectedProductId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log(data)
+    const container2 = document.getElementById('PriceContainer');
+    container2.innerHTML = ''; // Очищаем контейнер перед выводом новых данных
+    const finalPriceElement = document.createElement('div');
+        finalPriceElement.textContent = `Общая стоимость: ${Math.floor(data.total_final_price)} руб.`;
+        container2.appendChild(finalPriceElement);
+        console.log(`Итоговая Цена: ${data.total_final_price} руб.`)
+    // if (data.success) {
+    //     // Проверяем, получены ли данные по операциям
+    //     // if (nomenclaturePrice && data.operations.length > 0) {
+    //     data.operations.forEach(operation => {
+    //         // Создаем новый элемент для каждой операции
+    //         const operationElement = document.createElement('div');
+            
+    //         // Форматируем цену для текущей операции
+    //         const finalPrice = Math.floor(operation.final_price);
+    //         operationElement.textContent = `Операция: ${operation.operation}, Цена: ${finalPrice} руб.`;
 
-    // Массив для хранения всех выбранных элементов
-    let selectedItems = [];
+    //         // Добавляем элемент в контейнер
+    //         container2.appendChild(operationElement);
+    //     });
+    //     // } else {
+    //     //     container2.textContent = 'Цена не найдена';
+    //     // }
+    // } else {
+    //     console.error('Ошибка при обновлении параметров:', data.message);
+    //     container2.textContent = 'Параметр в цене не выбран';
+    // }
+})
+.catch(error => {
+    console.error('Error sending parameter data to server:', error);
+});
+}
 
-    // Управление выделением элементов
-    function toggleSelection(type, nameType, typeElement) {
-        console.log('клик' + type, nameType, typeElement);
-        if (!typeElement) {
-            console.error('Element is null or undefined');
-            return;
-        }
 
-        // Переключаем выделение элемента
-        if (typeElement.classList.contains('selected')) {
-            typeElement.classList.remove('selected');
-        } else {
-            typeElement.classList.add('selected');
-        }
 
-        // Обновляем параметры для всех выбранных элементов
-        fetchParametersForSelectedTypes(nameType);
-    }
 
-    // Обновление параметров для всех выделенных элементов
-    function fetchParametersForSelectedTypes(nameType) {
-        const parametersProductContainer = document.getElementById('paramsContainer');
 
-        // Собираем все выделенные типы товаров и их родителей
-        const selectedTypes = Array.from(document.querySelectorAll('.inner_name-type.selected'))
-            .map(li => {
-                const parentLi = li.closest('ul').previousElementSibling; // Ищем предыдущий элемент <li class="name-type">
-                return {
-                    type: li.textContent.trim(),
-                    parent: parentLi ? parentLi.textContent.trim() : '' // Получаем текст родителя
-                };
-            });
+// function updateFinalPrice(productParameters) {
+//     console.log('updateFinalPrice');
 
-        console.log("Выбранные типы товаров с родителями:", selectedTypes);
 
-        // Формируем запрос с передачей всех выделенных типов и их родителей
-        const selectedItemsForDisplay = selectedTypes.map(item => `${item.parent} - ${item.type}`).join(', ');
+//     fetch('/api/update_parameters/', {
+//         method: 'POST',
+//         headers: {
+//             'Content-Type': 'application/json',
+//             'X-CSRFToken': '{{ csrf_token }}'
+//         },
+//         body: JSON.stringify({
+//             product_parameters: productParameters,            
+//         })
+//     })
+//     .then(response => response.json())
+//     .then(data => {
+//     const container2 = document.getElementById('price-container2');
+//     container2.innerHTML = ''; // Очищаем контейнер перед выводом новых данных
 
-        parametersProductContainer.innerHTML = `
-            <label for="selectedItems">Выбраны следующие типы товаров:</label>
-            <input type="text" id="selectedItems" value="${selectedItemsForDisplay}" readonly>
-        `;
-    }
+//     if (data.success) {
+//         // Проверяем, получены ли данные по операциям
+//         if (nomenclaturePrice && data.operations.length > 0) {
+//             data.operations.forEach(operation => {
+//                 // Создаем новый элемент для каждой операции
+//                 const operationElement = document.createElement('div');
+                
+//                 // Форматируем цену для текущей операции
+//                 const finalPrice = Math.floor(operation.final_price);
+//                 operationElement.textContent = `Операция: ${operation.operation}, Цена: ${finalPrice} руб.`;
 
-    // Функция для загрузки списка клиентов
-    async function loadClients() {
+//                 // Добавляем элемент в контейнер
+//                 container2.appendChild(operationElement);
+//             });
+//         } else {
+//             container2.textContent = 'Цена не найдена';
+//         }
+//     } else {
+//         console.error('Ошибка при обновлении параметров:', data.message);
+//         container2.textContent = 'Параметр в цене не выбран';
+//     }
+// })
+// .catch(error => {
+//     console.error('Error sending parameter data to server:', error);
+// });
+
+// }
+
+
+
+// getUserCurrent();
+// Функция для загрузки списка клиентов
+async function loadClients() {
         try {
             const response = await fetch("{% url 'get_clients' %}");
             if (!response.ok) throw new Error('Ошибка загрузки клиентов');
@@ -349,11 +505,83 @@
     // Загружаем клиентов при загрузке страницы
     document.addEventListener('DOMContentLoaded', loadClients);
 
-    // Функция для создания сделки в Bitrix
-    function createDealInBitrix() {
-        // Логика для создания сделки в Bitrix
-        console.log('Создание сделки...');
+function createDealInBitrix() {
+    const container = document.getElementById('PriceContainer');
+    const priceText = container.textContent;
+    const price = priceText ? parseFloat(priceText.replace('Общая стоимость: ', '')) : null;
+    console.log(price)
+    if (!price) {
+        alert('Цена не найдена, невозможно создать сделку');
+        return;
     }
+
+    fetch('/create-deal/', {  // URL эндпоинта вашего Django-приложения
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken(),  // Убедитесь, что CSRF-токен передается
+        },
+        body: JSON.stringify({ price: price })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Ответ от сервера:', data);
+        if (data.deal_id) {
+            alert('Сделка успешно создана! ID сделки: ' + data.deal_id);
+        } else {
+            alert('Ошибка при создании сделки: ' + (data.error || 'Неизвестная ошибка'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Произошла ошибка при создании сделки.');
+    });
+}
+
+function getCsrfToken() {
+    // Функция для получения CSRF-токена
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+        const [name, value] = cookie.trim().split('=');
+        if (name === 'csrftoken') {
+            return value;
+        }
+    }
+    return '';
+}
+
+
+function getUserCurrent() {
+    fetch('/api/user-current/', {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': getCsrfToken(),
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.user_info) {
+            console.log('Информация о пользователе:', data.user_info);
+        } else if (data.authorization_url) {
+            // Логируем URL для авторизации в консоли
+            console.log('Полученная ссылка для авторизации:', data.authorization_url);
+            
+            // Сохраняем текущий URL и перенаправляем на страницу авторизации
+            sessionStorage.setItem('redirect_after_auth', window.location.href);  // Сохраняем ссылку
+            window.location.href = data.authorization_url;
+        } else {
+            console.log('Ошибка получения данных:', data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Ошибка запроса:', error);
+    });
+}
+
+
+// Вызов функции при загрузке страницы
+
+
 </script>
 
 </body>
