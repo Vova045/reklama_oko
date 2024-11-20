@@ -8,7 +8,6 @@ urlpatterns = [
     path('api/parameters_product_bitrix/', views.get_parameters_product_bitrix, name='get_parameters_product_bitrix'),
     path('api/update_parameters_product_bitrix/', views.update_parameters_product_bitrix, name='update_parameters_product_bitrix'),
     path('filter-item/', views.filter_item, name='filter_item'),
-    path('calculation_list', views.calculation_list, name='calculation_list'),
     path('calculation_preview', views.calculation_preview, name='calculation_preview'),
     path('calculation_previews', views.calculation_previews, name='calculation_previews'),
     path('api/technological-links/', views.get_technological_links, name='get_technological_links'),

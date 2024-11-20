@@ -27,29 +27,20 @@ def install(request):
     expires_in = request.POST.get('AUTH_EXPIRES')  # Время действия токена в секундах (если доступно)
 
     # Проверка полученных параметров
-    received_params = {
-        'DOMAIN': domain,
-        'AUTH_ID': auth_token,
-        'REFRESH_ID': refresh_token,
-        'member_id': member_id,
-        'AUTH_EXPIRES': expires_in
-    }
-
     if not all([domain, auth_token, refresh_token, member_id]):
         return JsonResponse({
             'status': 'error',
             'message': 'Необходимые параметры не получены',
-            'received_params': received_params
         }, status=400)
 
-    # Расчет времени истечения access_token
+    # Расчет времени истечения токена
     expires_at = None
     if expires_in:
         try:
             expires_in = int(expires_in)
             expires_at = now() + timedelta(seconds=expires_in)
         except ValueError:
-            expires_in = None  # Игнорируем, если значение неверно
+            expires_in = None
 
     # Сохранение или обновление записи пользователя
     bitrix_user, created = BitrixUser.objects.update_or_create(
@@ -63,35 +54,55 @@ def install(request):
         }
     )
 
-    # Установка обработчика места встраивания
+    # Дефолтные параметры для кнопок
     access_token = auth_token
-    placement = 'CRM_DEAL_DETAIL_TAB'
-    handler_url = 'https://reklamaoko.ru/static/admin/js/custom_button.js'
-    title = 'Калькуляции'
+    placements = [
+        {
+            'placement': 'CRM_DEAL_DETAIL_TAB',
+            'handler_url': 'https://reklamaoko.ru/calculation_list',
+            'title': 'Калькуляции',
+        },
+        {
+            'placement': 'CRM_DEAL_DETAIL_TAB',
+            'handler_url': 'https://reklamaoko.ru/calculation_add',
+            'title': 'Сделать расчет',
+        },
+        # {
+        #     'placement': 'CRM_LEAD_DETAIL_TAB',
+        #     'handler_url': 'https://yourdomain.com/handler_page_3',
+        #     'title': 'Лиды',
+        # },
+    ]
 
-    # Проверяем существующий обработчик
-    check_url = f'https://{domain}/rest/placement.get/?access_token={access_token}&PLACEMENT={placement}'
-    check_response = requests.get(check_url)
-    check_data = check_response.json()
+    for placement_data in placements:
+        placement = placement_data['placement']
+        handler_url = placement_data['handler_url']
+        title = placement_data['title']
 
-    if check_data.get('result'):
-        # Удаляем старый обработчик, если он существует
-        unbind_url = f'https://{domain}/rest/placement.unbind/?access_token={access_token}&PLACEMENT={placement}'
-        requests.post(unbind_url)
+        # Проверяем существующий обработчик
+        check_url = f'https://{domain}/rest/placement.get/?access_token={access_token}&PLACEMENT={placement}'
+        check_response = requests.get(check_url)
+        check_data = check_response.json()
 
-    # Устанавливаем новый обработчик
-    bind_url = f'https://{domain}/rest/placement.bind/?access_token={access_token}&PLACEMENT={placement}&HANDLER={handler_url}&TITLE={title}'
-    response = requests.post(bind_url)
-    response_data = response.json()
+        if check_data.get('result'):
+            # Удаляем старый обработчик
+            unbind_url = f'https://{domain}/rest/placement.unbind/?access_token={access_token}&PLACEMENT={placement}'
+            requests.post(unbind_url)
 
-    if not response_data.get('result'):
-        return JsonResponse({
-            'status': 'error',
-            'message': 'Ошибка установки обработчика: ' + response_data.get('error_description', 'Неизвестная ошибка'),
-        }, status=400)
+        # Устанавливаем новый обработчик
+        bind_url = f'https://{domain}/rest/placement.bind/?access_token={access_token}&PLACEMENT={placement}&HANDLER={handler_url}&TITLE={title}'
+        response = requests.post(bind_url)
+        response_data = response.json()
 
-    # Перенаправляем на главную страницу после успешного выполнения
-    return redirect('home')  # Убедитесь, что у вас настроен правильный URL для home
+        if not response_data.get('result'):
+            return JsonResponse({
+                'status': 'error',
+                'message': f'Ошибка установки обработчика для {placement}: ' +
+                           response_data.get('error_description', 'Неизвестная ошибка'),
+            }, status=400)
+
+    return redirect('home')
+
 
 @csrf_exempt
 def home(request):
@@ -156,9 +167,7 @@ def filter_item(request):
         response_data = {"status": "success", "message": "Данные успешно обработаны."}
         return JsonResponse(response_data)
         
-@csrf_exempt
-def calculation_list(request):
-    return render(request, 'calculation_list.html')
+
 
 @csrf_exempt
 def calculation_preview(request):
