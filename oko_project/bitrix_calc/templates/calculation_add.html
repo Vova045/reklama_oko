@@ -174,15 +174,15 @@
         <button class="submit-button" onclick="createDealInBitrix()">Создать</button>
     </div>
 </div>
-<div class="client-search">
-    <h3>Поиск клиента</h3>
+<div class="company-search">
+    <h3>Поиск компании</h3>
     <div class="input-group">
-        <label for="clientSearch">Поиск клиента:</label>
-        <input type="text" id="clientSearch" oninput="filterClients()" placeholder="Введите имя или email">
+        <label for="companySearch">Поиск компании:</label>
+        <input type="text" id="companySearch" oninput="filterCompanies()" placeholder="Введите название компании">
     </div>
-    <ul id="clientList"></ul>
+    <ul id="companyList"></ul>
     <button id="getUserNameButton">Получить имя</button>
-    <button id="getUserCompanyButton" onclick="getClients()">Получить клиентов</button>
+    <button id="getCompanyButton" onclick="getCompanies()">Получить компании</button>
 </div>
 
 <script>
@@ -551,9 +551,22 @@ function filterClients() {
             }
         });
     }
+    function filterCompanies() {
+        const searchValue = document.getElementById("companySearch").value.toLowerCase();
+        const companyItems = document.querySelectorAll("#companyList li");
+        
+        companyItems.forEach(item => {
+            const companyName = item.textContent.toLowerCase();
+            if (companyName.includes(searchValue)) {
+                item.style.display = "block";
+            } else {
+                item.style.display = "none";
+            }
+        });
+    }
 
-    function getClients() {
-        fetch('/api/get-clients/', {
+    function getCompanies() {
+        fetch('/api/get-companies/', {
             method: 'GET',
             headers: {
                 'X-CSRFToken': getCsrfToken(),
@@ -561,19 +574,19 @@ function filterClients() {
         })
         .then(response => response.json())
         .then(data => {
-            const clientListElement = document.getElementById('clientList');
-            clientListElement.innerHTML = ''; // Clear previous client list
-            data.clients.forEach(client => {
+            const companyListElement = document.getElementById('companyList');
+            companyListElement.innerHTML = ''; // Очистить предыдущий список
+            data.companies.forEach(company => {
                 const listItem = document.createElement('li');
-                listItem.textContent = client.name + " - " + client.email;
-                clientListElement.appendChild(listItem);
+                listItem.textContent = company.name;
+                companyListElement.appendChild(listItem);
             });
         })
         .catch(error => {
-            console.error('Error fetching clients:', error);
+            console.error('Error fetching companies:', error);
         });
     }
-    
+
 </script>
 
 </body>

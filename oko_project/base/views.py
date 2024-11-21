@@ -2317,26 +2317,33 @@ def get_user_correct(request):
             }, status=401)
         return JsonResponse({'error': str(e)}, status=500)
 
+import logging
+import requests
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from .models import BitrixUser  # Предполагаем, что у вас есть модель для хранения данных о пользователе Bitrix
+
+logger = logging.getLogger(__name__)
 
 @csrf_exempt
-def get_clients(request):
+def get_companies(request):
     """
-    View to get a list of clients for the current Bitrix user.
+    View для получения списка компаний в CRM Bitrix24.
     """
     if request.method != 'GET':
         logger.warning(f"Invalid request method: {request.method}")
         return JsonResponse({'error': 'Invalid request method'}, status=405)
 
     try:
-        logger.info("Fetching client data from Bitrix CRM...")
+        logger.info("Fetching company data from Bitrix CRM...")
 
-        # Retrieve the user data from Bitrix
-        user_data = BitrixUser.objects.first()  # Assuming you're only dealing with one Bitrix user
+        # Получаем данные пользователя Bitrix
+        user_data = BitrixUser.objects.first()  # Предполагаем, что вы работаете с одним пользователем Bitrix
         if not user_data:
             logger.error("User not found in Bitrix")
             return JsonResponse({'error': 'User not registered in Bitrix'}, status=404)
 
-        # Check if the token is expired and refresh if necessary
+        # Проверяем, не истёк ли токен, и обновляем его при необходимости
         access_token = None
         if is_token_expired(user_data):
             logger.info("Token is expired, attempting to refresh...")
@@ -2352,8 +2359,8 @@ def get_clients(request):
                 "authorization_url": auth_url
             }, status=401)
 
-        # Send request to Bitrix to get the client list
-        url = f"https://{user_data.domain}/rest/crm.deal.list.json"  # Adjust this URL based on your Bitrix CRM API
+        # Отправляем запрос к API Bitrix, чтобы получить список компаний
+        url = f"https://{user_data.domain}/rest/crm.company.list.json"
         headers = {
             "Authorization": f"Bearer {access_token}",
             "Content-Type": "application/json"
@@ -2363,23 +2370,22 @@ def get_clients(request):
         response_data = response.json()
         
         if "result" in response_data:
-            clients = response_data["result"]
-            client_list = []
-            for client in clients:
-                # You can adjust this to return more detailed client info if necessary
-                client_list.append({
-                    "name": client.get("TITLE", "Unknown"),
-                    "email": client.get("CONTACT_EMAIL", "Unknown")
+            companies = response_data["result"]
+            company_list = []
+            for company in companies:
+                # Мы можем вернуть название компании и другие необходимые данные
+                company_list.append({
+                    "name": company.get("TITLE", "Unknown"),
+                    "id": company.get("ID", "Unknown"),
+                    # Дополнительные поля можно добавить по необходимости
                 })
             
-            return JsonResponse({"clients": client_list})
+            return JsonResponse({"companies": company_list})
         else:
             error_description = response_data.get('error_description', 'Unknown error')
             logger.error(f"Error from Bitrix: {error_description}")
             return JsonResponse({'error': error_description}, status=400)
 
     except Exception as e:
-        logger.error(f"Error fetching client data: {str(e)}")
+        logger.error(f"Error fetching company data: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
-    
-    
