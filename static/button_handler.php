@@ -1,29 +1,10 @@
 <?php
 // Функция для загрузки переменных из .env файла
-function loadEnv($filePath) {
-    if (!file_exists($filePath)) {
-        throw new Exception('.env file not found');
+if (file_exists(__DIR__ . '/.env')) {
+    $env = parse_ini_file(__DIR__ . '/.env');
+    foreach ($env as $key => $value) {
+        putenv("$key=$value");
     }
-
-    $lines = file($filePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    foreach ($lines as $line) {
-        if (strpos(trim($line), '#') === 0 || strpos($line, '=') === false) {
-            continue; // Пропускаем комментарии и строки без '='
-        }
-        list($key, $value) = explode('=', $line, 2);
-        $_ENV[trim($key)] = trim($value);
-    }
-}
-
-// Загружаем переменные из .env
-try {
-    loadEnv(__DIR__ . '/.env');
-} catch (Exception $e) {
-    echo json_encode([
-        'status' => 'error',
-        'message' => 'Ошибка загрузки .env: ' . $e->getMessage(),
-    ]);
-    exit();
 }
 
 // Настройки приложения
