@@ -96,13 +96,14 @@ def install(request):
         <html>
         <head>
             <title>Установка приложения</title>
-            <script src="https://cdn.bitrix24.ru/b1234567/crm/site_button/loader.js"></script>
+            <script src="https://api.bitrix24.com/api/v1/"></script>
         </head>
         <body>
             <script>
                 document.addEventListener('DOMContentLoaded', function() {
                     if (typeof BX24 !== 'undefined') {
                         BX24.init(function() {
+                            console.log('BX24 SDK загружен.');
                             BX24.installFinish();
                         });
                     } else {
@@ -113,6 +114,7 @@ def install(request):
         </body>
         </html>
         """, content_type='text/html')
+
 
 
 @csrf_exempt
