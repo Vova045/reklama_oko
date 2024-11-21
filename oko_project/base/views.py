@@ -60,7 +60,7 @@ def install(request):
         {
             'placement': 'CRM_DEAL_DETAIL_TAB',
             'handler_url': 'https://reklamaoko.ru/calculation_list',
-            'title': 'Список калькуляций3',
+            'title': 'Список калькуляций',
         }
     ]
 
