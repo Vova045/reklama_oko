@@ -16,11 +16,49 @@ $redirectUri = getenv('REDIRECT_URI_UPDATE');
 $refresh_token = $_POST['refresh_token'] ?? null;
 
 if (!$refresh_token) {
-    echo json_encode(['status' => 'error', 'message' => 'Не передан refresh_token']);
-    exit();
+    // Если нет refresh_token, пробуем получить его через код авторизации
+    $input = file_get_contents('php://input');
+    $data = json_decode($input, true);
+    
+    if (isset($data['auth_code'])) {
+        // Получаем код авторизации
+        $authCode = $data['auth_code'];
+
+        // Получаем токены с использованием авторизационного кода
+        $endpoint = 'https://oauth.bitrix24.ru/oauth/token/';
+        $params = [
+            'client_id' => $clientId,
+            'client_secret' => $clientSecret,
+            'code' => $authCode,
+            'grant_type' => 'authorization_code',
+            'redirect_uri' => $redirectUri,
+        ];
+
+        $curl = curl_init();
+        curl_setopt_array($curl, [
+            CURLOPT_URL => $endpoint . '?' . http_build_query($params),
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_SSL_VERIFYPEER => false,
+        ]);
+        $result = curl_exec($curl);
+        curl_close($curl);
+
+        $tokenData = json_decode($result, true);
+
+        if (isset($tokenData['access_token']) && isset($tokenData['refresh_token'])) {
+            // Сохраняем refresh_token
+            $refresh_token = $tokenData['refresh_token'];
+        } else {
+            echo json_encode(['status' => 'error', 'message' => 'Ошибка получения токенов']);
+            exit();
+        }
+    } else {
+        echo json_encode(['status' => 'error', 'message' => 'Не передан refresh_token и код авторизации']);
+        exit();
+    }
 }
 
-// Запрос на обновление токенов
+// Запрос на обновление токенов с использованием refresh_token
 $tokenUrl = 'https://oauth.bitrix.info/oauth/token/';
 $params = [
     'grant_type' => 'refresh_token',
