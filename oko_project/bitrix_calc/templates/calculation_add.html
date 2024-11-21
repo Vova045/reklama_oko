@@ -463,22 +463,22 @@ function sendParameterDataToServer(){
 
 // getUserCurrent();
 // Функция для загрузки списка клиентов
-async function loadClients() {
-    try {
-        const response = await fetch("{% url 'get_clients' %}");
-        if (!response.ok) throw new Error('Ошибка загрузки клиентов');
-
-        const data = await response.json();
-        console.log("Полученные данные:", data);  // Логирование всех полученных данных
-
-        if (Array.isArray(data.result)) {  // Проверяем, что data.result - это массив
-            renderClients(data.result);
-        } else {
-            console.error("Ошибка: Получены некорректные данные", data);
-        }
-    } catch (error) {
-        console.error('Ошибка:', error);
-    }
+function loadClients() {
+    fetch('https://reklamaoko.ru/get_clients')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Ошибка: ' + response.statusText);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Полученные данные:', data);
+            // Обработка данных
+        })
+        .catch(error => {
+            console.error('Ошибка загрузки клиентов:', error);
+            alert('Ошибка загрузки клиентов. Пожалуйста, попробуйте позже.');
+        });
 }
 
 
