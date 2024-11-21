@@ -461,59 +461,8 @@ function sendParameterDataToServer(){
 
 
 
-// getUserCurrent();
+getUserCurrent();
 // Функция для загрузки списка клиентов
-function loadClients() {
-    fetch('/get_clients')
-        .then(response => response.json())
-        .then(data => {
-            if (data.result && Array.isArray(data.result)) {
-                renderClients(data.result);
-            } else {
-                alert('Ошибка загрузки клиентов.');
-            }
-        })
-        .catch(error => {
-            console.error('Ошибка при загрузке клиентов:', error);
-            alert('Ошибка при загрузке клиентов.');
-        });
-}
-
-function renderClients(clients) {
-    const listElement = document.getElementById('clientList');
-    listElement.innerHTML = '';  // Очистка списка
-
-    clients.forEach(client => {
-        const li = document.createElement('li');
-        li.textContent = `${client.LAST_NAME} ${client.NAME} (${client.EMAIL})`;
-        li.setAttribute('data-id', client.ID);
-        li.onclick = () => selectClient(client.ID);
-        listElement.appendChild(li);
-    });
-}
-
-function selectClient(clientId) {
-    alert('Выбран клиент с ID: ' + clientId);
-}
-
-
-    function filterClients() {
-    const searchQuery = document.getElementById('clientSearch').value.toLowerCase();
-    const items = document.querySelectorAll('#clientList li');
-
-    items.forEach(item => {
-        const text = item.textContent.toLowerCase();
-        item.style.display = text.includes(searchQuery) ? '' : 'none';
-    });
-}
-
-
-    function selectClient(clientId) {
-        alert('Выбран клиент с ID: ' + clientId);
-    }
-
-    // Загружаем клиентов при загрузке страницы
-    document.addEventListener('DOMContentLoaded', loadClients);
 
 function createDealInBitrix() {
     const container = document.getElementById('PriceContainer');
