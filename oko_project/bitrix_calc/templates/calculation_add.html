@@ -464,56 +464,49 @@ function sendParameterDataToServer(){
 // getUserCurrent();
 // Функция для загрузки списка клиентов
 function loadClients() {
-    // Если API требует параметров, добавьте их к URL
-    const url = 'https://reklamaoko.ru/get_clients?param1=value1&param2=value2'; // Пример с параметрами
-    fetch(url)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Ошибка: ' + response.statusText + ' (код ошибки: ' + response.status + ')');
-            }
-            return response.json();
-        })
+    fetch('/get_clients/')
+        .then(response => response.json())
         .then(data => {
-            console.log('Полученные данные:', data);
-
-            // Проверяем, что данные являются списком
-            if (Array.isArray(data)) {
-                renderClients(data);
+            if (data.result && Array.isArray(data.result)) {
+                renderClients(data.result);
             } else {
-                console.error('Полученные данные не являются списком:', data);
-                alert('Ошибка: данные не являются списком клиентов.');
+                alert('Ошибка загрузки клиентов.');
             }
         })
         .catch(error => {
-            console.error('Ошибка загрузки клиентов:', error);
-            alert('Ошибка загрузки клиентов. Пожалуйста, попробуйте позже.');
+            console.error('Ошибка при загрузке клиентов:', error);
+            alert('Ошибка при загрузке клиентов.');
         });
 }
 
+function renderClients(clients) {
+    const listElement = document.getElementById('clientList');
+    listElement.innerHTML = '';  // Очистка списка
 
+    clients.forEach(client => {
+        const li = document.createElement('li');
+        li.textContent = `${client.LAST_NAME} ${client.NAME} (${client.EMAIL})`;
+        li.setAttribute('data-id', client.ID);
+        li.onclick = () => selectClient(client.ID);
+        listElement.appendChild(li);
+    });
+}
 
-    function renderClients(clients) {
-        const listElement = document.getElementById('clientList');
-        listElement.innerHTML = ''; // Очистка списка
+function selectClient(clientId) {
+    alert('Выбран клиент с ID: ' + clientId);
+}
 
-        clients.forEach(client => {
-            const li = document.createElement('li');
-            li.textContent = `${client.LAST_NAME} ${client.NAME} (${client.EMAIL})`;
-            li.setAttribute('data-id', client.ID);
-            li.onclick = () => selectClient(client.ID);
-            listElement.appendChild(li);
-        });
-    }
 
     function filterClients() {
-        const searchQuery = document.getElementById('clientSearch').value.toLowerCase();
-        const items = document.querySelectorAll('#clientList li');
+    const searchQuery = document.getElementById('clientSearch').value.toLowerCase();
+    const items = document.querySelectorAll('#clientList li');
 
-        items.forEach(item => {
-            const text = item.textContent.toLowerCase();
-            item.style.display = text.includes(searchQuery) ? '' : 'none';
-        });
-    }
+    items.forEach(item => {
+        const text = item.textContent.toLowerCase();
+        item.style.display = text.includes(searchQuery) ? '' : 'none';
+    });
+}
+
 
     function selectClient(clientId) {
         alert('Выбран клиент с ID: ' + clientId);
