@@ -91,7 +91,7 @@ def install(request):
                            response_data.get('error_description', 'Неизвестная ошибка'),
             }, status=400)
 
-    return redirect('home')
+    return redirect('calculation_list')
 
 
 @csrf_exempt
