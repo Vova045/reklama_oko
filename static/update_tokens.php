@@ -47,11 +47,11 @@ if (!$refresh_token) {
 
         if (isset($tokenData['access_token'])) {
             logMessage("Этап 3: Токен доступа получен");
-    
+
             // Если все прошло успешно, обновляем токен с использованием refresh_token
             if (isset($tokenData['refresh_token'])) {
                 logMessage("Этап 5: Обновление токена с использованием refresh_token");
-    
+
                 $refreshParams = [
                     'client_id' => $clientId,
                     'client_secret' => $clientSecret,
@@ -59,7 +59,7 @@ if (!$refresh_token) {
                     'grant_type' => 'refresh_token',
                     'redirect_uri' => $redirectUri,
                 ];
-    
+
                 $curl = curl_init();
                 curl_setopt_array($curl, [
                     CURLOPT_URL => 'https://oauth.bitrix24.ru/oauth/token/' . '?' . http_build_query($refreshParams),
@@ -68,12 +68,12 @@ if (!$refresh_token) {
                 ]);
                 $refreshResult = curl_exec($curl);
                 curl_close($curl);
-    
+
                 $refreshTokenData = json_decode($refreshResult, true);
-    
+
                 if (isset($refreshTokenData['access_token'])) {
                     logMessage("Этап 5 завершен: Обновленный токен доступа получен");
-    
+
                     // Выводим успешный JSON ответ
                     echo json_encode([
                         'status' => 'success',
@@ -109,49 +109,6 @@ if (!$refresh_token) {
         }
     } else {
         echo json_encode(['status' => 'error', 'message' => 'Не передан refresh_token и код авторизации']);
-        exit();
     }
-}
-
-// Запрос на обновление токенов с использованием refresh_token
-$tokenUrl = 'https://oauth.bitrix.info/oauth/token/';
-$params = [
-    'grant_type' => 'refresh_token',
-    'client_id' => $clientId,
-    'client_secret' => $clientSecret,
-    'refresh_token' => $refresh_token,
-    'redirect_uri' => $redirectUri, // Добавляем redirect_uri
-];
-
-$curl = curl_init();
-curl_setopt_array($curl, [
-    CURLOPT_URL => $tokenUrl . '?' . http_build_query($params),
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_SSL_VERIFYPEER => false,
-]);
-
-$response = curl_exec($curl);
-$curlError = curl_error($curl);
-curl_close($curl);
-
-if ($curlError) {
-    echo json_encode(['status' => 'error', 'message' => "Ошибка cURL: " . htmlspecialchars($curlError)]);
-    exit();
-}
-
-$data = json_decode($response, true);
-
-if (isset($data['access_token'])) {
-    echo json_encode([
-        'status' => 'success',
-        'access_token' => $data['access_token'],
-        'refresh_token' => $data['refresh_token'],
-        'expires_in' => $data['expires_in'] ?? 3600,
-    ]);
-} else {
-    echo json_encode([
-        'status' => 'error',
-        'message' => $data['error_description'] ?? 'Неизвестная ошибка',
-    ]);
 }
 ?>

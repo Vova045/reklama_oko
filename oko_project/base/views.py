@@ -2086,6 +2086,14 @@ import json
 
 logger = logging.getLogger(__name__)
 
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import requests
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Пример функции получения токенов с Bitrix
 @csrf_exempt
 def get_user_correct(request):
     """Получение имени текущего пользователя из Bitrix."""
@@ -2152,4 +2160,3 @@ def get_user_correct(request):
                 "authorization_url": auth_url
             }, status=401)
         return JsonResponse({'error': str(e)}, status=500)
-

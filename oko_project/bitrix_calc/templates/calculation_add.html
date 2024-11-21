@@ -496,7 +496,6 @@ function createDealInBitrix() {
         alert('Произошла ошибка при создании сделки.');
     });
 }
-
 function getCsrfToken() {
     // Функция для получения CSRF-токена
     const cookies = document.cookie.split(';');
@@ -508,7 +507,6 @@ function getCsrfToken() {
     }
     return '';
 }
-
 
 function getUserCurrent() {
     fetch('/api/user-current/', {
