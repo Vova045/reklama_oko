@@ -464,7 +464,7 @@ function sendParameterDataToServer(){
 // getUserCurrent();
 // Функция для загрузки списка клиентов
 function loadClients() {
-    fetch('/get_clients/')
+    fetch('/get_clients')
         .then(response => response.json())
         .then(data => {
             if (data.result && Array.isArray(data.result)) {
