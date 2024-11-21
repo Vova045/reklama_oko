@@ -527,7 +527,7 @@ function getUserCurrent() {
 
             // Создаём кнопку для перехода на авторизацию
             const authButton = document.createElement('button');
-            authButton.textContent = 'Перейти к авторизации';
+            authButton.textContent = 'Открыть страницу авторизации';
             authButton.style.padding = '10px 20px';
             authButton.style.fontSize = '16px';
             authButton.style.margin = '20px';
@@ -535,7 +535,7 @@ function getUserCurrent() {
 
             // Добавляем обработчик нажатия на кнопку
             authButton.addEventListener('click', () => {
-                window.location.href = data.authorization_url;
+                window.open(data.authorization_url, '_blank'); // Открывает ссылку в новой вкладке
             });
 
             // Отображаем кнопку на странице
