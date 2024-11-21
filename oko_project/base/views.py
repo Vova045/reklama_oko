@@ -54,12 +54,12 @@ def install(request):
         }
     )
 
-    # Дефолтные параметры для кнопок
+    # Установка кнопок
     access_token = auth_token
     placements = [
         {
             'placement': 'CRM_DEAL_DETAIL_TAB',
-            'handler_url': 'https://reklamaoko.ru/calculation_list',
+            'handler_url': 'https://reklamaoko.ru/calculation_list/',
             'title': 'Список калькуляций',
         }
     ]
@@ -69,17 +69,15 @@ def install(request):
         handler_url = placement_data['handler_url']
         title = placement_data['title']
 
-        # Проверяем существующий обработчик
+        # Установка обработчиков
         check_url = f'https://{domain}/rest/placement.get/?access_token={access_token}&PLACEMENT={placement}'
         check_response = requests.get(check_url)
         check_data = check_response.json()
 
         if check_data.get('result'):
-            # Удаляем старый обработчик
             unbind_url = f'https://{domain}/rest/placement.unbind/?access_token={access_token}&PLACEMENT={placement}'
             requests.post(unbind_url)
 
-        # Устанавливаем новый обработчик
         bind_url = f'https://{domain}/rest/placement.bind/?access_token={access_token}&PLACEMENT={placement}&HANDLER={handler_url}&TITLE={title}'
         response = requests.post(bind_url)
         response_data = response.json()
@@ -91,8 +89,10 @@ def install(request):
                            response_data.get('error_description', 'Неизвестная ошибка'),
             }, status=400)
 
-    return redirect('calculation_list')
-
+    return JsonResponse({
+        'status': 'success',
+        'message': 'Интеграция установлена.',
+    })
 
 @csrf_exempt
 def home(request):
