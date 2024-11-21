@@ -464,22 +464,32 @@ function sendParameterDataToServer(){
 // getUserCurrent();
 // Функция для загрузки списка клиентов
 function loadClients() {
-    fetch('https://reklamaoko.ru/get_clients')
+    // Если API требует параметров, добавьте их к URL
+    const url = 'https://reklamaoko.ru/get_clients?param1=value1&param2=value2'; // Пример с параметрами
+    fetch(url)
         .then(response => {
             if (!response.ok) {
-                throw new Error('Ошибка: ' + response.statusText);
+                throw new Error('Ошибка: ' + response.statusText + ' (код ошибки: ' + response.status + ')');
             }
             return response.json();
         })
         .then(data => {
             console.log('Полученные данные:', data);
-            // Обработка данных
+
+            // Проверяем, что данные являются списком
+            if (Array.isArray(data)) {
+                renderClients(data);
+            } else {
+                console.error('Полученные данные не являются списком:', data);
+                alert('Ошибка: данные не являются списком клиентов.');
+            }
         })
         .catch(error => {
             console.error('Ошибка загрузки клиентов:', error);
             alert('Ошибка загрузки клиентов. Пожалуйста, попробуйте позже.');
         });
 }
+
 
 
     function renderClients(clients) {
