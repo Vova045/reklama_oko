@@ -99,6 +99,14 @@ if (!$refresh_token) {
                 ]);
                 exit();
             }
+        } else {
+            logMessage("Ошибка: Токен не получен");
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'Ошибка получения access_token.',
+            ]);
+            exit();
+        }
     } else {
         echo json_encode(['status' => 'error', 'message' => 'Не передан refresh_token и код авторизации']);
         exit();
