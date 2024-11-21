@@ -521,22 +521,6 @@ function getUserCurrent() {
             if (data.user_info) {
                 console.log('Информация о пользователе:', data.user_info);
                 alert('Имя пользователя: ' + data.user_info.name); // Выводим имя пользователя в alert
-            } else if (data.authorization_url) {
-                // Сохраняем текущий URL
-                const authButton = document.createElement('button');
-                authButton.textContent = 'Открыть страницу авторизации';
-                authButton.style.padding = '10px 20px';
-                authButton.style.fontSize = '16px';
-                authButton.style.margin = '20px';
-                authButton.style.cursor = 'pointer';
-
-                authButton.addEventListener('click', () => {
-                    window.open(data.authorization_url, '_blank');
-                });
-
-                const body = document.querySelector('body');
-                body.innerHTML = '';
-                body.appendChild(authButton);
             } else {
                 console.log('Ошибка получения данных:', data.error);
             }
@@ -545,18 +529,42 @@ function getUserCurrent() {
             console.error('Ошибка запроса:', error);
         });
     }
+// function getUserCurrent() {
+//         fetch('/api/user-current/', {
+//             method: 'GET',
+//             headers: {
+//                 'X-CSRFToken': getCsrfToken(),
+//             },
+//         })
+//         .then(response => response.json())
+//         .then(data => {
+//             if (data.user_info) {
+//                 console.log('Информация о пользователе:', data.user_info);
+//                 alert('Имя пользователя: ' + data.user_info.name); // Выводим имя пользователя в alert
+//             } else if (data.authorization_url) {
+//                 // Сохраняем текущий URL
+//                 const authButton = document.createElement('button');
+//                 authButton.textContent = 'Открыть страницу авторизации';
+//                 authButton.style.padding = '10px 20px';
+//                 authButton.style.fontSize = '16px';
+//                 authButton.style.margin = '20px';
+//                 authButton.style.cursor = 'pointer';
 
-    // Функция для получения CSRF-токена
-    function getCsrfToken() {
-        const cookies = document.cookie.split(';');
-        for (let cookie of cookies) {
-            const [name, value] = cookie.trim().split('=');
-            if (name === 'csrftoken') {
-                return value;
-            }
-        }
-        return '';
-    }
+//                 authButton.addEventListener('click', () => {
+//                     window.open(data.authorization_url, '_blank');
+//                 });
+
+//                 const body = document.querySelector('body');
+//                 body.innerHTML = '';
+//                 body.appendChild(authButton);
+//             } else {
+//                 console.log('Ошибка получения данных:', data.error);
+//             }
+//         })
+//         .catch(error => {
+//             console.error('Ошибка запроса:', error);
+//         });
+//     }
 
     // Обработчик клика по кнопке "Получить имя"
     document.getElementById('getUserNameButton').addEventListener('click', getUserCurrent);

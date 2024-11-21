@@ -2087,26 +2087,101 @@ def get_valid_token(user_data):
 
 
 # Пример функции получения токенов с Bitrix
+# @csrf_exempt
+# def get_user_correct(request):
+#     """Получение имени текущего пользователя из Bitrix."""
+#     try:
+#         # Проверяем метод запроса
+#         if request.method != 'GET':
+#             return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+#         # Проверяем, зарегистрирован ли пользователь в Bitrix
+#         user_data = BitrixUser.objects.first()
+#         if not user_data:
+#             return JsonResponse({'error': 'User not registered in Bitrix'}, status=404)
+
+#         # Проверяем, истёк ли токен
+#         access_token = None
+#         if is_token_expired(user_data):
+#             try:
+#                 access_token = refresh_bitrix_token(user_data.refresh_token)
+#             except Exception as e:
+#                 logger.error(f"Ошибка обновления токена: {str(e)}")
+#                 if "invalid_grant" in str(e):
+#                     logger.info("Недействительный refresh token. Требуется повторная авторизация.")
+#                     auth_url = get_authorization_url()
+#                     return JsonResponse({
+#                         "error": "Authorization required. Please reauthorize the application.",
+#                         "authorization_url": auth_url
+#                     }, status=401)
+#         else:
+#             access_token = user_data.auth_token
+
+#         # Если access_token недоступен, требуется авторизация
+#         if not access_token:
+#             auth_url = get_authorization_url()
+#             return JsonResponse({
+#                 "error": "Authorization required. Please reauthorize the application.",
+#                 "authorization_url": auth_url
+#             }, status=401)
+
+#         # Формирование запроса для получения информации о пользователе
+#         url = f"https://{user_data.domain}/rest/user.current.json"
+#         headers = {
+#             "Authorization": f"Bearer {access_token}",
+#         }
+
+#         response = requests.get(url, headers=headers)
+#         response_data = response.json()
+
+#         # Обработка ответа
+#         if "result" in response_data:
+#             user_info = response_data["result"]
+#             user_name = user_info.get("NAME", "Unknown") + " " + user_info.get("LAST_NAME", "Unknown")
+#             return JsonResponse({'user_name': user_name})
+#         else:
+#             return JsonResponse({'error': response_data.get('error_description', 'Unknown error')}, status=400)
+
+#     except BitrixUser.DoesNotExist:
+#         return JsonResponse({'error': 'User not registered in Bitrix'}, status=404)
+#     except Exception as e:
+#         logger.error(f"Ошибка при получении имени пользователя: {str(e)}")
+#         if "invalid_grant" in str(e):
+#             auth_url = get_authorization_url()
+#             return JsonResponse({
+#                 "error": "Authorization required. Please reauthorize the application.",
+#                 "authorization_url": auth_url
+#             }, status=401)
+#         return JsonResponse({'error': str(e)}, status=500)
+
+
+
 @csrf_exempt
 def get_user_correct(request):
-    """Получение имени текущего пользователя из Bitrix."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+
     try:
-        # Проверяем метод запроса
-        if request.method != 'GET':
-            return JsonResponse({'error': 'Invalid request method'}, status=405)
+        # Получение данных из запроса
+        data = json.loads(request.body)
+        price = data.get('price')
+
+        if not price:
+            return JsonResponse({'error': 'Price not provided'}, status=400)
 
         # Проверяем, зарегистрирован ли пользователь в Bitrix
         user_data = BitrixUser.objects.first()
         if not user_data:
             return JsonResponse({'error': 'User not registered in Bitrix'}, status=404)
 
-        # Проверяем, истёк ли токен
+        # Проверяем, истек ли токен доступа
         access_token = None
         if is_token_expired(user_data):
             try:
                 access_token = refresh_bitrix_token(user_data.refresh_token)
             except Exception as e:
                 logger.error(f"Ошибка обновления токена: {str(e)}")
+                # Если токен недействителен, генерируем URL для авторизации
                 if "invalid_grant" in str(e):
                     logger.info("Недействительный refresh token. Требуется повторная авторизация.")
                     auth_url = get_authorization_url()
@@ -2125,16 +2200,18 @@ def get_user_correct(request):
                 "authorization_url": auth_url
             }, status=401)
 
-        # Формирование запроса для получения информации о пользователе
+
+        # Отправка запроса в Bitrix CRM
         url = f"https://{user_data.domain}/rest/user.current.json"
         headers = {
             "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json"
         }
 
         response = requests.get(url, headers=headers)
         response_data = response.json()
 
-        # Обработка ответа
+        # Обработка ответа от Bitrix
         if "result" in response_data:
             user_info = response_data["result"]
             user_name = user_info.get("NAME", "Unknown") + " " + user_info.get("LAST_NAME", "Unknown")
