@@ -182,7 +182,9 @@
     </div>
     <ul id="clientList"></ul>
     <button id="getUserNameButton">Получить имя</button>
+    <button id="getUserCompanyButton" onclick="getClients()">Получить клиентов</button>
 </div>
+
 <script>
     let selectedProductId = null;
 let selectedProductName = null;
@@ -529,51 +531,49 @@ function getUserCurrent() {
             console.error('Ошибка запроса:', error);
         });
     }
-// function getUserCurrent() {
-//         fetch('/api/user-current/', {
-//             method: 'GET',
-//             headers: {
-//                 'X-CSRFToken': getCsrfToken(),
-//             },
-//         })
-//         .then(response => response.json())
-//         .then(data => {
-//             if (data.user_info) {
-//                 console.log('Информация о пользователе:', data.user_info);
-//                 alert('Имя пользователя: ' + data.user_info.name); // Выводим имя пользователя в alert
-//             } else if (data.authorization_url) {
-//                 // Сохраняем текущий URL
-//                 const authButton = document.createElement('button');
-//                 authButton.textContent = 'Открыть страницу авторизации';
-//                 authButton.style.padding = '10px 20px';
-//                 authButton.style.fontSize = '16px';
-//                 authButton.style.margin = '20px';
-//                 authButton.style.cursor = 'pointer';
 
-//                 authButton.addEventListener('click', () => {
-//                     window.open(data.authorization_url, '_blank');
-//                 });
-
-//                 const body = document.querySelector('body');
-//                 body.innerHTML = '';
-//                 body.appendChild(authButton);
-//             } else {
-//                 console.log('Ошибка получения данных:', data.error);
-//             }
-//         })
-//         .catch(error => {
-//             console.error('Ошибка запроса:', error);
-//         });
-//     }
-
-    // Обработчик клика по кнопке "Получить имя"
     document.getElementById('getUserNameButton').addEventListener('click', getUserCurrent);
 
 
 
 // Вызов функции при загрузке страницы
 
+function filterClients() {
+        const searchValue = document.getElementById("clientSearch").value.toLowerCase();
+        const clientItems = document.querySelectorAll("#clientList li");
+        
+        clientItems.forEach(item => {
+            const clientName = item.textContent.toLowerCase();
+            if (clientName.includes(searchValue)) {
+                item.style.display = "block";
+            } else {
+                item.style.display = "none";
+            }
+        });
+    }
 
+    function getClients() {
+        fetch('/api/get-clients/', {
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': getCsrfToken(),
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            const clientListElement = document.getElementById('clientList');
+            clientListElement.innerHTML = ''; // Clear previous client list
+            data.clients.forEach(client => {
+                const listItem = document.createElement('li');
+                listItem.textContent = client.name + " - " + client.email;
+                clientListElement.appendChild(listItem);
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching clients:', error);
+        });
+    }
+    
 </script>
 
 </body>
