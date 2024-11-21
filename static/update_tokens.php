@@ -1,36 +1,11 @@
 <?php
-// Функция для загрузки переменных из .env файла
-function loadEnv($filePath) {
-    if (!file_exists($filePath)) {
-        throw new Exception('.env file not found');
-    }
-
-    $lines = file($filePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    foreach ($lines as $line) {
-        if (strpos(trim($line), '#') === 0 || strpos($line, '=') === false) {
-            continue; // Пропускаем комментарии и строки без '='
-        }
-        list($key, $value) = explode('=', $line, 2);
-        $_ENV[trim($key)] = trim($value);
-    }
-}
-
-// Загружаем переменные из .env
-try {
-    loadEnv(__DIR__ . '/.env');
-} catch (Exception $e) {
-    echo json_encode([
-        'status' => 'error',
-        'message' => 'Ошибка загрузки .env: ' . $e->getMessage(),
-    ]);
-    exit();
-}
-
 // Настройки приложения
+$clientId = 'local.671fe1a5771b80.36776378';
+$clientSecret = 'rxXLQH8AI2Ig9Uvgx7VmcsVKD39Qs46vIMiRGZiu2GsxHrAfE2';
+$redirectUri = 'https://reklamaoko.ru/static/update_tokens.php';
 $clientId = $_ENV['CLIENT_ID'];
 $clientSecret = $_ENV['CLIENT_SECRET'];
-$redirectUri = $_ENV['REDIRECT_URI'];
-
+$redirectUri = $_ENV['REDIRECT_URI_UPDATE'];
 // Получение refresh_token из запроса
 $refresh_token = $_POST['refresh_token'] ?? null;
 
@@ -46,7 +21,7 @@ $params = [
     'client_id' => $clientId,
     'client_secret' => $clientSecret,
     'refresh_token' => $refresh_token,
-    'redirect_uri' => $redirectUri,
+    'redirect_uri' => $redirectUri, // Добавляем redirect_uri
 ];
 
 $curl = curl_init();

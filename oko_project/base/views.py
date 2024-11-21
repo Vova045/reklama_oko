@@ -1888,7 +1888,7 @@ from django.utils import timezone
 # Настройка логирования для диагностики
 logger = logging.getLogger(__name__)
 
-REDIRECT_URI = "https://reklamaoko.ru/static/button_handler.php"  # Ваш redirect_uri
+REDIRECT_URI = "https://reklamaoko.ru/static/update_tokens.php"  # Ваш redirect_uri
 CLIENT_ID = os.getenv('CLIENT_ID')
 CLIENT_SECRET = os.getenv('CLIENT_SECRET')
 
