@@ -518,6 +518,7 @@ function getUserCurrent() {
         })
         .then(response => response.json())
         .then(data => {
+            console.log(data)
             if (data.user_info) {
                 console.log('Информация о пользователе:', data.user_info);
                 alert('Имя пользователя: ' + data.user_info.name); // Выводим имя пользователя в alert
