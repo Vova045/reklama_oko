@@ -8,9 +8,9 @@ if (file_exists(__DIR__ . '/.env')) {
 }
 
 // Настройки приложения
-$clientId = $_ENV['CLIENT_ID'];
-$clientSecret = $_ENV['CLIENT_SECRET'];
-$redirectUri = $_ENV['REDIRECT_URI'];
+$clientId = getenv('CLIENT_ID');
+$clientSecret = getenv('CLIENT_SECRET');
+$redirectUri = getenv('REDIRECT_URI_UPDATE');
 
 // Функция для логирования
 function logMessage($message) {
