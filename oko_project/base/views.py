@@ -59,8 +59,8 @@ def install(request):
     placements = [
         {
             'placement': 'CRM_DEAL_DETAIL_TAB',
-            'handler_url': 'https://reklamaoko.ru/handler.php',
-            'title': 'Список калькуляций',
+            'handler_url': 'https://reklamaoko.ru/calculation_list',
+            'title': 'Список калькуляций3',
         }
     ]
 
