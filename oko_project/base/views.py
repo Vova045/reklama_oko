@@ -1908,17 +1908,6 @@ def update_parameters_product_bitrix(request):
 
     return JsonResponse({'success': False, 'message': 'Неверный метод запроса'}, status=405)
 
-def is_token_expired(user_data):
-    """Проверяет, истёк ли access_token"""
-    if not user_data.expires_at:
-        return True  # Если expires_at не задан, считаем токен просроченным
-    return timezone.now() >= user_data.expires_at
-
-def get_valid_token(user_data):
-    """Получает валидный токен, обновляя его при необходимости"""
-    if is_token_expired(user_data):
-        return refresh_bitrix_token(user_data.refresh_token)
-    return user_data.auth_token
 
 import os
 import logging
@@ -2033,7 +2022,7 @@ def refresh_bitrix_token(refresh_token):
         user_data = BitrixUser.objects.get(refresh_token=refresh_token)
         if user_data.is_refresh_token_expired():
             raise Exception("Refresh token has expired. Please reauthorize the application.")
-
+        print(user_data)
         # Запрос на обновление токена
         url = "https://oauth.bitrix.info/oauth/token/"
         params = {
@@ -2046,6 +2035,7 @@ def refresh_bitrix_token(refresh_token):
         response = requests.post(url, data=params)
         data = response.json()
         logger.info(f"Response from Bitrix: {data}")
+        print(data)
 
         # Если успешно, обновляем токены
         if "access_token" in data:
@@ -2082,6 +2072,19 @@ import requests
 import logging
 
 logger = logging.getLogger(__name__)
+
+def is_token_expired(user_data):
+    """Проверяет, истёк ли access_token"""
+    if not user_data.expires_at:
+        return True  # Если expires_at не задан, считаем токен просроченным
+    return timezone.now() >= user_data.expires_at
+
+def get_valid_token(user_data):
+    """Получает валидный токен, обновляя его при необходимости"""
+    if is_token_expired(user_data):
+        return refresh_bitrix_token(user_data.refresh_token)
+    return user_data.auth_token
+
 
 # Пример функции получения токенов с Bitrix
 @csrf_exempt

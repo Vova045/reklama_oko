@@ -172,6 +172,7 @@
         <div id='PriceContainer'>
         </div>
         <button class="submit-button" onclick="createDealInBitrix()">Создать</button>
+        <button id="getUserNameButton">Получить имя</button>
     </div>
 </div>
 
@@ -529,7 +530,7 @@ function getUserCurrent() {
         console.error('Ошибка запроса:', error);
     });
 }
-
+document.getElementById('getUserNameButton').addEventListener('click', getUserCurrent);
 
 // Вызов функции при загрузке страницы
 
