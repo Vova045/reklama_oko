@@ -2162,18 +2162,13 @@ def get_user_correct(request):
         return JsonResponse({'error': 'Invalid request method'}, status=405)
 
     try:
-        # Получение данных из запроса
-        data = json.loads(request.body)
-        price = data.get('price')
-
-        if not price:
-            return JsonResponse({'error': 'Price not provided'}, status=400)
+    
 
         # Проверяем, зарегистрирован ли пользователь в Bitrix
         user_data = BitrixUser.objects.first()
         if not user_data:
             return JsonResponse({'error': 'User not registered in Bitrix'}, status=404)
-
+        print(user_data)
         # Проверяем, истек ли токен доступа
         access_token = None
         if is_token_expired(user_data):
