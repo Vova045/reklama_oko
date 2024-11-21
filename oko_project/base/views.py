@@ -2092,7 +2092,6 @@ def refresh_bitrix_token(refresh_token):
 from django.http import JsonResponse
 import requests
 import logging
-from django.utils.decorators import csrf_exempt
 import json
 
 logger = logging.getLogger(__name__)

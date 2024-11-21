@@ -39,7 +39,7 @@ urlpatterns = [
     path('api/get_nomenclature_by_techoperation/', views.get_nomenclature_by_techoperation, name='get_nomenclature_by_techoperation'),
     path('api/get_folder_name_by_technology/', views.get_folder_name_by_technology, name='get_folder_name_by_technology'),
     path('create-deal/', views.create_deal, name='create_deal'),
-    path('api/user-current/', views.get_user_current, name='get_user_current'),
+    path('api/user-current/', views.get_user_correct, name='get_user_current'),
     ]
 
     
