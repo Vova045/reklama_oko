@@ -1,6 +1,9 @@
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from .models import Bitrix_Goods, Bitrix_GoodsComposition
+from django.http import JsonResponse
+import requests
+
 # Create your views here.
 @csrf_exempt
 def calculation_list(request):
@@ -36,6 +39,13 @@ def get_clients_from_php():
     url = 'https://reklamaoko.ru/static/bitrix_clients.php'
     response = requests.get(url)
     if response.status_code == 200:
-        return response.json()
+        return response.json()  # Возвращаем результат
     else:
-        raise Exception(f"Ошибка: {response.status_code}")
+        raise Exception(f"Ошибка: {response.status_code}")  # Исключение при ошибке
+
+def get_clients(request):
+    try:
+        clients = get_clients_from_php()  # Вызов функции без передачи request
+        return JsonResponse({"result": clients}, safe=False)  # Возвращаем результат как JSON
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)  # В случае ошибки возвращаем сообщение
