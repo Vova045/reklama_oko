@@ -2158,7 +2158,7 @@ def get_valid_token(user_data):
 
 @csrf_exempt
 def get_user_correct(request):
-    if request.method != 'POST':
+    if request.method != 'GET':
         return JsonResponse({'error': 'Invalid request method'}, status=405)
 
     try:
