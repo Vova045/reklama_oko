@@ -12,7 +12,7 @@ from bitrix_calc.models import Bitrix_Goods, Bitrix_GoodsComposition
 from django.utils.decorators import method_decorator
 from datetime import datetime, timedelta
 from django.utils import timezone
-
+from django.http import HttpResponse
 import requests
 
 from django.shortcuts import redirect
@@ -91,7 +91,13 @@ def install(request):
                            response_data.get('error_description', 'Неизвестная ошибка'),
             }, status=400)
 
-    return redirect('home')
+    return HttpResponse("""
+    <script>
+        BX24.init(function() {
+            BX24.installFinish();
+        });
+    </script>
+    """, content_type='text/html')
 
 
 @csrf_exempt
