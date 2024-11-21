@@ -27,7 +27,7 @@ try {
 
 // Настройки для Битрикс24
 $accessToken = $_ENV['ACCESS_TOKEN']; // Предполагается, что вы сохранили токен заранее
-$bitrixEndpoint = 'https://your-bitrix-instance.bitrix24.ru';
+$bitrixEndpoint = 'https://oko.bitrix24.ru';
 
 // Функция для получения клиентов
 function getClients($accessToken, $endpoint) {
