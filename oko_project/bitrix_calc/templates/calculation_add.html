@@ -520,8 +520,7 @@ function getUserCurrent() {
         .then(data => {
             console.log(data)
             if (data.user_info) {
-                console.log('Информация о пользователе:', data.user_info);
-                alert('Имя пользователя: ' + data.user_info.name); // Выводим имя пользователя в alert
+                alert('Имя пользователя: ' + data.user_name); // Выводим имя пользователя в alert
             } else {
                 console.log('Ошибка получения данных:', data.error);
             }
