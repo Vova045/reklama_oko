@@ -181,6 +181,7 @@
         <input type="text" id="clientSearch" oninput="filterClients()" placeholder="Введите имя или email">
     </div>
     <ul id="clientList"></ul>
+    <button id="getUserNameButton">Получить имя</button>
 </div>
 <script>
     let selectedProductId = null;
@@ -461,7 +462,7 @@ function sendParameterDataToServer(){
 
 
 
-getUserCurrent();
+// getUserCurrent();
 // Функция для загрузки списка клиентов
 
 function createDealInBitrix() {
@@ -509,44 +510,56 @@ function getCsrfToken() {
 }
 
 function getUserCurrent() {
-    fetch('/api/user-current/', {
-        method: 'GET',
-        headers: {
-            'X-CSRFToken': getCsrfToken(),
-        },
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.user_info) {
-            console.log('Информация о пользователе:', data.user_info);
-        } else if (data.authorization_url) {
-            // Сохраняем текущий URL
-            // Создаём кнопку для перехода на авторизацию
-            const authButton = document.createElement('button');
-            authButton.textContent = 'Открыть страницу авторизации';
-            authButton.style.padding = '10px 20px';
-            authButton.style.fontSize = '16px';
-            authButton.style.margin = '20px';
-            authButton.style.cursor = 'pointer';
+        fetch('/api/user-current/', {
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': getCsrfToken(),
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.user_info) {
+                console.log('Информация о пользователе:', data.user_info);
+                alert('Имя пользователя: ' + data.user_info.name); // Выводим имя пользователя в alert
+            } else if (data.authorization_url) {
+                // Сохраняем текущий URL
+                const authButton = document.createElement('button');
+                authButton.textContent = 'Открыть страницу авторизации';
+                authButton.style.padding = '10px 20px';
+                authButton.style.fontSize = '16px';
+                authButton.style.margin = '20px';
+                authButton.style.cursor = 'pointer';
 
-            // Добавляем обработчик нажатия на кнопку
-            authButton.addEventListener('click', () => {
-                window.open(data.authorization_url, '_blank'); // Открывает ссылку в новой вкладке
-            });
+                authButton.addEventListener('click', () => {
+                    window.open(data.authorization_url, '_blank');
+                });
 
-            // Отображаем кнопку на странице
-            const body = document.querySelector('body');
-            body.innerHTML = ''; // Очищаем страницу
-            body.appendChild(authButton); // Добавляем кнопку
-        } else {
-            console.log('Ошибка получения данных:', data.error);
+                const body = document.querySelector('body');
+                body.innerHTML = '';
+                body.appendChild(authButton);
+            } else {
+                console.log('Ошибка получения данных:', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка запроса:', error);
+        });
+    }
+
+    // Функция для получения CSRF-токена
+    function getCsrfToken() {
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            const [name, value] = cookie.trim().split('=');
+            if (name === 'csrftoken') {
+                return value;
+            }
         }
-    })
-    .catch(error => {
-        console.error('Ошибка запроса:', error);
-    });
-}
+        return '';
+    }
 
+    // Обработчик клика по кнопке "Получить имя"
+    document.getElementById('getUserNameButton').addEventListener('click', getUserCurrent);
 
 
 

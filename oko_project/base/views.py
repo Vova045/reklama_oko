@@ -2020,8 +2020,6 @@ def create_deal(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 
-
-
 def get_authorization_url():
     """Генерация URL для авторизации."""
 
@@ -2077,14 +2075,6 @@ def refresh_bitrix_token(refresh_token):
             }, status=401)
         
         raise e
-
-
-from django.http import JsonResponse
-import requests
-import logging
-import json
-
-logger = logging.getLogger(__name__)
 
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
