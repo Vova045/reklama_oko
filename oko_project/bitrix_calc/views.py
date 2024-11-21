@@ -28,7 +28,7 @@ def calculation_add(request):
         grouped_compositions[name].append(type_)
 
     # Передаем данные в шаблон
-    return render(request, "home.html", {"goods": goods, "grouped_compositions": grouped_compositions})
+    return render(request, "calculation_add.html", {"goods": goods, "grouped_compositions": grouped_compositions})
 
 import requests
 
