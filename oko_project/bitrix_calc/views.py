@@ -45,7 +45,16 @@ def get_clients_from_php():
 
 def get_clients(request):
     try:
-        clients = get_clients_from_php()  # Вызов функции без передачи request
-        return JsonResponse({"result": clients}, safe=False)  # Возвращаем результат как JSON
+        clients = get_clients_from_php()  # Получаем данные
+
+        # Логирование полученных данных на сервере
+        print("Полученные данные от PHP:", clients)
+
+        # Добавьте проверку на тип данных
+        if isinstance(clients, list):  # Проверяем, что clients - это список
+            return JsonResponse({"result": clients}, safe=False)
+        else:
+            return JsonResponse({"error": "Ошибка: Ответ не является списком"}, status=400)
     except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)  # В случае ошибки возвращаем сообщение
+        print("Ошибка при получении данных:", str(e))  # Логирование ошибки
+        return JsonResponse({"error": str(e)}, status=500)

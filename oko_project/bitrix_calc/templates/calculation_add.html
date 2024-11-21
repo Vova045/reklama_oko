@@ -464,16 +464,23 @@ function sendParameterDataToServer(){
 // getUserCurrent();
 // Функция для загрузки списка клиентов
 async function loadClients() {
-        try {
-            const response = await fetch("{% url 'get_clients' %}");
-            if (!response.ok) throw new Error('Ошибка загрузки клиентов');
+    try {
+        const response = await fetch("{% url 'get_clients' %}");
+        if (!response.ok) throw new Error('Ошибка загрузки клиентов');
 
-            const data = await response.json();
-            renderClients(data.result); // Предполагаем, что список клиентов в data.result
-        } catch (error) {
-            console.error('Ошибка:', error);
+        const data = await response.json();
+        console.log("Полученные данные:", data);  // Логирование всех полученных данных
+
+        if (Array.isArray(data.result)) {  // Проверяем, что data.result - это массив
+            renderClients(data.result);
+        } else {
+            console.error("Ошибка: Получены некорректные данные", data);
         }
+    } catch (error) {
+        console.error('Ошибка:', error);
     }
+}
+
 
     function renderClients(clients) {
         const listElement = document.getElementById('clientList');
