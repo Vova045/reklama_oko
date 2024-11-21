@@ -522,24 +522,12 @@ function getUserCurrent() {
         if (data.user_info) {
             console.log('Информация о пользователе:', data.user_info);
         } else if (data.authorization_url) {
-            // Сохраняем текущий URL
-            // Создаём кнопку для перехода на авторизацию
-            const authButton = document.createElement('button');
-            authButton.textContent = 'Открыть страницу авторизации';
-            authButton.style.padding = '10px 20px';
-            authButton.style.fontSize = '16px';
-            authButton.style.margin = '20px';
-            authButton.style.cursor = 'pointer';
-
-            // Добавляем обработчик нажатия на кнопку
-            authButton.addEventListener('click', () => {
-                window.open(data.authorization_url, '_blank'); // Открывает ссылку в новой вкладке
-            });
-
-            // Отображаем кнопку на странице
-            const body = document.querySelector('body');
-            body.innerHTML = ''; // Очищаем страницу
-            body.appendChild(authButton); // Добавляем кнопку
+            // Логируем URL для авторизации в консоли
+            console.log('Полученная ссылка для авторизации:', data.authorization_url);
+            
+            // Сохраняем текущий URL и перенаправляем на страницу авторизации
+            sessionStorage.setItem('redirect_after_auth', window.location.href);  // Сохраняем ссылку
+            window.location.href = data.authorization_url;
         } else {
             console.log('Ошибка получения данных:', data.error);
         }
@@ -548,8 +536,6 @@ function getUserCurrent() {
         console.error('Ошибка запроса:', error);
     });
 }
-
-
 
 
 // Вызов функции при загрузке страницы
