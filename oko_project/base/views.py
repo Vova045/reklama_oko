@@ -1892,58 +1892,58 @@ REDIRECT_URI = "https://reklamaoko.ru/static/update_tokens.php"  # Ваш redire
 CLIENT_ID = os.getenv('CLIENT_ID')
 CLIENT_SECRET = os.getenv('CLIENT_SECRET')
 
-# @csrf_exempt
-# def create_deal(request):
-#     print('сделка')
-#     if request.method == 'POST':
-#         user_id = request.user.id  # Получите идентификатор текущего пользователя (или передайте его в запросе)
-#         print(user_id)
-#         data = json.loads(request.body)
-#         price = data.get('price')
-#         # price = request.POST.get('price')  # Получите цену из запроса
-#         print(price)
+@csrf_exempt
+def create_deal(request):
+    print('сделка')
+    if request.method == 'POST':
+        user_id = request.user.id  # Получите идентификатор текущего пользователя (или передайте его в запросе)
+        print(user_id)
+        data = json.loads(request.body)
+        price = data.get('price')
+        # price = request.POST.get('price')  # Получите цену из запроса
+        print(price)
 
-#         if not price:
-#             return JsonResponse({'error': 'Price not provided'}, status=400)
+        if not price:
+            return JsonResponse({'error': 'Price not provided'}, status=400)
         
-#         try:
-#             user_data = BitrixUser.objects.all().first()
-#             print(user_data)
-#             # Проверяем, истёк ли токен
-#             if is_token_expired(user_data):
-#                 print('тут')
-#                 access_token = refresh_bitrix_token(user_data.refresh_token)
-#             else:
-#                 print('тут2')
+        try:
+            user_data = BitrixUser.objects.all().first()
+            print(user_data)
+            # Проверяем, истёк ли токен
+            if is_token_expired(user_data):
+                print('тут')
+                access_token = refresh_bitrix_token(user_data.refresh_token)
+            else:
+                print('тут2')
 
-#                 access_token = user_data.auth_token
+                access_token = user_data.auth_token
 
-#             # Формируем запрос
-#             deal_data = {
-#                 "fields": {
-#                     "TITLE": "Сделка по калькуляции",
-#                     "OPPORTUNITY": float(price),
-#                     "CURRENCY_ID": "RUB",
-#                     "STAGE_ID": "NEW",
-#                 }
-#             }
-#             url = f"https://{user_data.domain}/rest/crm.deal.add.json"
-#             headers = {
-#                 "Authorization": f"Bearer {access_token}",
-#                 "Content-Type": "application/json"
-#             }
-#             response = requests.post(url, json=deal_data, headers=headers)
-#             response_data = response.json()
+            # Формируем запрос
+            deal_data = {
+                "fields": {
+                    "TITLE": "Сделка по калькуляции",
+                    "OPPORTUNITY": float(price),
+                    "CURRENCY_ID": "RUB",
+                    "STAGE_ID": "NEW",
+                }
+            }
+            url = f"https://{user_data.domain}/rest/crm.deal.add.json"
+            headers = {
+                "Authorization": f"Bearer {access_token}",
+                "Content-Type": "application/json"
+            }
+            response = requests.post(url, json=deal_data, headers=headers)
+            response_data = response.json()
 
-#             if "result" in response_data:
-#                 return JsonResponse({'message': 'Deal created successfully', 'deal_id': response_data['result']})
-#             else:
-#                 return JsonResponse({'error': response_data.get('error_description', 'Unknown error')}, status=400)
+            if "result" in response_data:
+                return JsonResponse({'message': 'Deal created successfully', 'deal_id': response_data['result']})
+            else:
+                return JsonResponse({'error': response_data.get('error_description', 'Unknown error')}, status=400)
 
-#         except BitrixUser.DoesNotExist:
-#             return JsonResponse({'error': 'User not registered in Bitrix'}, status=400)
-#         except Exception as e:
-#             return JsonResponse({'error': str(e)}, status=500)
+        except BitrixUser.DoesNotExist:
+            return JsonResponse({'error': 'User not registered in Bitrix'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
 
 @csrf_exempt
 def create_deal(request):
@@ -2089,60 +2089,78 @@ def refresh_bitrix_token(refresh_token):
         raise e
 
 
-def get_user_current(request):
-    """Получение информации о текущем пользователе."""
+from django.http import JsonResponse
+import requests
+import logging
+from django.utils.decorators import csrf_exempt
+import json
+
+logger = logging.getLogger(__name__)
+
+@csrf_exempt
+def get_user_correct(request):
+    """Получение имени текущего пользователя из Bitrix."""
     try:
-        # Получаем URL для редиректа после авторизации (если передан)
-        redirect_url = request.GET.get('redirect_url', '/')
-        
-        # Получаем данные о пользователе
-        user_data = BitrixUser.objects.all().first()
+        # Проверяем метод запроса
+        if request.method != 'GET':
+            return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+        # Проверяем, зарегистрирован ли пользователь в Bitrix
+        user_data = BitrixUser.objects.first()
         if not user_data:
-            return JsonResponse({"error": "Пользователь не найден"}, status=404)
+            return JsonResponse({'error': 'User not registered in Bitrix'}, status=404)
 
-        access_token = user_data.auth_token
-        refresh_token = user_data.refresh_token
-        logger.info(f"Access token: {access_token}")
-
-        # Проверка на истечение срока действия токена
+        # Проверяем, истёк ли токен
+        access_token = None
         if is_token_expired(user_data):
-            logger.info("Токен доступа истёк. Попытка обновления.")
-            access_token = refresh_bitrix_token(refresh_token)  # Эта функция может вернуть ссылку для авторизации
-
-        if isinstance(access_token, JsonResponse):
-            # Если access_token вернул JsonResponse, это значит, что требуется авторизация
-            logger.info("Необходима повторная авторизация.")
-            
-            return JsonResponse({
-                "authorization_url": get_authorization_url(),
-                "redirect_url": redirect_url
-            }, status=401)  # Возвращаем URL для авторизации и ссылку для возврата после
-        # Запрос к Bitrix24 API для получения информации о текущем пользователе
-        url = f"https://{user_data.domain}/rest/user.current.json"
-        headers = {
-            "Authorization": f"Bearer {access_token}"
-        }
-        response = requests.get(url, headers=headers)
-        response_data = response.json()
-        logger.info(f"Response from Bitrix: {response_data}")
-
-        if "result" in response_data:
-            return JsonResponse({"user_info": response_data["result"]})  # Отправка данных в фронтэнд
+            try:
+                access_token = refresh_bitrix_token(user_data.refresh_token)
+            except Exception as e:
+                logger.error(f"Ошибка обновления токена: {str(e)}")
+                if "invalid_grant" in str(e):
+                    logger.info("Недействительный refresh token. Требуется повторная авторизация.")
+                    auth_url = get_authorization_url()
+                    return JsonResponse({
+                        "error": "Authorization required. Please reauthorize the application.",
+                        "authorization_url": auth_url
+                    }, status=401)
         else:
-            return JsonResponse({"error": "Ошибка получения информации о пользователе"}, status=400)
+            access_token = user_data.auth_token
 
-    except Exception as e:
-        logger.error(f"Ошибка при получении данных пользователя: {str(e)}")
-
-        # Если ошибка связана с недействительным refresh token, генерируем URL для повторной авторизации
-        if "invalid_grant" in str(e):
-            logger.error("Refresh token недействителен, требуется повторная авторизация.")
-            auth_url = get_authorization_url()  # Генерация URL для авторизации
+        # Если access_token недоступен, требуется авторизация
+        if not access_token:
+            auth_url = get_authorization_url()
             return JsonResponse({
-                "error": "Токен недействителен, требуется повторная авторизация",
-                "auth_url": auth_url,
-                "redirect_url": redirect_url
+                "error": "Authorization required. Please reauthorize the application.",
+                "authorization_url": auth_url
             }, status=401)
 
-        return JsonResponse({"error": str(e)}, status=500)
+        # Формирование запроса для получения информации о пользователе
+        url = f"https://{user_data.domain}/rest/user.current.json"
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+        }
+
+        response = requests.get(url, headers=headers)
+        response_data = response.json()
+
+        # Обработка ответа
+        if "result" in response_data:
+            user_info = response_data["result"]
+            user_name = user_info.get("NAME", "Unknown") + " " + user_info.get("LAST_NAME", "Unknown")
+            return JsonResponse({'user_name': user_name})
+        else:
+            return JsonResponse({'error': response_data.get('error_description', 'Unknown error')}, status=400)
+
+    except BitrixUser.DoesNotExist:
+        return JsonResponse({'error': 'User not registered in Bitrix'}, status=404)
+    except Exception as e:
+        logger.error(f"Ошибка при получении имени пользователя: {str(e)}")
+        if "invalid_grant" in str(e):
+            auth_url = get_authorization_url()
+            return JsonResponse({
+                "error": "Authorization required. Please reauthorize the application.",
+                "authorization_url": auth_url
+            }, status=401)
+        return JsonResponse({'error': str(e)}, status=500)
 
