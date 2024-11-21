@@ -1330,18 +1330,22 @@ from django.views.decorators.csrf import csrf_exempt
 from django.urls import reverse
 from .models import BitrixUser
 
-import requests
-from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse, HttpResponseRedirect
-from .models import BitrixUser
-
-import requests
-from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse, HttpResponseRedirect
-from .models import BitrixUser
-
 from datetime import timedelta
 from django.utils.timezone import now
+
+from django.http import JsonResponse
+from django.utils import timezone
+from datetime import timedelta
+import logging
+import os
+import requests
+from .models import BitrixUser
+
+# Настройка логирования для диагностики
+logger = logging.getLogger(__name__)
+
+CLIENT_ID = os.getenv('CLIENT_ID')
+CLIENT_SECRET = os.getenv('CLIENT_SECRET')
 
 def update_tokens(request):
     """
@@ -1366,34 +1370,72 @@ def update_tokens(request):
     if expires_in:
         try:
             expires_in = int(expires_in)
-            expires_at = now() + timedelta(seconds=expires_in)
+            expires_at = timezone.now() + timedelta(seconds=expires_in)
         except ValueError:
             expires_at = None  # Игнорируем, если значение неверное
 
-    # Обновление или создание записи пользователя
-    bitrix_user, _ = BitrixUser.objects.update_or_create(
-        member_id=member_id,
-        defaults={
-            'domain': domain,
-            'auth_token': auth_token,
-            'refresh_token': refresh_token,
-            'expires_at': expires_at,
-            'refresh_token_created_at': now(),
-        }
-    )
+    # Проверяем, существует ли уже пользователь с таким member_id
+    try:
+        bitrix_user = BitrixUser.objects.get(member_id=member_id)
+        # Если refresh_token истек, обновляем его
+        if is_token_expired(bitrix_user):
+            try:
+                new_auth_token = refresh_bitrix_token(bitrix_user.refresh_token)
+                bitrix_user.auth_token = new_auth_token
+            except Exception as e:
+                logger.error(f"Ошибка обновления токена для пользователя {member_id}: {str(e)}")
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Не удалось обновить токен. Требуется повторная авторизация.'
+                }, status=401)
 
-    # Возвращение успешного ответа
-    return JsonResponse({
-        'status': 'success',
-        'message': 'Токены успешно обновлены.',
-        'bitrix_user': {
-            'member_id': bitrix_user.member_id,
-            'domain': bitrix_user.domain,
-            'auth_token': bitrix_user.auth_token,
-            'expires_at': bitrix_user.expires_at,
-            'refresh_token_created_at': bitrix_user.refresh_token_created_at,
-        }
-    })
+        # Обновляем или сохраняем данные пользователя
+        bitrix_user.domain = domain
+        bitrix_user.auth_token = auth_token
+        bitrix_user.refresh_token = refresh_token
+        bitrix_user.expires_at = expires_at
+        bitrix_user.refresh_token_created_at = timezone.now()
+        bitrix_user.save()
+
+        # Возвращение успешного ответа
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Токены успешно обновлены.',
+            'bitrix_user': {
+                'member_id': bitrix_user.member_id,
+                'domain': bitrix_user.domain,
+                'auth_token': bitrix_user.auth_token,
+                'expires_at': bitrix_user.expires_at,
+                'refresh_token_created_at': bitrix_user.refresh_token_created_at,
+            }
+        })
+
+    except BitrixUser.DoesNotExist:
+        # Если пользователь не найден, создаем нового
+        try:
+            bitrix_user = BitrixUser.objects.create(
+                member_id=member_id,
+                domain=domain,
+                auth_token=auth_token,
+                refresh_token=refresh_token,
+                expires_at=expires_at,
+                refresh_token_created_at=timezone.now(),
+            )
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Пользователь успешно зарегистрирован с новыми токенами.',
+                'bitrix_user': {
+                    'member_id': bitrix_user.member_id,
+                    'domain': bitrix_user.domain,
+                    'auth_token': bitrix_user.auth_token,
+                    'expires_at': bitrix_user.expires_at,
+                    'refresh_token_created_at': bitrix_user.refresh_token_created_at,
+                }
+            })
+        except Exception as e:
+            logger.error(f"Ошибка при создании пользователя с member_id {member_id}: {str(e)}")
+            return JsonResponse({'status': 'error', 'message': 'Ошибка при создании пользователя.'}, status=500)
+
 
 
 def get_nomenklatura_by_folder(request, folder_id):
@@ -1892,58 +1934,6 @@ REDIRECT_URI = "https://reklamaoko.ru/static/update_tokens.php"  # Ваш redire
 CLIENT_ID = os.getenv('CLIENT_ID')
 CLIENT_SECRET = os.getenv('CLIENT_SECRET')
 
-@csrf_exempt
-def create_deal(request):
-    print('сделка')
-    if request.method == 'POST':
-        user_id = request.user.id  # Получите идентификатор текущего пользователя (или передайте его в запросе)
-        print(user_id)
-        data = json.loads(request.body)
-        price = data.get('price')
-        # price = request.POST.get('price')  # Получите цену из запроса
-        print(price)
-
-        if not price:
-            return JsonResponse({'error': 'Price not provided'}, status=400)
-        
-        try:
-            user_data = BitrixUser.objects.all().first()
-            print(user_data)
-            # Проверяем, истёк ли токен
-            if is_token_expired(user_data):
-                print('тут')
-                access_token = refresh_bitrix_token(user_data.refresh_token)
-            else:
-                print('тут2')
-
-                access_token = user_data.auth_token
-
-            # Формируем запрос
-            deal_data = {
-                "fields": {
-                    "TITLE": "Сделка по калькуляции",
-                    "OPPORTUNITY": float(price),
-                    "CURRENCY_ID": "RUB",
-                    "STAGE_ID": "NEW",
-                }
-            }
-            url = f"https://{user_data.domain}/rest/crm.deal.add.json"
-            headers = {
-                "Authorization": f"Bearer {access_token}",
-                "Content-Type": "application/json"
-            }
-            response = requests.post(url, json=deal_data, headers=headers)
-            response_data = response.json()
-
-            if "result" in response_data:
-                return JsonResponse({'message': 'Deal created successfully', 'deal_id': response_data['result']})
-            else:
-                return JsonResponse({'error': response_data.get('error_description', 'Unknown error')}, status=400)
-
-        except BitrixUser.DoesNotExist:
-            return JsonResponse({'error': 'User not registered in Bitrix'}, status=400)
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
 
 @csrf_exempt
 def create_deal(request):
