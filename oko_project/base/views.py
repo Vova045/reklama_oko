@@ -1855,7 +1855,7 @@ def get_valid_token(user_data):
         return refresh_bitrix_token(user_data.refresh_token)
     return user_data.auth_token
 
-
+import os
 import logging
 import requests
 from django.http import JsonResponse
@@ -1865,10 +1865,9 @@ from django.utils import timezone
 # Настройка логирования для диагностики
 logger = logging.getLogger(__name__)
 
-CLIENT_ID = "local.671fe1a5771b80.36776378"  # Ваш client_id
-CLIENT_SECRET = "rxXLQH8AI2Ig9Uvgx7VmcsVKD39Qs46vIMiRGZiu2GsxHrAfE2"  # Ваш client_secret
 REDIRECT_URI = "https://reklamaoko.ru/static/update_tokens.php"  # Ваш redirect_uri
-
+CLIENT_ID = os.getenv('CLIENT_ID')
+CLIENT_SECRET = os.getenv('CLIENT_SECRET')
 
 # @csrf_exempt
 # def create_deal(request):

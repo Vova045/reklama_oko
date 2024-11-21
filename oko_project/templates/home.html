@@ -146,7 +146,7 @@
 <div class="container">
     <!-- Список изделий -->
     <div class="item-list">
-        <h3>Список изделий</h3>
+        <h3>Главная страница</h3>
         <ul id="productList">
             {% for good in goods %}
                 <li data-product-id="{{ good.id }}" data-name="{{ good.bitrix_goods_name }}" onclick="loadItemTypes(this)">{{ good.bitrix_goods_name }}</li>
