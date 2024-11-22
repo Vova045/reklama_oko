@@ -77,6 +77,37 @@
             background-color: #218838;
         }
     </style>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            function extractDealIdAndGenerateUrl() {
+                // Получаем текущий URL
+                const currentUrl = window.location.href;
+
+                // Используем регулярное выражение для извлечения ID сделки
+                const match = currentUrl.match(/details\/(\d+)/);
+
+                if (match) {
+                    const dealId = match[1];
+                    console.log('ID сделки:', dealId);
+
+                    // Формируем URL для списка калькуляций
+                    const calculationListUrl = `https://reklamaoko.ru/calculation_list?deal_id=${dealId}`;
+                    console.log('Ссылка на список калькуляций:', calculationListUrl);
+
+                    // Действия с полученной ссылкой
+                    const headerButton = document.querySelector('.header-button');
+                    if (headerButton) {
+                        headerButton.href = calculationListUrl; // Устанавливаем новую ссылку
+                    }
+                } else {
+                    console.warn('ID сделки не найден в URL');
+                }
+            }
+
+            // Вызываем функцию при загрузке страницы
+            extractDealIdAndGenerateUrl();
+        });
+    </script>
 </head>
 <body>
 
