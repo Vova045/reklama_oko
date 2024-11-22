@@ -2163,11 +2163,6 @@ from django.utils import timezone
 # Настройка логирования
 logger = logging.getLogger(__name__)
 
-# Настройки OAuth
-CLIENT_ID = 'your_client_id'
-CLIENT_SECRET = 'your_client_secret'
-REDIRECT_URI = 'your_redirect_uri'
-
 
 def get_authorization_url():
     """Генерация URL для авторизации."""
@@ -2175,6 +2170,7 @@ def get_authorization_url():
         f"https://oauth.bitrix.info/oauth/authorize"
         f"?client_id={CLIENT_ID}&redirect_uri={REDIRECT_URI}&response_type=code"
     )
+    print(auth_url)
     logger.info(f"Generated authorization URL: {auth_url}")  # Логируем полную ссылку
     return auth_url
 
@@ -2184,7 +2180,7 @@ def refresh_bitrix_token(refresh_token):
     try:
         user_data = BitrixUser.objects.get(refresh_token=refresh_token)
         logger.info(f"User found: {user_data}")
-
+        print(user_data)
         if user_data.is_refresh_token_expired():
             logger.warning("Refresh token has expired.")
             raise Exception("Refresh token has expired. Please reauthorize the application.")
@@ -2197,6 +2193,7 @@ def refresh_bitrix_token(refresh_token):
             "client_secret": CLIENT_SECRET,
             "refresh_token": refresh_token,
         }
+        print(params)
 
         response = requests.post(url, data=params)
         data = response.json()
