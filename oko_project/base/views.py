@@ -2295,7 +2295,7 @@ def get_user_correct(request):
                 'message': 'Данные пользователя сохранены.',
             }, status=200)
 
-        # Если это GET-запрос, проверим данные пользователя и вернем имя
+        # Если это GET-запрос, проверим данные пользователя и вернем имя и bitrix_id
         logger.info("Checking if user exists in Bitrix...")
         user_data = BitrixUser.objects.first()
         if not user_data:
@@ -2343,8 +2343,14 @@ def get_user_correct(request):
         if "result" in response_data:
             user_info = response_data["result"]
             user_name = user_info.get("NAME", "Unknown") + " " + user_info.get("LAST_NAME", "Unknown")
-            logger.info(f"User name: {user_name}")
-            return JsonResponse({'user_name': user_name})
+            bitrix_id = user_info.get("ID", None)  # Получаем Bitrix ID
+
+            logger.info(f"User name: {user_name}, Bitrix ID: {bitrix_id}")
+
+            return JsonResponse({
+                'user_name': user_name,
+                'bitrix_id': bitrix_id  # Отправляем Bitrix ID в ответе
+            })
         else:
             error_description = response_data.get('error_description', 'Unknown error')
             logger.error(f"Error from Bitrix: {error_description}")
@@ -2359,7 +2365,6 @@ def get_user_correct(request):
                 "authorization_url": auth_url
             }, status=401)
         return JsonResponse({'error': str(e)}, status=500)
-
 
 import logging
 import requests

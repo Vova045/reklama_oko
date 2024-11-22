@@ -616,21 +616,17 @@ function getUserCurrent() {
     .then(data => {
         console.log("Parsed JSON data:", data);
 
-        if (data.user_name && data.bitrix_id) {  // Проверяем, что есть и имя пользователя, и Bitrix ID
+        if (data.user_name) {
             console.log("User name received:", data.user_name);
-            console.log("Bitrix ID received:", data.bitrix_id);  // Логируем Bitrix ID
-
-            alert('Имя пользователя: ' + data.user_name + '\nBitrix ID: ' + data.bitrix_id);
+            alert('Имя пользователя: ' + data.user_name);
         } else if (data.error) {
             console.error("Error from API:", data.error);
+            alert('Ошибка получения данных: ' + data.error);
+        }
 
-            if (data.authorization_url) {
-                console.log("Authorization URL received:", data.authorization_url);
-                const authMessage = `Ошибка авторизации: ${data.error}`;
-                createAuthorizationModal(authMessage, data.authorization_url);
-            } else {
-                alert('Ошибка получения данных: ' + data.error);
-            }
+        if (data.bitrix_id) {
+            console.log("Bitrix ID received:", data.bitrix_id);
+            alert('Bitrix ID: ' + data.bitrix_id);
         }
     })
     .catch(error => {
@@ -638,6 +634,7 @@ function getUserCurrent() {
         alert('Произошла ошибка запроса. Проверьте соединение с сервером.');
     });
 }
+
 
 
 function createAuthorizationModal(message, authorizationUrl) {
