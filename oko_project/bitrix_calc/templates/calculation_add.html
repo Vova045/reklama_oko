@@ -536,6 +536,71 @@ function getCsrfToken() {
 //     document.getElementById('getUserNameButton').addEventListener('click', getUserCurrent);
 
 
+function createAuthorizationModal(message, authorizationUrl) {
+    // Создаем фоновый затемнённый блок
+    const modalBackdrop = document.createElement('div');
+    modalBackdrop.style.position = 'fixed';
+    modalBackdrop.style.top = '0';
+    modalBackdrop.style.left = '0';
+    modalBackdrop.style.width = '100%';
+    modalBackdrop.style.height = '100%';
+    modalBackdrop.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+    modalBackdrop.style.zIndex = '1000';
+
+    // Создаем модальное окно
+    const modal = document.createElement('div');
+    modal.style.position = 'fixed';
+    modal.style.top = '50%';
+    modal.style.left = '50%';
+    modal.style.transform = 'translate(-50%, -50%)';
+    modal.style.backgroundColor = '#fff';
+    modal.style.padding = '20px';
+    modal.style.borderRadius = '8px';
+    modal.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.1)';
+    modal.style.zIndex = '1001';
+    modal.style.width = '90%';
+    modal.style.maxWidth = '400px';
+    modal.style.textAlign = 'center';
+
+    // Текст сообщения
+    const messageText = document.createElement('p');
+    messageText.textContent = message;
+    messageText.style.marginBottom = '20px';
+
+    // Ссылка на авторизацию
+    const authLink = document.createElement('a');
+    authLink.href = authorizationUrl;
+    authLink.textContent = 'Перейти к авторизации';
+    authLink.style.color = '#007BFF';
+    authLink.style.textDecoration = 'none';
+    authLink.target = '_blank';
+
+    // Кнопка закрытия модального окна
+    const closeButton = document.createElement('button');
+    closeButton.textContent = 'Закрыть';
+    closeButton.style.marginTop = '20px';
+    closeButton.style.padding = '10px 20px';
+    closeButton.style.border = 'none';
+    closeButton.style.backgroundColor = '#007BFF';
+    closeButton.style.color = '#fff';
+    closeButton.style.borderRadius = '4px';
+    closeButton.style.cursor = 'pointer';
+
+    closeButton.addEventListener('click', () => {
+        document.body.removeChild(modalBackdrop);
+        document.body.removeChild(modal);
+    });
+
+    // Добавляем элементы в модальное окно
+    modal.appendChild(messageText);
+    modal.appendChild(authLink);
+    modal.appendChild(closeButton);
+
+    // Добавляем модальное окно и фон в документ
+    document.body.appendChild(modalBackdrop);
+    document.body.appendChild(modal);
+}
+
 function getUserCurrent() {
     fetch('/api/user-current/', {
         method: 'GET',
@@ -551,14 +616,12 @@ function getUserCurrent() {
         } else if (data.error) {
             console.error('Ошибка:', data.error);
 
-            // Если есть ссылка для авторизации, показываем её пользователю
+            // Если есть ссылка для авторизации, показываем модальное окно
             if (data.authorization_url) {
                 const authMessage = `
                     Ошибка авторизации: ${data.error}
-                    Перейдите по следующей ссылке для повторной авторизации:
-                    ${data.authorization_url}
                 `;
-                alert(authMessage);
+                createAuthorizationModal(authMessage, data.authorization_url);
             } else {
                 alert('Ошибка получения данных: ' + data.error);
             }
@@ -571,6 +634,7 @@ function getUserCurrent() {
 }
 
 document.getElementById('getUserNameButton').addEventListener('click', getUserCurrent);
+
 
 // Вызов функции при загрузке страницы
 
