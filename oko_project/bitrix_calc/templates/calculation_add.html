@@ -616,9 +616,11 @@ function getUserCurrent() {
     .then(data => {
         console.log("Parsed JSON data:", data);
 
-        if (data.user_name) {
+        if (data.user_name && data.bitrix_id) {  // Проверяем, что есть и имя пользователя, и Bitrix ID
             console.log("User name received:", data.user_name);
-            alert('Имя пользователя: ' + data.user_name);
+            console.log("Bitrix ID received:", data.bitrix_id);  // Логируем Bitrix ID
+
+            alert('Имя пользователя: ' + data.user_name + '\nBitrix ID: ' + data.bitrix_id);
         } else if (data.error) {
             console.error("Error from API:", data.error);
 
@@ -636,6 +638,7 @@ function getUserCurrent() {
         alert('Произошла ошибка запроса. Проверьте соединение с сервером.');
     });
 }
+
 
 function createAuthorizationModal(message, authorizationUrl) {
     console.log("Creating authorization modal...");
