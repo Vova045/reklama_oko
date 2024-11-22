@@ -740,7 +740,7 @@ function filterClients() {
 
     function getCompanies() {
         fetch('/api/get-companies/', {
-            method: 'GET',
+            method: 'POST',
             headers: {
                 'X-CSRFToken': getCsrfToken(),
             },
