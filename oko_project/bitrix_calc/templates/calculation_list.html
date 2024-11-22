@@ -77,37 +77,30 @@
             background-color: #218838;
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/@bitrix/desktop/dist/desktop.bundle.js"></script>
     <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            function extractDealIdAndGenerateUrl() {
-                // Получаем текущий URL
-                const currentUrl = window.location.href;
-                console.log(currentUrl)
-                // Используем регулярное выражение для извлечения ID сделки
-                const match = currentUrl.match(/details\/(\d+)/);
-                console.log(match)
-                if (match) {
-                    const dealId = match[1];
+        BX24.init(() => {
+            BX24.callMethod('crm.deal.get', { id: BX24.placement.info().ENTITY_ID }, function(result) {
+                if (result.error()) {
+                    console.error(result.error());
+                } else {
+                    const dealId = result.data().ID;
                     console.log('ID сделки:', dealId);
-
-                    // Формируем URL для списка калькуляций
+    
+                    // Формируем URL
                     const calculationListUrl = `https://reklamaoko.ru/calculation_list?deal_id=${dealId}`;
                     console.log('Ссылка на список калькуляций:', calculationListUrl);
-
-                    // Действия с полученной ссылкой
+    
+                    // Обновляем ссылку кнопки
                     const headerButton = document.querySelector('.header-button');
                     if (headerButton) {
-                        headerButton.href = calculationListUrl; // Устанавливаем новую ссылку
+                        headerButton.href = calculationListUrl;
                     }
-                } else {
-                    console.warn('ID сделки не найден в URL');
                 }
-            }
-
-            // Вызываем функцию при загрузке страницы
-            extractDealIdAndGenerateUrl();
+            });
         });
     </script>
+    
 </head>
 <body>
 
