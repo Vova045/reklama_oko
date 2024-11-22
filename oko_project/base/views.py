@@ -54,6 +54,32 @@ def install(request):
         }
     )
 
+    # Получаем bitrix_id и имя пользователя из Bitrix API
+    url = f"https://{domain}/rest/user.current.json"
+    headers = {
+        "Authorization": f"Bearer {auth_token}",
+        "Content-Type": "application/json"
+    }
+
+    try:
+        response = requests.get(url, headers=headers)
+        response_data = response.json()
+
+        if "result" in response_data:
+            user_info = response_data["result"]
+            bitrix_id = user_info.get("ID", None)  # Получаем Bitrix ID
+
+            # Обновляем или сохраняем bitrix_id в модели
+            bitrix_user.bitrix_id = bitrix_id
+            bitrix_user.save()
+        else:
+            error_description = response_data.get('error_description', 'Unknown error')
+            logger.error(f"Error from Bitrix: {error_description}")
+            return JsonResponse({'error': error_description}, status=400)
+    except Exception as e:
+        logger.error(f"Error retrieving user info: {str(e)}")
+        return JsonResponse({'error': 'Ошибка при получении данных из Bitrix'}, status=500)
+
     # Дефолтные параметры для кнопок
     access_token = auth_token
     placements = [
@@ -2384,7 +2410,7 @@ def get_companies(request):
     """
     View для получения списка компаний в CRM Bitrix24.
     """
-    if request.method != 'GET':
+    if request.method != 'POST':
         logger.warning(f"Invalid request method: {request.method}")
         return JsonResponse({'error': 'Invalid request method'}, status=405)
 
