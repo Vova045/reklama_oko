@@ -2154,7 +2154,6 @@ def get_valid_token(user_data):
 #             }, status=401)
 #         return JsonResponse({'error': str(e)}, status=500)
 
-
 import logging
 import requests
 from django.http import JsonResponse
@@ -2164,7 +2163,7 @@ from django.utils import timezone
 # Настройка логирования
 logger = logging.getLogger(__name__)
 
-# Настройки клиентского ID и секрета
+# Настройки OAuth
 CLIENT_ID = 'your_client_id'
 CLIENT_SECRET = 'your_client_secret'
 REDIRECT_URI = 'your_redirect_uri'
@@ -2172,8 +2171,11 @@ REDIRECT_URI = 'your_redirect_uri'
 
 def get_authorization_url():
     """Генерация URL для авторизации."""
-    auth_url = f"https://oauth.bitrix.info/oauth/authorize?client_id={CLIENT_ID}&redirect_uri={REDIRECT_URI}&response_type=code"
-    logger.info(f"Redirecting user to authorization URL: {auth_url}")
+    auth_url = (
+        f"https://oauth.bitrix.info/oauth/authorize"
+        f"?client_id={CLIENT_ID}&redirect_uri={REDIRECT_URI}&response_type=code"
+    )
+    logger.info(f"Generated authorization URL: {auth_url}")  # Логируем полную ссылку
     return auth_url
 
 
@@ -2216,11 +2218,10 @@ def refresh_bitrix_token(refresh_token):
     except Exception as e:
         logger.error(f"Error updating token: {str(e)}")
 
-        # Обработка ошибки недействительного refresh_token
         if "invalid_grant" in str(e):
             logger.error("Refresh token недействителен, требуется авторизация.")
-            auth_url = get_authorization_url()  # Генерация URL для авторизации
-            logger.info(f"Authorization URL: {auth_url}")  # Логируем ссылку для авторизации
+            auth_url = get_authorization_url()
+            logger.info(f"Returning authorization URL: {auth_url}")
             return JsonResponse({
                 "error": "Authorization required. Please reauthorize the application.",
                 "authorization_url": auth_url
@@ -2232,7 +2233,7 @@ def refresh_bitrix_token(refresh_token):
 def is_token_expired(user_data):
     """Проверяет, истёк ли access_token"""
     if not user_data.expires_at:
-        return True  # Если expires_at не задан, считаем токен просроченным
+        return True
     return timezone.now() >= user_data.expires_at
 
 
@@ -2304,9 +2305,6 @@ def get_user_correct(request):
             logger.error(f"Error from Bitrix: {error_description}")
             return JsonResponse({'error': error_description}, status=400)
 
-    except BitrixUser.DoesNotExist:
-        logger.error("User not registered in Bitrix")
-        return JsonResponse({'error': 'User not registered in Bitrix'}, status=404)
     except Exception as e:
         logger.error(f"Error retrieving user info: {str(e)}")
         if "invalid_grant" in str(e):
@@ -2316,6 +2314,7 @@ def get_user_correct(request):
                 "authorization_url": auth_url
             }, status=401)
         return JsonResponse({'error': str(e)}, status=500)
+
 
 import logging
 import requests
