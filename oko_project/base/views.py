@@ -2345,6 +2345,11 @@ def get_user_correct(request):
             user_name = user_info.get("NAME", "Unknown") + " " + user_info.get("LAST_NAME", "Unknown")
             bitrix_id = user_info.get("ID", None)  # Получаем Bitrix ID
 
+            # Обновляем или сохраняем Bitrix ID в модели
+            if user_data:
+                user_data.bitrix_id = bitrix_id  # Обновляем bitrix_id
+                user_data.save()
+
             logger.info(f"User name: {user_name}, Bitrix ID: {bitrix_id}")
 
             return JsonResponse({
