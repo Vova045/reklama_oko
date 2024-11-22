@@ -2243,11 +2243,59 @@ def get_valid_token(user_data):
 
 @csrf_exempt
 def get_user_correct(request):
-    if request.method != 'GET':
+    if request.method not in ['GET', 'POST']:
         logger.warning(f"Invalid request method: {request.method}")
         return JsonResponse({'error': 'Invalid request method'}, status=405)
 
     try:
+        # Если это POST-запрос, обработаем установку данных пользователя
+        if request.method == 'POST':
+            logger.info("Processing user setup via POST request...")
+            
+            # Чтение параметров из POST
+            domain = request.POST.get('DOMAIN')
+            auth_token = request.POST.get('AUTH_ID')
+            refresh_token = request.POST.get('REFRESH_ID')
+            member_id = request.POST.get('member_id')
+            expires_in = request.POST.get('AUTH_EXPIRES')  # Время действия токена в секундах
+
+            # Проверка обязательных параметров
+            if not all([domain, auth_token, refresh_token, member_id]):
+                logger.error("Missing required parameters for user setup.")
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Необходимые параметры не получены',
+                }, status=400)
+
+            # Расчет времени истечения токена
+            expires_at = None
+            if expires_in:
+                try:
+                    expires_in = int(expires_in)
+                    expires_at = timezone.now() + timedelta(seconds=expires_in)
+                except ValueError:
+                    logger.warning("Invalid AUTH_EXPIRES value received.")
+                    expires_in = None
+
+            # Сохранение или обновление записи пользователя
+            bitrix_user, created = BitrixUser.objects.update_or_create(
+                member_id=member_id,
+                defaults={
+                    'domain': domain,
+                    'auth_token': auth_token,
+                    'refresh_token': refresh_token,
+                    'expires_at': expires_at,
+                    'refresh_token_created_at': timezone.now(),
+                }
+            )
+
+            logger.info(f"User {'created' if created else 'updated'}: {bitrix_user}")
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Данные пользователя сохранены.',
+            }, status=200)
+
+        # Если это GET-запрос, проверим данные пользователя и вернем имя
         logger.info("Checking if user exists in Bitrix...")
         user_data = BitrixUser.objects.first()
         if not user_data:
