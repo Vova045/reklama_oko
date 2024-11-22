@@ -419,6 +419,7 @@ class BitrixUser(models.Model):
     domain = models.CharField(max_length=255)
     auth_token = models.CharField(max_length=255)
     refresh_token = models.CharField(max_length=255)
+    bitrix_id = models.CharField(max_length=255, null=True, blank=True)  # Новое поле для bitrix_id
     expires_at = models.DateTimeField(null=True, blank=True)  # Время истечения access_token
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

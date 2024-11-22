@@ -183,6 +183,7 @@
     <ul id="companyList"></ul>
     <button id="getUserNameButton">Получить имя</button>
     <button id="getCompanyButton" onclick="getCompanies()">Получить компании</button>
+    <button id="updateBitrixIdButton" onclick="updateBitrixId()">Обновить ID</button>
 </div>
 
 <script>
@@ -586,6 +587,27 @@ function filterClients() {
             console.error('Error fetching companies:', error);
         });
     }
+    function updateBitrixId() {
+    fetch('/api/update-bitrix-id/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCsrfToken(),
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.bitrix_id) {
+            alert('bitrix_id обновлён: ' + data.bitrix_id);
+        } else if (data.error) {
+            alert('Ошибка: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Ошибка запроса:', error);
+        alert('Произошла ошибка при обновлении bitrix_id.');
+    });
+}
+
 
 </script>
 

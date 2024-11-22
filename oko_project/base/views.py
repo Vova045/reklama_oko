@@ -2389,3 +2389,55 @@ def get_companies(request):
     except Exception as e:
         logger.error(f"Error fetching company data: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
+
+
+def update_bitrix_id(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+    """
+    Функция для получения bitrix_id и обновления записи в базе данных.
+    """
+    try:
+        # Получаем пользователя из базы данных (замените логику, если требуется)
+        bitrix_user = BitrixUser.objects.first()
+        if not bitrix_user:
+            return JsonResponse({'error': 'Пользователь Bitrix не найден в базе данных'}, status=404)
+
+        # Проверяем токен
+        auth_token = bitrix_user.auth_token
+        if is_token_expired(bitrix_user):
+            auth_token = refresh_bitrix_token(bitrix_user.refresh_token)
+
+        # Запрос к Bitrix API для получения текущего пользователя
+        url = f"https://{bitrix_user.domain}/rest/user.current.json"
+        headers = {"Authorization": f"Bearer {auth_token}"}
+        response = requests.get(url, headers=headers)
+
+        # Обработка ответа
+        if response.status_code != 200:
+            return JsonResponse({'error': 'Ошибка при запросе к Bitrix API'}, status=response.status_code)
+
+        response_data = response.json()
+        if "result" not in response_data:
+            return JsonResponse({
+                'error': 'Некорректный ответ от Bitrix API',
+                'details': response_data.get('error_description', 'Unknown error')
+            }, status=400)
+
+        # Извлекаем bitrix_id из ответа
+        bitrix_id = response_data["result"].get("ID")
+        if not bitrix_id:
+            return JsonResponse({'error': 'Не удалось получить bitrix_id'}, status=400)
+
+        # Обновляем запись в базе данных
+        bitrix_user.bitrix_id = bitrix_id
+        bitrix_user.save()
+
+        return JsonResponse({'message': 'bitrix_id успешно обновлен', 'bitrix_id': bitrix_id})
+
+    except BitrixUser.DoesNotExist:
+        return JsonResponse({'error': 'Пользователь Bitrix не найден в базе данных'}, status=404)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
