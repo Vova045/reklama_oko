@@ -78,28 +78,45 @@
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@bitrix/desktop/dist/desktop.bundle.js"></script>
-    <script>
-        BX24.init(() => {
-            BX24.callMethod('crm.deal.get', { id: BX24.placement.info().ENTITY_ID }, function(result) {
-                if (result.error()) {
-                    console.error(result.error());
-                } else {
-                    const dealId = result.data().ID;
-                    console.log('ID сделки:', dealId);
-    
-                    // Формируем URL
+    <script src="https://api.bitrix24.com/api/v1/"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        function getDealIdFromParent() {
+            // Проверяем доступность Bitrix24 JS API
+            if (typeof BX24 !== 'undefined' && BX24.placement) {
+                // Получаем информацию о текущем размещении приложения
+                const placementInfo = BX24.placement.info();
+                
+                // Проверяем, что приложение размещено на странице сделки
+                if (placementInfo.placement === 'CRM_DEAL_DETAIL_TAB') {
+                    // Извлекаем ID сделки из параметров
+                    const dealId = placementInfo.options.ID;
+                    console.log('ID сделки из Bitrix24:', dealId);
+
+                    // Формируем URL с учетом ID сделки
                     const calculationListUrl = `https://reklamaoko.ru/calculation_list?deal_id=${dealId}`;
                     console.log('Ссылка на список калькуляций:', calculationListUrl);
-    
-                    // Обновляем ссылку кнопки
+
+                    // Устанавливаем обновленный URL для кнопки
                     const headerButton = document.querySelector('.header-button');
                     if (headerButton) {
-                        headerButton.href = calculationListUrl;
+                        headerButton.href = calculationListUrl; // Устанавливаем ссылку
                     }
+                } else {
+                    console.warn('Приложение не размещено в CRM_DEAL_DETAIL_TAB');
                 }
-            });
+            } else {
+                console.error('Bitrix24 JS API недоступен');
+            }
+        }
+
+        // Инициализируем API и выполняем извлечение ID
+        BX24.init(() => {
+            getDealIdFromParent();
         });
-    </script>
+    });
+</script>
+
     
 </head>
 <body>
