@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import ( 
     Bitrix_Goods, Bitrix_GoodsComposition, Bitrix_GoodsParameters, 
-    Bitrix_GoodsParametersInCalculation, Bitrix_ParametersNormatives, Birtrix_Price_GoodsComposition,
+    Bitrix_ParametersNormatives, Birtrix_Price_GoodsComposition,
     Goods
 )
 from django.contrib import admin
@@ -150,32 +150,13 @@ class Bitrix_GoodsAdmin(admin.ModelAdmin):
 
 
 
-
-
-
-
-
-
 @admin.register(Bitrix_GoodsParameters)
 class Bitrix_GoodsParametersAdmin(admin.ModelAdmin):
     list_display = ('goods', 'type_of_goods', 'name_type_of_goods')
     search_fields = ('goods__bitrix_goods_name', 'type_of_goods', 'name_type_of_goods')
 
-@admin.register(Bitrix_GoodsParametersInCalculation)
-class Bitrix_GoodsParametersInCalculationAdmin(admin.ModelAdmin):
-    list_display = ('goods', 'parameter_name', 'parameter_value')
-    search_fields = ('goods__bitrix_goods_name', 'parameter_name', 'parameter_value')
 
 @admin.register(Bitrix_ParametersNormatives)
 class Bitrix_ParametersNormativesAdmin(admin.ModelAdmin):
     list_display = ('goods', 'overheads', 'salary_fund', 'profit')
     search_fields = ('goods__bitrix_goods_name', 'overheads', 'salary_fund', 'profit')
-
-@admin.register(Birtrix_Price_GoodsComposition)
-class Birtrix_Price_GoodsCompositionAdmin(admin.ModelAdmin):
-    list_display = (
-        'goods', 'price_material', 'price_add_material', 'price_salary', 
-        'price_payroll', 'price_overheads', 'price_cost', 'price_profit', 
-        'price_salary_fund', 'price_final_price'
-    )
-    search_fields = ('goods__bitrix_goods_name',)
