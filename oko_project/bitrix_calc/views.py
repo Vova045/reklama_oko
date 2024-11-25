@@ -134,7 +134,6 @@ def get_authorization_url():
 @csrf_exempt
 def authoritation(request):
     print('тут')
-    views.install(request)
     if request.method not in ['GET', 'POST']:
         logger.warning(f"Invalid request method: {request.method}")
         return JsonResponse({'error': 'Invalid request method'}, status=405)
