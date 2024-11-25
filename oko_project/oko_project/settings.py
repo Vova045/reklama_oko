@@ -158,20 +158,20 @@ else:
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-# settings.py
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'handlers': {
-        'console': {
-            'level': 'INFO',
-            'class': 'logging.StreamHandler',
+        'file': {
+            'level': 'DEBUG',  # Уровень логирования
+            'class': 'logging.FileHandler',
+            'filename': 'oko_project/django.log',  # Укажите путь к файлу
         },
     },
     'loggers': {
         'django': {
-            'handlers': ['console'],
-            'level': 'INFO',
+            'handlers': ['file'],
+            'level': 'DEBUG',
             'propagate': True,
         },
     },
