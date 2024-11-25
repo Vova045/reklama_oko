@@ -263,97 +263,30 @@ def authoritation(request):
                 "authorization_url": auth_url
             }, status=401)
         return JsonResponse({'error': str(e)}, status=500)
-    
-import json
-import requests
-from django.conf import settings
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
 
-@csrf_exempt
-def button_handler(request):
-    # Получение refresh_token из POST запроса
-    refresh_token = request.POST.get('refresh_token', None)
-    if not refresh_token:
-        # Если нет refresh_token, пробуем получить его через auth_code
-        body = json.loads(request.body)
-        auth_code = body.get('auth_code', None)
-        
-        if auth_code:
-            # Получаем токен с использованием auth_code
-            token_url = 'https://oauth.bitrix24.ru/oauth/token/'
-            params = {
-                'client_id': settings.CLIENT_ID,
-                'client_secret': settings.CLIENT_SECRET,
-                'code': auth_code,
-                'grant_type': 'authorization_code',
-                'redirect_uri': settings.REDIRECT_URI,
-            }
 
-            response = requests.get(token_url, params=params)
-            token_data = response.json()
-
-            if 'access_token' in token_data:
-                # Если получен access_token, обновляем его с помощью refresh_token
-                if 'refresh_token' in token_data:
-                    refresh_params = {
-                        'client_id': settings.CLIENT_ID,
-                        'client_secret': settings.CLIENT_SECRET,
-                        'refresh_token': token_data['refresh_token'],
-                        'grant_type': 'refresh_token',
-                        'redirect_uri': settings.REDIRECT_URI,
-                    }
-
-                    refresh_response = requests.get(token_url, params=refresh_params)
-                    refresh_token_data = refresh_response.json()
-
-                    if 'access_token' in refresh_token_data:
-                        return JsonResponse({
-                            'status': 'success',
-                            'message': 'Токены обновлены и процесс завершен.',
-                            'access_token': refresh_token_data['access_token'],
-                            'refresh_token': refresh_token_data['refresh_token'],
-                            'expires_in': refresh_token_data.get('expires_in', 3600),
-                        })
-                    else:
-                        return JsonResponse({
-                            'status': 'error',
-                            'message': f"Ошибка обновления токенов: {refresh_token_data.get('error_description', 'Неизвестная ошибка')}",
-                        })
-
-            else:
-                return JsonResponse({
-                    'status': 'error',
-                    'message': 'Ошибка получения access_token.',
-                })
-        else:
-            return JsonResponse({
-                'status': 'error',
-                'message': 'Не передан refresh_token и код авторизации',
-            })
-    else:
-        return JsonResponse({
-            'status': 'error',
-            'message': 'refresh_token не должен быть передан в теле запроса',
-        })
-
-# views.py
+import logging
 from django.http import JsonResponse
 from django.conf import settings
-from base.models import BitrixUser
+from .models import BitrixUser
 import requests
 from django.utils import timezone
 from datetime import timedelta
 
+# Создаем логгер
+logger = logging.getLogger(__name__)
+
 def bitrix_callback(request):
-    print('авторизация')
     auth_code = request.GET.get('code')  # Извлекаем код авторизации из строки запроса
     
     if not auth_code:
+        logger.error('Не получен код авторизации')
         return JsonResponse({
             'status': 'error',
             'message': 'Не получен код авторизации.'
         })
+
+    logger.info(f"Получен код авторизации: {auth_code}")
 
     # Используем код авторизации для получения токенов
     token_url = 'https://oauth.bitrix24.ru/oauth/token/'
@@ -365,44 +298,55 @@ def bitrix_callback(request):
         'redirect_uri': settings.REDIRECT_URI,  # Этот URI должен совпадать с тем, что вы указали при настройке приложения
     }
 
-    response = requests.get(token_url, params=params)
-    token_data = response.json()
+    try:
+        response = requests.get(token_url, params=params)
+        token_data = response.json()
 
-    if 'access_token' in token_data:
-        access_token = token_data['access_token']
-        refresh_token = token_data.get('refresh_token')
-        expires_in = token_data.get('expires_in', 3600)  # Время жизни access_token по умолчанию - 1 час
+        if 'access_token' in token_data:
+            access_token = token_data['access_token']
+            refresh_token = token_data.get('refresh_token')
+            expires_in = token_data.get('expires_in', 3600)  # Время жизни access_token по умолчанию - 1 час
 
-        # Рассчитываем время истечения токена
-        expires_at = timezone.now() + timedelta(seconds=expires_in)
+            # Рассчитываем время истечения токена
+            expires_at = timezone.now() + timedelta(seconds=expires_in)
 
-        # Обновляем или создаем пользователя в базе данных
-        member_id = token_data.get('member_id')  # Предположим, что member_id также передается
-        domain = settings.BITRIX_DOMAIN  # Ваш домен Bitrix
+            logger.info(f"Токены получены: {access_token} | {refresh_token}")
 
-        # Создаем или обновляем запись пользователя
-        user, created = BitrixUser.objects.update_or_create(
-            member_id=member_id,
-            defaults={
-                'domain': domain,
-                'auth_token': access_token,
+            # Обновляем или создаем пользователя в базе данных
+            member_id = token_data.get('member_id')  # Предположим, что member_id также передается
+            domain = settings.BITRIX_DOMAIN  # Ваш домен Bitrix
+
+            # Создаем или обновляем запись пользователя
+            user, created = BitrixUser.objects.update_or_create(
+                member_id=member_id,
+                defaults={
+                    'domain': domain,
+                    'auth_token': access_token,
+                    'refresh_token': refresh_token,
+                    'expires_at': expires_at,
+                    'refresh_token_created_at': timezone.now(),
+                }
+            )
+
+            logger.info(f"Данные пользователя обновлены: {user}")
+
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Токены успешно получены и сохранены.',
+                'access_token': access_token,
                 'refresh_token': refresh_token,
-                'expires_at': expires_at,
-                'refresh_token_created_at': timezone.now(),
-            }
-        )
-
-        # Возвращаем успешный ответ
-        return JsonResponse({
-            'status': 'success',
-            'message': 'Токены успешно получены и сохранены.',
-            'access_token': access_token,
-            'refresh_token': refresh_token,
-            'expires_in': expires_in,
-        })
-    else:
-        # Ошибка при получении токенов
+                'expires_in': expires_in,
+            })
+        else:
+            logger.error(f"Ошибка при получении токенов: {token_data.get('error_description')}")
+            return JsonResponse({
+                'status': 'error',
+                'message': token_data.get('error_description', 'Ошибка при получении токенов')
+            })
+    except requests.RequestException as e:
+        logger.error(f"Ошибка запроса к Bitrix: {e}")
         return JsonResponse({
             'status': 'error',
-            'message': token_data.get('error_description', 'Ошибка при получении токенов')
+            'message': 'Ошибка при запросе к Bitrix API.'
         })
+
