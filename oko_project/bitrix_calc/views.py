@@ -300,17 +300,31 @@ def bitrix_callback(request):
         
         # Выполняем запрос для получения токенов
         response = requests.get(token_url, params=params)
-        
-        # Логируем ответ от API
-        logger.info(f"Ответ от API Bitrix: {response.text}")
-        
-        token_data = response.json()
-        if response.status_code != 200 or 'access_token' not in token_data:
-            error_message = token_data.get('error_description', 'Ошибка при получении токенов')
-            logger.error(f"Ошибка при получении токенов: {error_message} | Статус код: {response.status_code}")
+
+        # Логируем полный ответ от API
+        logger.info(f"Ответ от API Bitrix: {response.status_code} - {response.text}")
+
+        # Проверяем, что ответ был успешным и содержит необходимые данные
+        if response.status_code != 200:
+            logger.error(f"Ошибка запроса: Статус код {response.status_code}. Ответ: {response.text}")
             return JsonResponse({
                 'status': 'error',
-                'message': error_message
+                'message': f"Ошибка запроса: {response.status_code} - {response.text}",
+                'response_data': response.json()  # Добавляем данные ответа
+            })
+
+        token_data = response.json()
+        
+        # Логируем данные ответа
+        logger.info(f"Полученные данные: {token_data}")
+        
+        if 'access_token' not in token_data:
+            error_message = token_data.get('error_description', 'Не найден access_token в ответе')
+            logger.error(f"Ошибка: {error_message}")
+            return JsonResponse({
+                'status': 'error',
+                'message': error_message,
+                'response_data': token_data  # Добавляем данные ответа
             })
 
         # Если токен получен успешно
@@ -320,6 +334,7 @@ def bitrix_callback(request):
         expires_at = timezone.now() + timedelta(seconds=expires_in)
 
         logger.info(f"Токены получены: {access_token} | {refresh_token}")
+        logger.info(f"Время истечения: {expires_at}")
 
         return JsonResponse({
             'status': 'success',
@@ -334,5 +349,14 @@ def bitrix_callback(request):
         logger.error(f"Ошибка запроса к Bitrix: {e}")
         return JsonResponse({
             'status': 'error',
-            'message': 'Ошибка при запросе к Bitrix API.'
+            'message': f"Ошибка при запросе к Bitrix API: {e}",
+            'error_details': str(e)  # Добавляем текст ошибки
+        })
+    except Exception as e:
+        # Логируем другие исключения
+        logger.error(f"Неизвестная ошибка: {e}")
+        return JsonResponse({
+            'status': 'error',
+            'message': f"Неизвестная ошибка: {e}",
+            'error_details': str(e)  # Добавляем текст ошибки
         })
