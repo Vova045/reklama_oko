@@ -64,6 +64,7 @@ def refresh_bitrix_token(refresh_token):
             response.raise_for_status()  # Выбрасывает исключение, если статус ответа не 200
             data = response.json()
             print("Ответ от API Bitrix24:")
+            logger.info(f"Ответ от API Bitrix24: {data}")
             print(data)
             return data
         except requests.exceptions.RequestException as e:
