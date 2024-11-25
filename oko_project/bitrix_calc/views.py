@@ -275,7 +275,6 @@ from urllib.parse import urlparse, parse_qs
 logger = logging.getLogger(__name__)
 
 def bitrix_callback(request):
-    # Извлекаем код авторизации из параметров GET-запроса
     auth_code = request.GET.get('code')
 
     if not auth_code:
@@ -318,14 +317,23 @@ def bitrix_callback(request):
         # Логируем полный ответ от API
         logger.info(f"Ответ от API Bitrix: {response.status_code} - {response.text}")
 
-        # Проверяем, что ответ был успешным
+        if response.status_code == 403:
+            # Логируем дополнительную информацию об ошибке
+            logger.error(f"Ошибка 403: Доступ к API Bitrix запрещен. Ответ: {response.text}")
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Ошибка 403: Доступ к API Bitrix запрещен.',
+                'response_data': response.text,
+                'url_data': url_data
+            })
+
         if response.status_code != 200:
             logger.error(f"Ошибка запроса: Статус код {response.status_code}. Ответ: {response.text}")
             return JsonResponse({
                 'status': 'error',
                 'message': f"Ошибка запроса: {response.status_code} - {response.text}",
-                'response_data': response.text,  # Добавляем полный текст ответа
-                'url_data': url_data  # Добавляем данные из URL
+                'response_data': response.text,
+                'url_data': url_data
             })
 
         try:
@@ -338,18 +346,18 @@ def bitrix_callback(request):
             return JsonResponse({
                 'status': 'error',
                 'message': 'Ответ от API не в формате JSON.',
-                'response_data': response.text,  # Добавляем полный текст ответа
-                'url_data': url_data  # Добавляем данные из URL
+                'response_data': response.text,
+                'url_data': url_data
             })
-        
+
         if 'access_token' not in token_data:
             error_message = token_data.get('error_description', 'Не найден access_token в ответе')
             logger.error(f"Ошибка: {error_message}")
             return JsonResponse({
                 'status': 'error',
                 'message': error_message,
-                'response_data': token_data,  # Добавляем данные ответа
-                'url_data': url_data  # Добавляем данные из URL
+                'response_data': token_data,
+                'url_data': url_data
             })
 
         # Если токен получен успешно
@@ -367,24 +375,22 @@ def bitrix_callback(request):
             'access_token': access_token,
             'refresh_token': refresh_token,
             'expires_in': expires_in,
-            'url_data': url_data  # Добавляем данные из URL
+            'url_data': url_data
         })
 
     except requests.RequestException as e:
-        # Логируем исключение, если запрос не удался
         logger.error(f"Ошибка запроса к Bitrix: {e}")
         return JsonResponse({
             'status': 'error',
             'message': f"Ошибка при запросе к Bitrix API: {e}",
-            'error_details': str(e),  # Добавляем текст ошибки
-            'url_data': url_data  # Добавляем данные из URL
+            'error_details': str(e),
+            'url_data': url_data
         })
     except Exception as e:
-        # Логируем другие исключения
         logger.error(f"Неизвестная ошибка: {e}")
         return JsonResponse({
             'status': 'error',
             'message': f"Неизвестная ошибка: {e}",
-            'error_details': str(e),  # Добавляем текст ошибки
-            'url_data': url_data  # Добавляем данные из URL
+            'error_details': str(e),
+            'url_data': url_data
         })
