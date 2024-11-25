@@ -41,7 +41,6 @@ urlpatterns = [
     path('create-deal/', views.create_deal, name='create_deal'),
     path('api/user-current/', views.get_user_correct, name='get_user_current'),
     path('api/get-companies/', views.get_companies, name='get_companies'),
-    path('api/update-bitrix-id/', views.update_bitrix_id, name='update_bitrix_id'),
     ]
 
     

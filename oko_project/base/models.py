@@ -439,6 +439,7 @@ class BitrixUser(models.Model):
             print("Refresh token creation date is missing.")
             return True
         expiration_date = self.refresh_token_created_at + timedelta(days=self.refresh_token_ttl)
+        print(expiration_date)
         return timezone.now() > expiration_date
 
     def __str__(self):

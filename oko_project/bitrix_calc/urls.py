@@ -3,4 +3,7 @@ from . import views
 urlpatterns = [
 path('calculation_list', views.calculation_list, name='calculation_list'),
 path('calculation_add', views.calculation_add, name='calculation_add'),
+path('authoritation', views.authoritation, name='authoritation'),
+path('button_handler/', views.button_handler, name='button_handler'),
+path('callback/', views.bitrix_callback, name='bitrix_callback'),
 ]

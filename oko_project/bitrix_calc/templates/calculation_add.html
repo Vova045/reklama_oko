@@ -183,7 +183,6 @@
     <ul id="companyList"></ul>
     <button id="getUserNameButton">Получить имя</button>
     <button id="getCompanyButton" onclick="getCompanies()">Получить компании</button>
-    <button id="updateBitrixIdButton" onclick="updateBitrixId()">Обновить ID</button>
 </div>
 <script src="https://api.bitrix24.com/api/v1/"></script>
 <script>
@@ -759,24 +758,39 @@ function filterClients() {
             console.error('Error fetching companies:', error);
         });
     }
-    function updateBitrixId() {
-    fetch('/api/update-bitrix-id/', {
-        method: 'POST',
+
+function Authoritation() {
+    console.log("Authoritation...");
+
+    fetch('/authoritation', {
+        method: 'GET',
         headers: {
             'X-CSRFToken': getCsrfToken(),
         },
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log("Response received:", response);
+        return response.json();
+    })
     .then(data => {
-        if (data.bitrix_id) {
-            alert('bitrix_id обновлён: ' + data.bitrix_id);
+        console.log("Parsed JSON data:", data);
+
+        if (data.user_name) {
+            console.log("User name received:", data.user_name);
+            alert('Имя пользователя: ' + data.user_name);
         } else if (data.error) {
-            alert('Ошибка: ' + data.error);
+            console.error("Error from API:", data.error);
+            alert('Ошибка получения данных: ' + data.error);
+        }
+
+        if (data.bitrix_id) {
+            console.log("Bitrix ID received:", data.bitrix_id);
+            alert('Bitrix ID: ' + data.bitrix_id);
         }
     })
     .catch(error => {
-        console.error('Ошибка запроса:', error);
-        alert('Произошла ошибка при обновлении bitrix_id.');
+        console.error("Fetch error:", error);
+        alert('Произошла ошибка запроса. Проверьте соединение с сервером.');
     });
 }
 
@@ -809,11 +823,15 @@ function filterClients() {
                 console.error('Bitrix24 JS API недоступен');
             }
         }
-
-        // Инициализируем API и выполняем извлечение ID
-        BX24.init(() => {
+        if(BX24){
+            BX24.init(() => {
             getDealIdFromParent();
         });
+        } else {
+            Authoritation()
+        }
+        // Инициализируем API и выполняем извлечение ID
+
     });
 </script>
 
