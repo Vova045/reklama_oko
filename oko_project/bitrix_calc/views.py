@@ -265,14 +265,12 @@ def authoritation(request):
         return JsonResponse({'error': str(e)}, status=500)
 import logging
 from django.http import JsonResponse
-from django.conf import settings
-from base.models import BitrixUser
 import requests
+import os
 from django.utils import timezone
 from datetime import timedelta
-import os
 
-# Создаем логгер
+# Логгер для диагностики
 logger = logging.getLogger(__name__)
 
 def bitrix_callback(request):
@@ -297,6 +295,9 @@ def bitrix_callback(request):
     }
 
     try:
+        # Логируем параметры перед запросом
+        logger.info(f"Параметры запроса: {params}")
+        
         # Выполняем запрос для получения токенов
         response = requests.get(token_url, params=params)
         
@@ -304,8 +305,6 @@ def bitrix_callback(request):
         logger.info(f"Ответ от API Bitrix: {response.text}")
         
         token_data = response.json()
-        logger.info(f"Полученные данные токенов: {token_data}")
-
         if response.status_code != 200 or 'access_token' not in token_data:
             error_message = token_data.get('error_description', 'Ошибка при получении токенов')
             logger.error(f"Ошибка при получении токенов: {error_message} | Статус код: {response.status_code}")
@@ -321,26 +320,6 @@ def bitrix_callback(request):
         expires_at = timezone.now() + timedelta(seconds=expires_in)
 
         logger.info(f"Токены получены: {access_token} | {refresh_token}")
-
-        # Получаем member_id и обновляем/создаем пользователя
-        member_id = token_data.get('member_id')
-        domain = settings.BITRIX_DOMAIN
-
-        # Логируем перед обновлением пользователя
-        logger.info(f"Попытка обновить или создать пользователя с member_id: {member_id}")
-
-        user, created = BitrixUser.objects.update_or_create(
-            member_id=member_id,
-            defaults={
-                'domain': domain,
-                'auth_token': access_token,
-                'refresh_token': refresh_token,
-                'expires_at': expires_at,
-                'refresh_token_created_at': timezone.now(),
-            }
-        )
-
-        logger.info(f"Данные пользователя обновлены: {user}")
 
         return JsonResponse({
             'status': 'success',
