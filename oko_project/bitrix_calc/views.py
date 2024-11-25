@@ -318,20 +318,29 @@ def bitrix_callback(request):
         # Логируем полный ответ от API
         logger.info(f"Ответ от API Bitrix: {response.status_code} - {response.text}")
 
-        # Проверяем, что ответ был успешным и содержит необходимые данные
+        # Проверяем, что ответ был успешным
         if response.status_code != 200:
             logger.error(f"Ошибка запроса: Статус код {response.status_code}. Ответ: {response.text}")
             return JsonResponse({
                 'status': 'error',
                 'message': f"Ошибка запроса: {response.status_code} - {response.text}",
-                'response_data': response.json(),  # Добавляем данные ответа
+                'response_data': response.text,  # Добавляем полный текст ответа
                 'url_data': url_data  # Добавляем данные из URL
             })
 
-        token_data = response.json()
-        
-        # Логируем данные ответа
-        logger.info(f"Полученные данные: {token_data}")
+        try:
+            # Пытаемся разобрать ответ как JSON
+            token_data = response.json()
+            logger.info(f"Полученные данные: {token_data}")
+        except ValueError:
+            # Если ответ не является JSON, логируем и возвращаем ошибку
+            logger.error(f"Ошибка при разборе JSON: Ответ не в формате JSON: {response.text}")
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Ответ от API не в формате JSON.',
+                'response_data': response.text,  # Добавляем полный текст ответа
+                'url_data': url_data  # Добавляем данные из URL
+            })
         
         if 'access_token' not in token_data:
             error_message = token_data.get('error_description', 'Не найден access_token в ответе')
