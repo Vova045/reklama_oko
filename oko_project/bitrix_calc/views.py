@@ -264,7 +264,6 @@ def authoritation(request):
             }, status=401)
         return JsonResponse({'error': str(e)}, status=500)
 
-
 import logging
 from django.http import JsonResponse
 from django.conf import settings
@@ -338,10 +337,11 @@ def bitrix_callback(request):
                 'expires_in': expires_in,
             })
         else:
-            logger.error(f"Ошибка при получении токенов: {token_data.get('error_description')}")
+            error_description = token_data.get('error_description', 'Неизвестная ошибка')
+            logger.error(f"Ошибка при получении токенов: {error_description}")
             return JsonResponse({
                 'status': 'error',
-                'message': token_data.get('error_description', 'Ошибка при получении токенов')
+                'message': error_description
             })
     except requests.RequestException as e:
         logger.error(f"Ошибка запроса к Bitrix: {e}")
@@ -349,4 +349,3 @@ def bitrix_callback(request):
             'status': 'error',
             'message': 'Ошибка при запросе к Bitrix API.'
         })
-
