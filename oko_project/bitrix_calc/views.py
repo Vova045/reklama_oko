@@ -346,6 +346,7 @@ from django.utils import timezone
 from datetime import timedelta
 
 def bitrix_callback(request):
+    print('авторизация')
     auth_code = request.GET.get('code')  # Извлекаем код авторизации из строки запроса
     
     if not auth_code:
