@@ -289,11 +289,11 @@ def bitrix_callback(request):
 
     token_url = 'https://oauth.bitrix24.ru/oauth/token/'
     params = {
-        'client_id': settings.CLIENT_ID,
-        'client_secret': settings.CLIENT_SECRET,
+        'client_id': os.getenv('CLIENT_ID'),
+        'client_secret': os.getenv('CLIENT_SECRET'),
         'code': auth_code,
         'grant_type': 'authorization_code',
-        'redirect_uri': settings.REDIRECT_URI,
+        'redirect_uri': os.getenv('REDIRECT_URI'),
     }
 
     try:
