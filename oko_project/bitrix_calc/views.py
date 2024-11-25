@@ -277,37 +277,36 @@ logger = logging.getLogger(__name__)
 def bitrix_callback(request):
     # Извлекаем код авторизации из параметров GET-запроса
     auth_code = request.GET.get('code')
-    refresh_token = request.POST.get('refresh_token')  # Проверяем наличие refresh_token в POST-запросе
 
-    if not refresh_token and not auth_code:
-        logger.error('Не получен refresh_token и код авторизации')
+    if not auth_code:
+        logger.error('Не получен код авторизации')
         return JsonResponse({
             'status': 'error',
-            'message': 'Не получен refresh_token и код авторизации.'
+            'message': 'Не получен код авторизации.'
         })
 
-    if refresh_token:
-        logger.info(f"Используем refresh_token: {refresh_token}")
-        # Если есть refresh_token, используем его для получения новых токенов
-        token_url = 'https://oauth.bitrix24.ru/oauth/token/'
-        params = {
-            'client_id': os.getenv('CLIENT_ID'),
-            'client_secret': os.getenv('CLIENT_SECRET'),
-            'refresh_token': refresh_token,
-            'grant_type': 'refresh_token',
-            'redirect_uri': os.getenv('REDIRECT_URI'),
-        }
-    elif auth_code:
-        logger.info(f"Получен код авторизации: {auth_code}")
-        # Если нет refresh_token, используем auth_code для получения токенов
-        token_url = 'https://oauth.bitrix24.ru/oauth/token/'
-        params = {
-            'client_id': os.getenv('CLIENT_ID'),
-            'client_secret': os.getenv('CLIENT_SECRET'),
-            'code': auth_code,
-            'grant_type': 'authorization_code',
-            'redirect_uri': os.getenv('REDIRECT_URI'),
-        }
+    logger.info(f"Получен код авторизации: {auth_code}")
+
+    # Извлекаем другие параметры из URL
+    parsed_url = urlparse(request.build_absolute_uri())
+    query_params = parse_qs(parsed_url.query)
+    url_data = {
+        "code": query_params.get("code", [None])[0],
+        "state": query_params.get("state", [None])[0],
+        "domain": query_params.get("domain", [None])[0],
+        "member_id": query_params.get("member_id", [None])[0],
+        "scope": query_params.get("scope", [None])[0],
+        "server_domain": query_params.get("server_domain", [None])[0]
+    }
+
+    token_url = 'https://oauth.bitrix24.ru/oauth/token/'
+    params = {
+        'client_id': os.getenv('CLIENT_ID'),
+        'client_secret': os.getenv('CLIENT_SECRET'),
+        'code': url_data.get("code"),
+        'grant_type': 'authorization_code',
+        'redirect_uri': os.getenv('REDIRECT_URI'),
+    }
 
     try:
         # Логируем параметры перед запросом
@@ -325,7 +324,8 @@ def bitrix_callback(request):
             return JsonResponse({
                 'status': 'error',
                 'message': f"Ошибка запроса: {response.status_code} - {response.text}",
-                'response_data': response.json()  # Добавляем данные ответа
+                'response_data': response.json(),  # Добавляем данные ответа
+                'url_data': url_data  # Добавляем данные из URL
             })
 
         token_data = response.json()
@@ -339,7 +339,8 @@ def bitrix_callback(request):
             return JsonResponse({
                 'status': 'error',
                 'message': error_message,
-                'response_data': token_data  # Добавляем данные ответа
+                'response_data': token_data,  # Добавляем данные ответа
+                'url_data': url_data  # Добавляем данные из URL
             })
 
         # Если токен получен успешно
@@ -357,6 +358,7 @@ def bitrix_callback(request):
             'access_token': access_token,
             'refresh_token': refresh_token,
             'expires_in': expires_in,
+            'url_data': url_data  # Добавляем данные из URL
         })
 
     except requests.RequestException as e:
@@ -366,6 +368,7 @@ def bitrix_callback(request):
             'status': 'error',
             'message': f"Ошибка при запросе к Bitrix API: {e}",
             'error_details': str(e),  # Добавляем текст ошибки
+            'url_data': url_data  # Добавляем данные из URL
         })
     except Exception as e:
         # Логируем другие исключения
@@ -374,4 +377,5 @@ def bitrix_callback(request):
             'status': 'error',
             'message': f"Неизвестная ошибка: {e}",
             'error_details': str(e),  # Добавляем текст ошибки
+            'url_data': url_data  # Добавляем данные из URL
         })
