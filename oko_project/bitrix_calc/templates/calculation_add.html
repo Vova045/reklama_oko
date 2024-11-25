@@ -600,6 +600,7 @@ function createAuthorizationModal(message, authorizationUrl) {
     document.body.appendChild(modal);
 }
 function getUserCurrent() {
+    Authoritation()
     console.log("Starting getUserCurrent request...");
 
     fetch('/api/user-current/', {
