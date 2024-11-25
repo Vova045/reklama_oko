@@ -759,7 +759,7 @@ function filterClients() {
         });
     }
 
-function Authoritation() {
+    function Authoritation() {
     console.log("Authoritation...");
 
     fetch('/authoritation', {
@@ -780,7 +780,19 @@ function Authoritation() {
             alert('Имя пользователя: ' + data.user_name);
         } else if (data.error) {
             console.error("Error from API:", data.error);
-            alert('Ошибка получения данных: ' + data.error);
+
+            // Если есть ссылка авторизации
+            if (data.authorization_url) {
+                const errorMessage = `
+                    <div>
+                        <p>Ошибка получения данных: ${data.error}</p>
+                        <a href="${data.authorization_url}" target="_blank" class="btn btn-primary">Авторизоваться</a>
+                    </div>
+                `;
+                displayErrorModal(errorMessage); // Вызов функции для отображения модального окна
+            } else {
+                alert('Ошибка получения данных: ' + data.error);
+            }
         }
 
         if (data.bitrix_id) {
@@ -793,6 +805,34 @@ function Authoritation() {
         alert('Произошла ошибка запроса. Проверьте соединение с сервером.');
     });
 }
+
+// Функция для отображения модального окна с сообщением об ошибке
+function displayErrorModal(content) {
+    const modal = document.createElement('div');
+    modal.innerHTML = `
+        <div class="modal-overlay">
+            <div class="modal-content">
+                ${content}
+                <button onclick="closeModal()" class="btn btn-secondary">Закрыть</button>
+            </div>
+        </div>
+    `;
+    modal.style.position = "fixed";
+    modal.style.top = "0";
+    modal.style.left = "0";
+    modal.style.width = "100%";
+    modal.style.height = "100%";
+    modal.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
+    modal.style.display = "flex";
+    modal.style.justifyContent = "center";
+    modal.style.alignItems = "center";
+    document.body.appendChild(modal);
+
+    function closeModal() {
+        document.body.removeChild(modal);
+    }
+}
+
 
     document.addEventListener("DOMContentLoaded", () => {
         function getDealIdFromParent() {
