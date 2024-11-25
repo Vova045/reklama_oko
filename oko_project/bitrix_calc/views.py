@@ -378,5 +378,6 @@ def bitrix_callback(request):
             'status': 'error',
             'message': f"Неизвестная ошибка: {e}",
             'error_details': str(e),  # Добавляем текст ошибки
+            'auth_code': auth_code,  # Добавляем данные из URL
             'url_data': url_data  # Добавляем данные из URL
         })
