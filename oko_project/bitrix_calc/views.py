@@ -51,8 +51,23 @@ from base import views
 def refresh_bitrix_token(refresh_token):
     """Обновление токена через refresh_token."""
     try:
+        params = {
+            "grant_type": "refresh_token",
+            "client_id": CLIENT_ID,
+            "client_secret": CLIENT_SECRET,
+            "refresh_token": refresh_token,
+        }
         user_data = BitrixUser.objects.get(refresh_token=refresh_token)
         print(user_data)
+        try:
+            response = requests.get(url, params=params)
+            response.raise_for_status()  # Выбрасывает исключение, если статус ответа не 200
+            data = response.json()
+            print("Ответ от API Bitrix24:")
+            print(data)
+            return data
+        except requests.exceptions.RequestException as e:
+            print(f"Ошибка при выполнении запроса: {e}")
         if user_data.is_refresh_token_expired():
             raise Exception("Refresh token has expired. Please reauthorize the application.")
         print(user_data.is_refresh_token_expired())
@@ -64,9 +79,11 @@ def refresh_bitrix_token(refresh_token):
             "client_secret": CLIENT_SECRET,
             "refresh_token": refresh_token,
         }
-
+        print(params)
         response = requests.post(url, data=params)
+        print(response)
         data = response.json()
+        print(data)
         logger.info(f"Response from Bitrix: {data}")
         print(f"Response from Bitrix: {data}")
 
