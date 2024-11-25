@@ -268,7 +268,7 @@ def authoritation(request):
 import logging
 from django.http import JsonResponse
 from django.conf import settings
-from .models import BitrixUser
+from base.models import BitrixUser
 import requests
 from django.utils import timezone
 from datetime import timedelta
