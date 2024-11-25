@@ -370,7 +370,9 @@ def bitrix_callback(request):
             'message': f"Ошибка при запросе к Bitrix API: {e}",
             'error_details': str(e),  # Добавляем текст ошибки
             'auth_code': auth_code,  # Добавляем данные из URL
-            'url_data': url_data  # Добавляем данные из URL
+            'url_data': url_data,  # Добавляем данные из URL
+            'token_data': token_data,  # Добавляем данные из URL
+            'response': response  # Добавляем данные из URL
         })
     except Exception as e:
         # Логируем другие исключения
