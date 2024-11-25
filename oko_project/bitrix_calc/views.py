@@ -64,7 +64,7 @@ def refresh_bitrix_token(refresh_token):
             response.raise_for_status()  # Выбрасывает исключение, если статус ответа не 200
             data = response.json()
             print("Ответ от API Bitrix24:")
-            logger.info(f"Ответ от API Bitrix24: {data}")
+            logger.debug(f"Ответ от API Bitrix24: {data}")
             print(data)
             return data
         except requests.exceptions.RequestException as e:
@@ -85,7 +85,7 @@ def refresh_bitrix_token(refresh_token):
         print(response)
         data = response.json()
         print(data)
-        logger.info(f"Response from Bitrix: {data}")
+        logger.debug(f"Response from Bitrix: {data}")
         print(f"Response from Bitrix: {data}")
 
         # Если успешно, обновляем токены
@@ -108,9 +108,9 @@ def refresh_bitrix_token(refresh_token):
         
         # Обработка ошибки недействительного refresh_token
         if "invalid_grant" in str(e):
-            logger.error("Refresh token недействителен, требуется авторизация.")
+            logger.debug("Refresh token недействителен, требуется авторизация.")
             auth_url = get_authorization_url()  # Генерация URL для авторизации
-            logger.info(f"Authorization URL: {auth_url}")  # Логируем ссылку для авторизации
+            logger.debug(f"Authorization URL: {auth_url}")  # Логируем ссылку для авторизации
             # Убедитесь, что возвращаем правильный ответ с ссылкой на авторизацию
             return JsonResponse({
                 "error": "Authorization required. Please reauthorize the application.",
