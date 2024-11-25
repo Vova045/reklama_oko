@@ -276,7 +276,7 @@ from datetime import timedelta
 logger = logging.getLogger(__name__)
 
 def bitrix_callback(request):
-    auth_code = request.GET.get('code')  # Извлекаем код авторизации из строки запроса
+    auth_code = request.GET.get('code')
     
     if not auth_code:
         logger.error('Не получен код авторизации')
@@ -284,38 +284,38 @@ def bitrix_callback(request):
             'status': 'error',
             'message': 'Не получен код авторизации.'
         })
-
+    
     logger.info(f"Получен код авторизации: {auth_code}")
 
-    # Используем код авторизации для получения токенов
     token_url = 'https://oauth.bitrix24.ru/oauth/token/'
     params = {
         'client_id': settings.CLIENT_ID,
         'client_secret': settings.CLIENT_SECRET,
         'code': auth_code,
         'grant_type': 'authorization_code',
-        'redirect_uri': settings.REDIRECT_URI,  # Этот URI должен совпадать с тем, что вы указали при настройке приложения
+        'redirect_uri': settings.REDIRECT_URI,
     }
 
     try:
         response = requests.get(token_url, params=params)
         token_data = response.json()
+        logger.info(f"Полученные токены: {token_data}")  # Логируем ответ от API
 
         if 'access_token' in token_data:
             access_token = token_data['access_token']
             refresh_token = token_data.get('refresh_token')
-            expires_in = token_data.get('expires_in', 3600)  # Время жизни access_token по умолчанию - 1 час
-
-            # Рассчитываем время истечения токена
+            expires_in = token_data.get('expires_in', 3600)
             expires_at = timezone.now() + timedelta(seconds=expires_in)
 
             logger.info(f"Токены получены: {access_token} | {refresh_token}")
 
             # Обновляем или создаем пользователя в базе данных
-            member_id = token_data.get('member_id')  # Предположим, что member_id также передается
-            domain = settings.BITRIX_DOMAIN  # Ваш домен Bitrix
+            member_id = token_data.get('member_id')
+            domain = settings.BITRIX_DOMAIN
 
-            # Создаем или обновляем запись пользователя
+            # Логируем перед обновлением пользователя
+            logger.info(f"Попытка обновить или создать пользователя с member_id: {member_id}")
+
             user, created = BitrixUser.objects.update_or_create(
                 member_id=member_id,
                 defaults={
@@ -337,12 +337,13 @@ def bitrix_callback(request):
                 'expires_in': expires_in,
             })
         else:
-            error_description = token_data.get('error_description', 'Неизвестная ошибка')
-            logger.error(f"Ошибка при получении токенов: {error_description}")
+            error_message = token_data.get('error_description', 'Ошибка при получении токенов')
+            logger.error(f"Ошибка при получении токенов: {error_message}")
             return JsonResponse({
                 'status': 'error',
-                'message': error_description
+                'message': error_message
             })
+
     except requests.RequestException as e:
         logger.error(f"Ошибка запроса к Bitrix: {e}")
         return JsonResponse({
