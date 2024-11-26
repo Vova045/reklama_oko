@@ -65,7 +65,6 @@
             display: none;
         }
 
-        /* Стили для nameTypeElement */
         .name-type {
             cursor: pointer;
             font-weight: bold;
@@ -78,7 +77,6 @@
             background-color: #f0f0f0;
         }
 
-        /* Активный элемент */
         .name-type.active {
             background-color: #007bff;
             color: white;
@@ -90,11 +88,13 @@
             padding-left: 0;
             list-style: none;
         }
-            .inner_name-type.selected {
+
+        .inner_name-type.selected {
             background-color: #007bff;
             color: white;
             font-weight: bold;
         }
+
         .image-frame {
             width: 80%;
             height: 50%;
@@ -167,13 +167,23 @@
         <div class="image-frame">
             Картинка выбранного изделия
         </div>
-        <div id='paramsContainer' class="input-group">
+        <div id='paramsContainer' class="input-group"></div>
+        <div id='PriceContainer'></div>
+
+        <div class="input-group">
+            <label for="calculationName">Название калькуляции:</label>
+            <input type="text" id="calculationName" placeholder="Введите название калькуляции">
         </div>
-        <div id='PriceContainer'>
+
+        <div class="input-group">
+            <label for="dealNumber">Номер сделки Битрикса:</label>
+            <input type="text" id="dealNumber" placeholder="Введите номер сделки">
         </div>
-        <button class="submit-button" onclick="createDealInBitrix()">Создать</button>
+
+        <button class="submit-button">Создать</button>
     </div>
 </div>
+
 <div class="company-search">
     <h3>Поиск компании</h3>
     <div class="input-group">
@@ -184,6 +194,10 @@
     <button id="getUserNameButton">Получить имя</button>
     <button id="getCompanyButton" onclick="getCompanies()">Получить компании</button>
 </div>
+
+</body>
+</html>
+
 <script src="https://api.bitrix24.com/api/v1/"></script>
 <script>
     let selectedProductId = null;
@@ -863,6 +877,60 @@ function filterClients() {
         // Инициализируем API и выполняем извлечение ID
 
     });
+
+
+
+    document.querySelector('.submit-button').addEventListener('click', function () {
+        const calculationName = document.getElementById('calculationName').value;
+
+        if (!calculationName) {
+            alert("Пожалуйста, введите название калькуляции.");
+            return;
+        }
+
+        fetch('/api/create-calculation/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken') // Для защиты CSRF
+            },
+            body: JSON.stringify({
+                name: calculationName
+            })
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            } else {
+                throw new Error('Ошибка при создании калькуляции.');
+            }
+        })
+        .then(data => {
+            alert(`Калькуляция "${data.name}" успешно создана.`);
+        })
+        .catch(error => {
+            console.error('Ошибка:', error);
+            alert('Не удалось создать калькуляцию.');
+        });
+    });
+
+    // Функция для получения CSRF-токена из cookie
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.startsWith(name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    
 </script>
 
 </body>

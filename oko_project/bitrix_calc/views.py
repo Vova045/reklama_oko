@@ -400,3 +400,22 @@ def bitrix_callback(request):
             'auth_code': auth_code,  # Добавляем данные из URL
             'url_data': url_data  # Добавляем данные из URL
         })
+    
+import json
+from bitrix_calc.models import Bitrix_Calculation
+@csrf_exempt
+def create_calculation(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            calculation_name = data.get('name')
+            
+            if not calculation_name:
+                return JsonResponse({'error': 'Название калькуляции обязательно.'}, status=400)
+            
+            # Создаем объект
+            calculation = Bitrix_Calculation.objects.create(name=calculation_name)
+            return JsonResponse({'id': calculation.id, 'name': calculation.name}, status=201)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({'error': 'Недопустимый метод.'}, status=405)

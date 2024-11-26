@@ -160,3 +160,13 @@ class Bitrix_GoodsParametersAdmin(admin.ModelAdmin):
 class Bitrix_ParametersNormativesAdmin(admin.ModelAdmin):
     list_display = ('goods', 'overheads', 'salary_fund', 'profit')
     search_fields = ('goods__bitrix_goods_name', 'overheads', 'salary_fund', 'profit')
+
+
+
+from .models import Bitrix_Calculation
+
+@admin.register(Bitrix_Calculation)
+class BitrixCalculationAdmin(admin.ModelAdmin):
+    list_display = ('name', 'goods', 'price_final_price')
+    search_fields = ('name',)
+    list_filter = ('goods',)
