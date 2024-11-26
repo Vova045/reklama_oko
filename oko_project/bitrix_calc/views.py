@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
-from .models import Bitrix_Goods, Bitrix_GoodsComposition
+from .models import Bitrix_Goods, Bitrix_GoodsComposition, Birtrix_Price_GoodsComposition
 from django.http import JsonResponse
 import requests
 
@@ -408,13 +408,14 @@ def create_calculation(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            print(data)
             calculation_name = data.get('name')
+            operations_fullprices = data.get('operations_fullprices')
+            print(operations_fullprices)  # Принт для отладки
 
             if not calculation_name:
                 return JsonResponse({'error': 'Название калькуляции обязательно.'}, status=400)
 
-            # Создаем объект с переданными данными
+            # Создаем объект калькуляции
             calculation = Bitrix_Calculation.objects.create(
                 name=calculation_name,
                 price_material=data.get('price_material'),
@@ -427,6 +428,31 @@ def create_calculation(request):
                 price_salary_fund=data.get('price_salary_fund'),
                 price_final_price=data.get('price_final_price'),
             )
+
+            # Проходим по каждому элементу operations_fullprices
+            for item in operations_fullprices:
+                # Получаем состав товара по id
+                goods_composition = Bitrix_GoodsComposition.objects.filter(id=item.get('composition_of_techoperation')).first()
+
+                if not goods_composition:
+                    # Если не нашли товар, пропускаем этот элемент
+                    print(f"Состав товара с id {item.get('composition_of_techoperation')} не найден.")
+                    continue
+
+                # Создаем запись в Birtrix_Price_GoodsComposition
+                Birtrix_Price_GoodsComposition.objects.create(
+                    calculation=calculation,
+                    goods_compostion=goods_composition,
+                    price_material=item.get('price_material'),
+                    price_add_material=item.get('price_add_material'),
+                    price_salary=item.get('price_salary'),
+                    price_payroll=item.get('price_payroll'),
+                    price_overheads=item.get('price_overheads'),
+                    price_cost=item.get('price_cost'),
+                    price_profit=item.get('price_profit'),
+                    price_salary_fund=item.get('price_salary_fund'),
+                    price_final_price=item.get('final_price'),
+                )
 
             return JsonResponse({'id': calculation.id, 'name': calculation.name}, status=201)
         except Exception as e:
