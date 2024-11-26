@@ -162,6 +162,24 @@ class Bitrix_ParametersNormativesAdmin(admin.ModelAdmin):
     search_fields = ('goods__bitrix_goods_name', 'overheads', 'salary_fund', 'profit')
 
 
+class BirtrixPriceGoodsCompositionInline(admin.TabularInline):
+    model = Birtrix_Price_GoodsComposition
+    extra = 1  # Количество пустых форм, которые будут отображаться в интерфейсе по умолчанию
+    fields = (
+        'goods_compostion',
+        'price_material',
+        'price_add_material',
+        'price_salary',
+        'price_payroll',
+        'price_overheads',
+        'price_cost',
+        'price_profit',
+        'price_salary_fund',
+        'price_final_price',
+    )  # Поля, которые будут отображаться в админке
+    verbose_name = "Состав товара для калькуляции"
+    verbose_name_plural = "Составы товара для калькуляций"
+    
 
 from .models import Bitrix_Calculation
 from django.contrib import admin
@@ -188,7 +206,7 @@ class BitrixCalculationAdmin(admin.ModelAdmin):
     
     # Поля для фильтрации
     list_filter = ('goods',)
-    
+    inlines = [BirtrixPriceGoodsCompositionInline]
     # Поля для редактирования напрямую из списка
     list_editable = ('price_final_price',)
     
@@ -212,8 +230,6 @@ class BitrixCalculationAdmin(admin.ModelAdmin):
         }),
     )
     
-    # Чтение некоторых полей только в админке
-    readonly_fields = ('name',)
     
     # Постраничный вывод объектов
     list_per_page = 20

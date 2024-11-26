@@ -1663,6 +1663,7 @@ def update_parameters_product_bitrix(request):
                             'nomenclature': nomenclature_in,
                             'inner_operations': inner_operation_in,
                         })
+                        print(compositions)
             product_parameters = data.get('product_parameters', {})
             technological_operation_list = operations
             price_cost_with_adds = 0
