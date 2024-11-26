@@ -83,8 +83,8 @@ DATABASES = {
     'default': {  # Основная база данных (MySQL)
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'u2534371_reklama_oko_db',
-        'USER': 'u2534371_reklama',
-        'PASSWORD': 'vyrpyx-tetji5-gigsiM',
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
         'HOST': '31.31.196.187',
         'PORT': '3306',
         'OPTIONS': {
