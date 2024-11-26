@@ -164,9 +164,56 @@ class Bitrix_ParametersNormativesAdmin(admin.ModelAdmin):
 
 
 from .models import Bitrix_Calculation
+from django.contrib import admin
 
 @admin.register(Bitrix_Calculation)
 class BitrixCalculationAdmin(admin.ModelAdmin):
-    list_display = ('name', 'goods', 'price_final_price')
-    search_fields = ('name',)
+    # Поля для отображения в списке объектов
+    list_display = (
+        'name', 
+        'goods', 
+        'price_material', 
+        'price_add_material', 
+        'price_salary', 
+        'price_payroll', 
+        'price_overheads', 
+        'price_cost', 
+        'price_profit', 
+        'price_salary_fund', 
+        'price_final_price'
+    )
+    
+    # Поля для поиска
+    search_fields = ('name', 'goods__name')
+    
+    # Поля для фильтрации
     list_filter = ('goods',)
+    
+    # Поля для редактирования напрямую из списка
+    list_editable = ('price_final_price',)
+    
+    # Поля для отображения в форме редактирования
+    fieldsets = (
+        ('Основная информация', {
+            'fields': ('name', 'goods')
+        }),
+        ('Детали цен', {
+            'fields': (
+                'price_material', 
+                'price_add_material', 
+                'price_salary', 
+                'price_payroll', 
+                'price_overheads', 
+                'price_cost', 
+                'price_profit', 
+                'price_salary_fund', 
+                'price_final_price'
+            )
+        }),
+    )
+    
+    # Чтение некоторых полей только в админке
+    readonly_fields = ('name',)
+    
+    # Постраничный вывод объектов
+    list_per_page = 20

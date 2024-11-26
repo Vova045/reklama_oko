@@ -1607,57 +1607,37 @@ def get_folder_name_by_technology(request):
 @csrf_exempt
 def update_parameters_product_bitrix(request):
     print('update_parameters_product_bitrix')
-
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
+            print(data)
             selected_types = data.get('selectedTypes', [])
             selected_product_id = data.get('selectedProductId')
             bitrix_goods = Bitrix_Goods.objects.filter(id=selected_product_id).first()
             if not bitrix_goods:
                 return JsonResponse({'error': 'Товар не найден'}, status=404)
             def replace_formula_with_calculation(tech_operation):
-                final_formula = tech_operation.formula  # Получаем исходную формулу операции
-                # print(final_formula)
+                final_formula = tech_operation.formula  
                 while True:
-                    initial_formula = final_formula  # Сохраняем текущую формулу для проверки изменений
-                    
-                    elements = final_formula.split()  # Разделяем формулу на отдельные элементы
-                    # print(initial_formula)
-                    # Перебираем все элементы формулы
+                    initial_formula = final_formula 
+                    elements = final_formula.split()  
                     for i, element in enumerate(elements):
-                        # print(i,element)
                         try:
-                            # print(i)
-                            # print(element)
-                            # Ищем, является ли элемент представлением
                             param_obj = ParametersOfProducts.objects.filter(Q(formula_name=element)).first()
-                            # print(param_obj)
-
-                            # Проверяем, что param_obj найден и содержит формулу
                             if param_obj and param_obj.formula:
-                                # Если у представления есть формула расчета, заменяем его на формулу с учетом скобок
                                 elements[i] = f" ( {param_obj.formula} ) "
                         except ParametersOfProducts.DoesNotExist:
-                            # Если представление не найдено, продолжаем
                             pass
-                    # print(final_formula)
-                    # Соединяем все элементы обратно в строку
                     final_formula = ' '.join(elements)
-                    # print(final_formula)
-                    # Если формула не изменилась, выходим из цикла
                     if final_formula == initial_formula:
                         break
-                # Обновляем значение formula у технологической операции
                 tech_operation.formula = final_formula
-                # print(tech_operation.formula)
             if selected_types:
-                nomenclature_list = []  # List to store all TechnologicalOperation objects
-                inner_operations = []  # List to store all TechnologicalOperation objects
-                operations = []  # List to store all TechnologicalOperation objects
+                nomenclature_list = [] 
+                inner_operations = [] 
+                operations = [] 
                 compositions = []
                 for selected_type in selected_types:                
-                    # Filter the Bitrix_GoodsComposition objects based on the selected type
                     bitrix_goods_composition = Bitrix_GoodsComposition.objects.filter(
                         goods=bitrix_goods, 
                         name_type_of_goods=selected_type['parent'], 
@@ -1672,10 +1652,8 @@ def update_parameters_product_bitrix(request):
                         for inner in inner_operations_of:
                             inner_operation_in = inner.production_operation
                             print(inner_operation_in)
-                        
                         if not tech_operation:
                             return JsonResponse({'error': 'Технологическая операция не найдена'}, status=404)
-
                         operations.append(tech_operation)
                         nomenclature_list.append(nomenclature_in)
                         inner_operations.append(inner_operation_in)
@@ -1685,7 +1663,6 @@ def update_parameters_product_bitrix(request):
                             'nomenclature': nomenclature_in,
                             'inner_operations': inner_operation_in,
                         })
-                        
             product_parameters = data.get('product_parameters', {})
             technological_operation_list = operations
             price_cost_with_adds = 0
@@ -1693,19 +1670,13 @@ def update_parameters_product_bitrix(request):
             def replace_min(tokens):
                 i = 0
                 while i < len(tokens):
-                    # Ищем "Мин" и проверяем, что есть достаточно элементов после него
                     if tokens[i] == 'Мин' and i + 4 < len(tokens) and tokens[i+1] == '(' and tokens[i+3] == ',' and tokens[i+5] == ')':
-                        # Извлекаем два числа после "Мин"
                         num1 = tokens[i+2]
                         num2 = tokens[i+4]
-                        
-                        # Находим меньшее из двух чисел или первое, если они равны
                         min_value = num1 if num1 <= num2 else num2
-                        
-                        # Заменяем 'Мин', '(', num1, ',', num2, ')' на min_value
                         tokens = tokens[:i] + [min_value] + tokens[i+6:]  
                     else:
-                        i += 1  # Переходим к следующему элементу
+                        i += 1
                 return tokens
             operations_prices = []
             operations_fullprices = []
@@ -1762,14 +1733,11 @@ def update_parameters_product_bitrix(request):
                         total_inner_operations_sum += result2
                 total_nomenclature_sum = 0
                 for nomenclature in nomenclature_list:
-                    nomenclature2 = None  # Инициализируем переменную перед циклом
-
+                    nomenclature2 = None 
                     for composition in compositions:
-                        # Используем ключ 'operations', так как composition — словарь
                         techoperation = composition['operations']
                         if techoperation.operation_link_name == techlink.operation_link_name:
                             nomenclature2 = composition['nomenclature']
-                    # Проверяем, присвоено ли значение nomenclature2, прежде чем сравнивать
                     if nomenclature2 and nomenclature2 == nomenclature:
                         material_operations = MaterialsTechnologicalOperation.objects.filter(
                             nomenklatura=nomenclature,
@@ -1915,8 +1883,17 @@ def update_parameters_product_bitrix(request):
             payroll_default = ParametersNormativesInCalculation._meta.get_field('payroll').default
             response_data = {
                 'success': True,
-                'total_nomenclature': price_cost_with_adds,
-                'total_final_price': all_final_prices,
+                'price_material': all_price_material,
+                'price_add_material': all_price_add_material,
+                'price_salary': all_price_salary,
+                'price_payroll': all_price_payroll,
+                'price_overheads': all_price_overheads,
+                'price_cost': all_price_cost,
+                'price_profit': all_price_profit,
+                'price_salary_fund': all_price_salary_fund,
+                'price_final_price': all_price_profit,
+                'total_nomenclature': all_price_cost_with_add,
+                'total_final_price': all_final_price,
                 'operations': operations_prices,
                 'default_parameters': {
                     'overheads': default_parameters,

@@ -355,7 +355,12 @@ function submitForm() {
     alert(`Создано изделие с размерами: ширина - ${width}, высота - ${height}`);
 }
 
-function sendParameterDataToServer(){
+// Локальные переменные для хранения данных
+let currentParameters = {};
+let currentFinalPrice = 0;
+
+// Функция отправки параметров на сервер
+function sendParameterDataToServer() {
     const productParameters = Array.from(document.querySelectorAll('#paramsContainer input'))
         .reduce((params, input) => {
             if (input.value) {
@@ -363,7 +368,7 @@ function sendParameterDataToServer(){
             }
             return params;
         }, {});
-    console.log(productParameters)
+    
     const selectedTypes = Array.from(document.querySelectorAll('.inner_name-type.selected'))
         .map(li => {
             const parentLi = li.closest('ul').previousElementSibling; // Ищем предыдущий элемент <li class="name-type">
@@ -372,16 +377,17 @@ function sendParameterDataToServer(){
                 parent: parentLi ? parentLi.textContent.trim() : '' // Получаем текст родителя
             };
         });
-    console.log(selectedTypes)
-    const parentUl = document.querySelector('#productList'); // Select the <ul> element with id="productList"
-    const activeLi = parentUl.querySelector('li.active'); // Select the <li> element with class="active" inside <ul>
+    
+    const parentUl = document.querySelector('#productList'); // Выбираем <ul> с id="productList"
+    const activeLi = parentUl.querySelector('li.active'); // Выбираем <li> с классом "active"
 
-    const selectedProductId = activeLi ? activeLi.getAttribute('data-product-id') : null; // Get the value of data-product-id
+    const selectedProductId = activeLi ? activeLi.getAttribute('data-product-id') : null; // Получаем значение data-product-id
+
     fetch('/api/update_parameters_product_bitrix/', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
+            'X-CSRFToken': getCookie('csrftoken')
         },
         body: JSON.stringify({
             product_parameters: productParameters,
@@ -391,38 +397,32 @@ function sendParameterDataToServer(){
     })
     .then(response => response.json())
     .then(data => {
-        console.log(data)
-    const container2 = document.getElementById('PriceContainer');
-    container2.innerHTML = ''; // Очищаем контейнер перед выводом новых данных
-    const finalPriceElement = document.createElement('div');
-        finalPriceElement.textContent = `Общая стоимость: ${Math.floor(data.total_final_price)} руб.`;
-        container2.appendChild(finalPriceElement);
-        console.log(`Итоговая Цена: ${data.total_final_price} руб.`)
-    // if (data.success) {
-    //     // Проверяем, получены ли данные по операциям
-    //     // if (nomenclaturePrice && data.operations.length > 0) {
-    //     data.operations.forEach(operation => {
-    //         // Создаем новый элемент для каждой операции
-    //         const operationElement = document.createElement('div');
-            
-    //         // Форматируем цену для текущей операции
-    //         const finalPrice = Math.floor(operation.final_price);
-    //         operationElement.textContent = `Операция: ${operation.operation}, Цена: ${finalPrice} руб.`;
+        // Сохраняем данные в локальные переменные
+        currentParameters = {
+            price_material: data.price_material,
+            price_add_material: data.price_add_material,
+            price_salary: data.price_salary,
+            price_payroll: data.price_payroll,
+            price_overheads: data.price_overheads,
+            price_cost: data.price_cost,
+            price_profit: data.price_profit,
+            price_salary_fund: data.price_salary_fund,
+            price_final_price: data.total_final_price,
+        };
+        currentFinalPrice = Math.floor(data.total_final_price);
 
-    //         // Добавляем элемент в контейнер
-    //         container2.appendChild(operationElement);
-    //     });
-    //     // } else {
-    //     //     container2.textContent = 'Цена не найдена';
-    //     // }
-    // } else {
-    //     console.error('Ошибка при обновлении параметров:', data.message);
-    //     container2.textContent = 'Параметр в цене не выбран';
-    // }
-})
-.catch(error => {
-    console.error('Error sending parameter data to server:', error);
-});
+        // Обновляем интерфейс
+        const container2 = document.getElementById('PriceContainer');
+        container2.innerHTML = ''; // Очищаем контейнер
+        const finalPriceElement = document.createElement('div');
+        finalPriceElement.textContent = `Общая стоимость: ${currentFinalPrice} руб.`;
+        container2.appendChild(finalPriceElement);
+
+        console.log(`Итоговая Цена: ${currentFinalPrice} руб.`);
+    })
+    .catch(error => {
+        console.error('Error sending parameter data to server:', error);
+    });
 }
 
 
@@ -879,81 +879,61 @@ function filterClients() {
     });
 
 
-    document.querySelector('.submit-button').addEventListener('click', function () {
-        const calculationName = document.getElementById('calculationName').value;
+    // Слушатель событий для создания калькуляции
+document.querySelector('.submit-button').addEventListener('click', function () {
+    const calculationName = document.getElementById('calculationName').value;
 
-        if (!calculationName) {
-            alert("Пожалуйста, введите название калькуляции.");
-            return;
-        }
-
-        // Сначала получаем цены через API
-        fetch('/api/update_parameters_product_bitrix/', {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        })
-        .then(response => {
-            if (response.ok) {
-                return response.json();
-            } else {
-                throw new Error('Ошибка при обновлении параметров.');
-            }
-        })
-        .then(prices => {
-            // Отправляем данные для создания объекта калькуляции
-            return fetch('/api/create-calculation/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken'),
-                },
-                body: JSON.stringify({
-                    name: calculationName,
-                    price_material: prices.total_nomenclature,
-                    price_add_material: prices.operations.reduce((sum, op) => sum + op.price_add_material, 0),
-                    price_salary: prices.operations.reduce((sum, op) => sum + op.price_salary, 0),
-                    price_payroll: prices.operations.reduce((sum, op) => sum + op.price_payroll, 0),
-                    price_overheads: prices.default_parameters.overheads,
-                    price_cost: prices.operations.reduce((sum, op) => sum + op.price_cost, 0),
-                    price_profit: prices.default_parameters.profit,
-                    price_salary_fund: prices.default_parameters.salary_fund,
-                    price_final_price: prices.total_final_price,
-                }),
-            });
-        })
-        .then(response => {
-            if (response.ok) {
-                return response.json();
-            } else {
-                throw new Error('Ошибка при создании калькуляции.');
-            }
-        })
-        .then(data => {
-            alert(`Калькуляция "${data.name}" успешно создана.`);
-        })
-        .catch(error => {
-            console.error('Ошибка:', error);
-            alert('Не удалось создать калькуляцию.');
-        });
-    });
-
-    // Функция для получения CSRF-токена из cookie
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.startsWith(name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
-            }
-        }
-        return cookieValue;
+    if (!calculationName) {
+        alert("Пожалуйста, введите название калькуляции.");
+        return;
     }
+
+    // Используем сохраненные данные для создания калькуляции
+    fetch('/api/create-calculation/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            name: calculationName,
+            ...currentParameters, // Передаем сохраненные данные
+        }),
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.json();
+        } else {
+            return response.json().then(errorData => {
+                throw new Error(errorData.error || 'Ошибка при создании калькуляции.');
+            });
+        }
+    })
+    .then(data => {
+        alert(`Калькуляция "${data.name}" успешно создана.`);
+    })
+    .catch(error => {
+        console.error('Ошибка:', error);
+        alert('Не удалось создать калькуляцию: ' + error.message);
+    });
+});
+
+// Функция для получения CSRF-токена из cookie
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.startsWith(name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
 </script>
 
 </body>
