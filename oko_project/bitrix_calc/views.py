@@ -409,12 +409,24 @@ def create_calculation(request):
         try:
             data = json.loads(request.body)
             calculation_name = data.get('name')
-            
+
             if not calculation_name:
                 return JsonResponse({'error': 'Название калькуляции обязательно.'}, status=400)
-            
-            # Создаем объект
-            calculation = Bitrix_Calculation.objects.create(name=calculation_name)
+
+            # Создаем объект с переданными данными
+            calculation = Bitrix_Calculation.objects.create(
+                name=calculation_name,
+                price_material=data.get('price_material'),
+                price_add_material=data.get('price_add_material'),
+                price_salary=data.get('price_salary'),
+                price_payroll=data.get('price_payroll'),
+                price_overheads=data.get('price_overheads'),
+                price_cost=data.get('price_cost'),
+                price_profit=data.get('price_profit'),
+                price_salary_fund=data.get('price_salary_fund'),
+                price_final_price=data.get('price_final_price'),
+            )
+
             return JsonResponse({'id': calculation.id, 'name': calculation.name}, status=201)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)

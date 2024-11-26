@@ -879,7 +879,6 @@ function filterClients() {
     });
 
 
-
     document.querySelector('.submit-button').addEventListener('click', function () {
         const calculationName = document.getElementById('calculationName').value;
 
@@ -888,15 +887,41 @@ function filterClients() {
             return;
         }
 
-        fetch('/api/create-calculation/', {
-            method: 'POST',
+        // Сначала получаем цены через API
+        fetch('/api/update_parameters/', {
+            method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken') // Для защиты CSRF
             },
-            body: JSON.stringify({
-                name: calculationName
-            })
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            } else {
+                throw new Error('Ошибка при обновлении параметров.');
+            }
+        })
+        .then(prices => {
+            // Отправляем данные для создания объекта калькуляции
+            return fetch('/api/create-calculation/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: JSON.stringify({
+                    name: calculationName,
+                    price_material: prices.total_nomenclature,
+                    price_add_material: prices.operations.reduce((sum, op) => sum + op.price_add_material, 0),
+                    price_salary: prices.operations.reduce((sum, op) => sum + op.price_salary, 0),
+                    price_payroll: prices.operations.reduce((sum, op) => sum + op.price_payroll, 0),
+                    price_overheads: prices.default_parameters.overheads,
+                    price_cost: prices.operations.reduce((sum, op) => sum + op.price_cost, 0),
+                    price_profit: prices.default_parameters.profit,
+                    price_salary_fund: prices.default_parameters.salary_fund,
+                    price_final_price: prices.total_final_price,
+                }),
+            });
         })
         .then(response => {
             if (response.ok) {
@@ -929,8 +954,6 @@ function filterClients() {
         }
         return cookieValue;
     }
-
-    
 </script>
 
 </body>
