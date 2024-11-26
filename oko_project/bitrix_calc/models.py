@@ -77,15 +77,15 @@ class Bitrix_Calculation(models.Model):
 class Birtrix_Price_GoodsComposition(models.Model):
     calculation = models.ForeignKey(Bitrix_Calculation, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Калькуляция")
     goods_compostion = models.ForeignKey(Bitrix_GoodsComposition, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Состав товара Битрикс для кальляции")
-    price_material = models.CharField(max_length=100, unique=True,verbose_name="Цена за материал")
-    price_add_material = models.CharField(max_length=100, unique=True,verbose_name="Цена за добавочный материал")
-    price_salary = models.CharField(max_length=100, unique=True,verbose_name="Заработная плата")
-    price_payroll = models.CharField(max_length=100, unique=True,verbose_name="Отчисления на заработную плату")
-    price_overheads = models.CharField(max_length=100, unique=True,verbose_name="Накладные расходы")
-    price_cost = models.CharField(max_length=100, unique=True,verbose_name="Себестоимость")
-    price_profit = models.CharField(max_length=100, unique=True,verbose_name="Прибыль")
-    price_salary_fund = models.CharField(max_length=100, unique=True,verbose_name="Фонд заработной платы")
-    price_final_price = models.CharField(max_length=100, unique=True,verbose_name="Общая цена")
+    price_material = models.CharField(max_length=100, verbose_name="Цена за материал")
+    price_add_material = models.CharField(max_length=100, verbose_name="Цена за добавочный материал")
+    price_salary = models.CharField(max_length=100, verbose_name="Заработная плата")
+    price_payroll = models.CharField(max_length=100, verbose_name="Отчисления на заработную плату")
+    price_overheads = models.CharField(max_length=100, verbose_name="Накладные расходы")
+    price_cost = models.CharField(max_length=100, verbose_name="Себестоимость")
+    price_profit = models.CharField(max_length=100, verbose_name="Прибыль")
+    price_salary_fund = models.CharField(max_length=100, verbose_name="Фонд заработной платы")
+    price_final_price = models.CharField(max_length=100, verbose_name="Общая цена")
 
 
 class Bitrix_GoodsParametersInCalculation(models.Model):

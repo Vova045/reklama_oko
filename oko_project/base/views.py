@@ -1738,6 +1738,9 @@ def update_parameters_product_bitrix(request):
                     for composition in compositions:
                         techoperation = composition['operations']
                         if techoperation.operation_link_name == techlink.operation_link_name:
+                            composition_of_techoperation = composition['composition']
+                            # print('состав'+composition_of_techoperation)
+                            # print(f"Найдена соответствующая композиция: {composition_of_techoperation.id}")
                             nomenclature2 = composition['nomenclature']
                     if nomenclature2 and nomenclature2 == nomenclature:
                         material_operations = MaterialsTechnologicalOperation.objects.filter(
@@ -1844,6 +1847,7 @@ def update_parameters_product_bitrix(request):
                     'final_price': final_price_current_techoperation
                 })
                 operations_fullprices.append({
+                    'composition_of_techoperation': composition_of_techoperation.id,
                     'operation': techlink.operation_link_name,
                     'price_material': price_material,
                     'price_add_material':price_add_material,
@@ -1856,6 +1860,7 @@ def update_parameters_product_bitrix(request):
                     'price_cost_with_add':price_cost_with_add,
                     'final_price':final_price_current_techoperation
                 })
+                print(operations_fullprices)
             all_final_prices = sum(item['final_price'] for item in operations_prices)
             all_price_material = sum(item['price_material'] for item in operations_fullprices)
             print(f"Общие Материалы: {all_price_material}")
@@ -1896,6 +1901,7 @@ def update_parameters_product_bitrix(request):
                 'total_nomenclature': all_price_cost_with_add,
                 'total_final_price': all_final_price,
                 'operations': operations_prices,
+                'operations_fullprices': operations_fullprices,
                 'default_parameters': {
                     'overheads': default_parameters,
                     'salary_fund': salary_fund_default,

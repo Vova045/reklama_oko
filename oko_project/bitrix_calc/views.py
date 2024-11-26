@@ -408,6 +408,7 @@ def create_calculation(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
+            print(data)
             calculation_name = data.get('name')
 
             if not calculation_name:

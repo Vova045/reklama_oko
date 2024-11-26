@@ -358,6 +358,7 @@ function submitForm() {
 // Локальные переменные для хранения данных
 let currentParameters = {};
 let currentFinalPrice = 0;
+let operationsFullprices = [];
 
 // Функция отправки параметров на сервер
 function sendParameterDataToServer() {
@@ -409,6 +410,7 @@ function sendParameterDataToServer() {
             price_salary_fund: data.price_salary_fund,
             price_final_price: data.total_final_price,
         };
+        operationsFullprices = data.operations_fullprices;
         currentFinalPrice = Math.floor(data.total_final_price);
 
         // Обновляем интерфейс
@@ -898,6 +900,7 @@ document.querySelector('.submit-button').addEventListener('click', function () {
         body: JSON.stringify({
             name: calculationName,
             ...currentParameters, // Передаем сохраненные данные
+            operations_fullprices: operationsFullprices,
         }),
     })
     .then(response => {
