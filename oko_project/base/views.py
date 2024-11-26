@@ -1606,7 +1606,7 @@ def get_folder_name_by_technology(request):
 
 @csrf_exempt
 def update_parameters_product_bitrix(request):
-    print('update_parameters_product')
+    print('update_parameters_product_bitrix')
 
     if request.method == 'POST':
         try:
