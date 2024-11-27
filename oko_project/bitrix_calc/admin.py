@@ -164,7 +164,7 @@ class Bitrix_ParametersNormativesAdmin(admin.ModelAdmin):
 
 class BirtrixPriceGoodsCompositionInline(admin.TabularInline):
     model = Birtrix_Price_GoodsComposition
-    extra = 1  # Количество пустых форм, которые будут отображаться в интерфейсе по умолчанию
+    extra = 0  # Количество пустых форм, которые будут отображаться в интерфейсе по умолчанию
     fields = (
         'goods_compostion',
         'price_material',
@@ -183,7 +183,7 @@ class BirtrixPriceGoodsCompositionInline(admin.TabularInline):
 
 class BitrixGoodsParametersInCalculationInline(admin.TabularInline):
     model = Bitrix_GoodsParametersInCalculation
-    extra = 1
+    extra = 0
     fields = ('parameters', 'parameter_value')
     verbose_name = "Параметр калькуляции"
     verbose_name_plural = "Параметры калькуляции"
