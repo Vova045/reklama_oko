@@ -1861,6 +1861,7 @@ def update_parameters_product_bitrix(request):
                     'final_price':final_price_current_techoperation
                 })
                 print(operations_fullprices)
+            print(parameters_dict)
             all_final_prices = sum(item['final_price'] for item in operations_prices)
             all_price_material = sum(item['price_material'] for item in operations_fullprices)
             print(f"Общие Материалы: {all_price_material}")
@@ -1902,6 +1903,7 @@ def update_parameters_product_bitrix(request):
                 'total_final_price': all_final_price,
                 'operations': operations_prices,
                 'operations_fullprices': operations_fullprices,
+                'parameters_dict':parameters_dict,
                 'default_parameters': {
                     'overheads': default_parameters,
                     'salary_fund': salary_fund_default,
@@ -2025,74 +2027,74 @@ def get_authorization_url():
     logger.info(f"Redirecting user to authorization URL: {auth_url}")
     return auth_url
 
-def refresh_bitrix_token(refresh_token):
-    """Обновление токена через refresh_token."""
-    try:
-        user_data = BitrixUser.objects.get(refresh_token=refresh_token)
-        if user_data.is_refresh_token_expired():
-            raise Exception("Refresh token has expired. Please reauthorize the application.")
-        print(user_data)
-        # Запрос на обновление токена
-        url = "https://oauth.bitrix.info/oauth/token/"
-        params = {
-            "grant_type": "refresh_token",
-            "client_id": CLIENT_ID,
-            "client_secret": CLIENT_SECRET,
-            "refresh_token": refresh_token,
-        }
+# def refresh_bitrix_token(refresh_token):
+#     """Обновление токена через refresh_token."""
+#     try:
+#         user_data = BitrixUser.objects.get(refresh_token=refresh_token)
+#         if user_data.is_refresh_token_expired():
+#             raise Exception("Refresh token has expired. Please reauthorize the application.")
+#         print(user_data)
+#         # Запрос на обновление токена
+#         url = "https://oauth.bitrix.info/oauth/token/"
+#         params = {
+#             "grant_type": "refresh_token",
+#             "client_id": CLIENT_ID,
+#             "client_secret": CLIENT_SECRET,
+#             "refresh_token": refresh_token,
+#         }
 
-        response = requests.post(url, data=params)
-        data = response.json()
-        logger.info(f"Response from Bitrix: {data}")
-        print(data)
+#         response = requests.post(url, data=params)
+#         data = response.json()
+#         logger.info(f"Response from Bitrix: {data}")
+#         print(data)
 
-        # Если успешно, обновляем токены
-        if "access_token" in data:
-            user_data.auth_token = data["access_token"]
-            user_data.refresh_token = data["refresh_token"]
-            user_data.save()
-            return data["access_token"]
-        else:
-            error_description = data.get("error_description", "Unknown error")
-            if data.get("error") == "invalid_grant":
-                raise Exception("invalid_grant: Refresh token недействителен.")
-            else:
-                raise Exception(f"Ошибка обновления токена: {error_description}")
+#         # Если успешно, обновляем токены
+#         if "access_token" in data:
+#             user_data.auth_token = data["access_token"]
+#             user_data.refresh_token = data["refresh_token"]
+#             user_data.save()
+#             return data["access_token"]
+#         else:
+#             error_description = data.get("error_description", "Unknown error")
+#             if data.get("error") == "invalid_grant":
+#                 raise Exception("invalid_grant: Refresh token недействителен.")
+#             else:
+#                 raise Exception(f"Ошибка обновления токена: {error_description}")
 
-    except Exception as e:
-        logger.error(f"Ошибка при обновлении токена: {str(e)}")
+#     except Exception as e:
+#         logger.error(f"Ошибка при обновлении токена: {str(e)}")
         
-        # Обработка ошибки недействительного refresh_token
-        if "invalid_grant" in str(e):
-            logger.error("Refresh token недействителен, требуется авторизация.")
-            auth_url = get_authorization_url()  # Генерация URL для авторизации
-            logger.info(f"Authorization URL: {auth_url}")  # Логируем ссылку для авторизации
-            # Убедитесь, что возвращаем правильный ответ с ссылкой на авторизацию
-            return JsonResponse({
-                "error": "Authorization required. Please reauthorize the application.",
-                "authorization_url": auth_url
-            }, status=401)
+#         # Обработка ошибки недействительного refresh_token
+#         if "invalid_grant" in str(e):
+#             logger.error("Refresh token недействителен, требуется авторизация.")
+#             auth_url = get_authorization_url()  # Генерация URL для авторизации
+#             logger.info(f"Authorization URL: {auth_url}")  # Логируем ссылку для авторизации
+#             # Убедитесь, что возвращаем правильный ответ с ссылкой на авторизацию
+#             return JsonResponse({
+#                 "error": "Authorization required. Please reauthorize the application.",
+#                 "authorization_url": auth_url
+#             }, status=401)
         
-        raise e
+#         raise e
 
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-import requests
-import logging
+# from django.http import JsonResponse
+# from django.views.decorators.csrf import csrf_exempt
+# import requests
+# import logging
 
-logger = logging.getLogger(__name__)
+# logger = logging.getLogger(__name__)
 
-def is_token_expired(user_data):
-    """Проверяет, истёк ли access_token"""
-    if not user_data.expires_at:
-        return True  # Если expires_at не задан, считаем токен просроченным
-    return timezone.now() >= user_data.expires_at
+# def is_token_expired(user_data):
+#     """Проверяет, истёк ли access_token"""
+#     if not user_data.expires_at:
+#         return True  # Если expires_at не задан, считаем токен просроченным
+#     return timezone.now() >= user_data.expires_at
 
-def get_valid_token(user_data):
-    """Получает валидный токен, обновляя его при необходимости"""
-    if is_token_expired(user_data):
-        return refresh_bitrix_token(user_data.refresh_token)
-    return user_data.auth_token
+# def get_valid_token(user_data):
+#     """Получает валидный токен, обновляя его при необходимости"""
+#     if is_token_expired(user_data):
+#         return refresh_bitrix_token(user_data.refresh_token)
+#     return user_data.auth_token
 
 
 # Пример функции получения токенов с Bitrix
@@ -2206,6 +2208,7 @@ def refresh_bitrix_token(refresh_token):
 
         response = requests.post(url, data=params)
         data = response.json()
+        print(data)
         logger.info(f"Response from Bitrix: {data}")
 
         if "access_token" in data:

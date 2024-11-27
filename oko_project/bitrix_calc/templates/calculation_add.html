@@ -411,8 +411,9 @@ function sendParameterDataToServer() {
             price_final_price: data.total_final_price,
         };
         operationsFullprices = data.operations_fullprices;
+        parameters_dict = data.parameters_dict;
         currentFinalPrice = Math.floor(data.total_final_price);
-
+        console.log(parameters_dict)
         // Обновляем интерфейс
         const container2 = document.getElementById('PriceContainer');
         container2.innerHTML = ''; // Очищаем контейнер
@@ -901,6 +902,7 @@ document.querySelector('.submit-button').addEventListener('click', function () {
             name: calculationName,
             ...currentParameters, // Передаем сохраненные данные
             operations_fullprices: operationsFullprices,
+            parameters_dict:parameters_dict,
         }),
     })
     .then(response => {

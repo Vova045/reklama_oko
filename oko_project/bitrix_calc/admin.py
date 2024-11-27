@@ -2,7 +2,7 @@ from django.contrib import admin
 from .models import ( 
     Bitrix_Goods, Bitrix_GoodsComposition, Bitrix_GoodsParameters, 
     Bitrix_ParametersNormatives, Birtrix_Price_GoodsComposition,
-    Goods
+    Goods, Bitrix_GoodsParametersInCalculation,
 )
 from django.contrib import admin
 from django.utils.safestring import mark_safe
@@ -12,7 +12,7 @@ from django.http import JsonResponse
 from django.utils.translation import gettext_lazy as _
 from django import forms
 from .admin_widgets import HierarchicalFolderWidget  # Импортируем виджет
-from base.models import (GoodsComposition,Folder,TechnologicalLink,Nomenklatura,TechnologicalOperation,OperationOfTechnologicalOperation)
+from base.models import (GoodsComposition,Folder,TechnologicalLink,Nomenklatura,TechnologicalOperation,OperationOfTechnologicalOperation, ParametersOfProducts)
 
 
 
@@ -181,6 +181,14 @@ class BirtrixPriceGoodsCompositionInline(admin.TabularInline):
     verbose_name_plural = "Составы товара для калькуляций"
     
 
+class BitrixGoodsParametersInCalculationInline(admin.TabularInline):
+    model = Bitrix_GoodsParametersInCalculation
+    extra = 1
+    fields = ('parameters', 'parameter_value')
+    verbose_name = "Параметр калькуляции"
+    verbose_name_plural = "Параметры калькуляции"
+
+
 from .models import Bitrix_Calculation
 from django.contrib import admin
 
@@ -206,7 +214,7 @@ class BitrixCalculationAdmin(admin.ModelAdmin):
     
     # Поля для фильтрации
     list_filter = ('goods',)
-    inlines = [BirtrixPriceGoodsCompositionInline]
+    inlines = [BirtrixPriceGoodsCompositionInline, BitrixGoodsParametersInCalculationInline]
     # Поля для редактирования напрямую из списка
     list_editable = ('price_final_price',)
     

@@ -1,5 +1,5 @@
 from django.db import models
-from base.models import Goods, TechnologicalLink, TechnologicalOperation, Nomenklatura, OperationOfTechnologicalOperation, Folder
+from base.models import Goods, TechnologicalLink, TechnologicalOperation, Nomenklatura, OperationOfTechnologicalOperation, Folder, ParametersOfProducts
 # Create your models here.
 
 class Bitrix_Goods(models.Model):
@@ -93,7 +93,7 @@ class Birtrix_Price_GoodsComposition(models.Model):
 
 class Bitrix_GoodsParametersInCalculation(models.Model):
     calculation = models.ForeignKey(Bitrix_Calculation, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Калькуляция")
-    parameters = models.ForeignKey(Bitrix_GoodsParameters, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Параметры калькуляции") 
+    parameters = models.ForeignKey(ParametersOfProducts, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Параметры калькуляции") 
     parameter_value = models.CharField(max_length=255, verbose_name='Значение параметра')
 
     def __str__(self):

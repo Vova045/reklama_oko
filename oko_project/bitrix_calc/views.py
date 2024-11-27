@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
-from .models import Bitrix_Goods, Bitrix_GoodsComposition, Birtrix_Price_GoodsComposition
+from .models import Bitrix_Goods, Bitrix_GoodsComposition, Birtrix_Price_GoodsComposition, Bitrix_GoodsParametersInCalculation
+from base.models import ParametersOfProducts
 from django.http import JsonResponse
 import requests
 
@@ -408,8 +409,10 @@ def create_calculation(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
+            print(data)
             calculation_name = data.get('name')
             operations_fullprices = data.get('operations_fullprices')
+            parameters_dict = data.get('parameters_dict')
             print(operations_fullprices)  # Принт для отладки
 
             if not calculation_name:
@@ -453,8 +456,24 @@ def create_calculation(request):
                     price_salary_fund=item.get('price_salary_fund'),
                     price_final_price=item.get('final_price'),
                 )
+            for formula_name, value in parameters_dict.items():
+                    try:
+                        # Найти параметр по formula_name
+                        parameter = ParametersOfProducts.objects.get(formula_name=formula_name)
+                        
+                        # Создать экземпляр модели
+                        Bitrix_GoodsParametersInCalculation.objects.create(
+                            calculation=calculation,
+                            parameters=parameter,
+                            parameter_value=str(value)  # Преобразуем значение в строку для сохранения
+                        )
+                    except ParametersOfProducts.DoesNotExist:
+                        # Обработать случай, если параметр не найден
+                        print(f"Parameter with formula_name='{formula_name}' not found.")
+
 
             return JsonResponse({'id': calculation.id, 'name': calculation.name}, status=201)
+
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
     return JsonResponse({'error': 'Недопустимый метод.'}, status=405)
