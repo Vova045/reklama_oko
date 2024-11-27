@@ -97,7 +97,7 @@ class Bitrix_GoodsParametersInCalculation(models.Model):
     parameter_value = models.CharField(max_length=255, verbose_name='Значение параметра')
 
     def __str__(self):
-        return f"{self.calculation} - {self.parameter_name}: {self.parameter_value} (Количество: {self.quantity_of_products})"
+        return f"{self.calculation} - {self.parameters}: {self.parameter_value}"
 
     class Meta:
         verbose_name = "Параметр товара для Битрикса в калькуляции"
