@@ -87,6 +87,9 @@ class Birtrix_Price_GoodsComposition(models.Model):
     price_salary_fund = models.CharField(max_length=100, verbose_name="Фонд заработной платы")
     price_final_price = models.CharField(max_length=100, verbose_name="Общая цена")
 
+    def __str__(self):
+        return f"{self.goods_compostion.technology.operation_link_name}"
+
 
 class Bitrix_GoodsParametersInCalculation(models.Model):
     calculation = models.ForeignKey(Bitrix_Calculation, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Калькуляция")
