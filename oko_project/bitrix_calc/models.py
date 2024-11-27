@@ -88,7 +88,7 @@ class Birtrix_Price_GoodsComposition(models.Model):
     price_final_price = models.CharField(max_length=100, verbose_name="Общая цена")
 
     def __str__(self):
-        return f"{self.goods_compostion.technology.goods} - {self.goods_compostion.technology.operation_link_name}  - {self.goods_compostion.techoperation.operation_link_name}"
+        return f"{self.goods_compostion.technology.operation_link_name}  - {self.goods_compostion.techoperation.operation_link_name}"
 
 
 class Bitrix_GoodsParametersInCalculation(models.Model):
