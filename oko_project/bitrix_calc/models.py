@@ -24,7 +24,7 @@ class Bitrix_GoodsComposition(models.Model):
     type_of_goods = models.CharField(max_length=100, blank=True, null=True, verbose_name="Тип товара")
 
     def __str__(self):
-        return f"{self.goods} - {self.operation}" if self.goods else "Неизвестный состав товара"
+        return f"{self.technology.operation_link_name}"
 
     class Meta:
         verbose_name = "Состав товара для битрикса"
