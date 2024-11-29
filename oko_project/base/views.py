@@ -2459,25 +2459,29 @@ def get_companies(request):
 
 
 
-
+from dateutil import parser
 import requests
 # URL вашего вебхука для Bitrix24
 BITRIX_WEBHOOK_URL = "https://oko.bitrix24.ru/rest/7/5c7fk7e5y2cev81a/crm.company.list"
 
 # Эта функция будет возвращать данные, а не сохранять их в базе
-import requests
 from bitrix_calc.models import BitrixCompany
 from django.utils.timezone import make_aware
 from datetime import datetime
-
 def fetch_and_save_companies():
-    print('тут')
-    first_company_data = None  # Инициализируем переменную для первой компании
+    print('Инициализация синхронизации с Bitrix24...')
     try:
         start = 0  # Начало пагинации
+        company_added = False  # Флаг, указывающий, что компания уже добавлена
+
         while True:
+            if company_added:
+                break  # Если компания уже добавлена, выходим из цикла
+
+            print('новая страница')
             # Запрос к API Bitrix24
             response = requests.get(BITRIX_WEBHOOK_URL, params={"start": start})
+            
             # Проверка ответа от API Bitrix24
             if response.status_code != 200:
                 return {"status": "error", "message": f"Ошибка запроса к Bitrix24, код ответа: {response.status_code}"}
@@ -2489,18 +2493,111 @@ def fetch_and_save_companies():
                 return {"status": "error", "message": "Ошибка получения данных из Bitrix24"}
 
             companies = data["result"]
-            for idx, company in enumerate(companies):
-                # Сохраняем данные только первой компании
-                if first_company_data is None:
-                    first_company_data = company
-                    print(first_company_data)  # Печатаем только первую компанию
+            
+            # Если есть компании, обрабатываем только первую
+            if companies:
+                for first_company in companies:
+                    print(first_company)
+                    # first_company = companies[0]  # Получаем первую компанию
+                    # print("Первая компания:", first_company)  # Выводим данные первой компании
 
-            # Проверка на наличие следующей страницы
+                    # Обработка даты создания
+                    from django.utils.timezone import is_naive
+
+                    # Обработка даты создания
+                    if "DATE_CREATE" in first_company:
+                        try:
+                            raw_date_create = first_company["DATE_CREATE"]
+                            parsed_date_create = parser.parse(raw_date_create)
+
+                            # Проверяем, является ли дата "naive"
+                            if is_naive(parsed_date_create):
+                                date_created = make_aware(parsed_date_create)
+                            else:
+                                date_created = parsed_date_create  # Если tzinfo уже установлен, оставляем как есть
+                            print("Parsed DATE_CREATE:", date_created)
+                        except Exception as e:
+                            print(f"Ошибка при парсинге DATE_CREATE: {e}")
+                            date_created = None
+                    else:
+                        date_created = None
+
+                    # Обработка даты изменения
+                    if "DATE_MODIFY" in first_company:
+                        try:
+                            raw_date_modify = first_company["DATE_MODIFY"]
+                            parsed_date_modify = parser.parse(raw_date_modify)
+
+                            # Проверяем, является ли дата "naive"
+                            if is_naive(parsed_date_modify):
+                                date_modified = make_aware(parsed_date_modify)
+                            else:
+                                date_modified = parsed_date_modify  # Если tzinfo уже установлен, оставляем как есть
+                            print("Parsed DATE_MODIFY:", date_modified)
+                        except Exception as e:
+                            print(f"Ошибка при парсинге DATE_MODIFY: {e}")
+                            date_modified = None
+                    else:
+                        date_modified = None
+
+
+                    # Вывод результатов
+                    # print(f"date_created: {date_created}")
+                    # print(f"date_modified: {date_modified}")
+                    # print('после')
+
+                    # Проверяем, есть ли такая компания в базе данных по bitrix_id
+                    existing_company = BitrixCompany.objects.filter(bitrix_id=first_company["ID"]).first()
+                    # print(existing_company)
+
+                    if not existing_company:
+                        # print('Компания не существует в базе данных. Добавляем...')
+                        # Если компания не существует в базе данных, добавляем её
+                        BitrixCompany.objects.create(
+                            bitrix_id=first_company["ID"],
+                            title=first_company["TITLE"],
+                            company_type=first_company.get("COMPANY_TYPE"),
+                            industry=first_company.get("INDUSTRY"),
+                            revenue=first_company.get("REVENUE"),
+                            address=first_company.get("ADDRESS"),
+                            phone=first_company.get("PHONE"),
+                            email=first_company.get("EMAIL"),
+                            assigned_by_id=first_company.get("ASSIGNED_BY_ID"),
+                            date_created=date_created,
+                            date_modified=date_modified,
+                        )
+                        # print(f"Компания с ID {first_company['ID']} добавлена в базу данных.")
+                    else:
+                        # Если компания существует, проверяем, изменилась ли дата модификации
+                        if existing_company.date_modified != date_modified:
+                            # Если дата модификации отличается, обновляем запись
+                            existing_company.title = first_company["TITLE"]
+                            existing_company.company_type = first_company.get("COMPANY_TYPE")
+                            existing_company.industry = first_company.get("INDUSTRY")
+                            existing_company.revenue = first_company.get("REVENUE")
+                            existing_company.address = first_company.get("ADDRESS")
+                            existing_company.phone = first_company.get("PHONE")
+                            existing_company.email = first_company.get("EMAIL")
+                            existing_company.assigned_by_id = first_company.get("ASSIGNED_BY_ID")
+                            existing_company.date_created = date_created
+                            existing_company.date_modified = date_modified
+                            
+                            existing_company.save()  # Сохраняем обновления
+                            # print(f"Компания с ID {first_company['ID']} обновлена в базе данных.")
+                        # else:
+                        #     print(f"Компания с ID {first_company['ID']} не изменена, дата модификации не изменилась.")
+
+                    # После добавления первой компании или обновления, завершаем цикл
+                    # company_added = True
+                    # print("Компания добавлена или обновлена. Завершаем синхронизацию.")
+                    # break
+
+            # Проверка на наличие следующей страницы (но на самом деле мы выйдем из цикла после первой компании)
             if not data.get("next"):
                 break
             start = data.get("next", 0)  # Переход на следующую страницу
 
-        return {"status": "success", "first_company_data": first_company_data}  # Возвращаем успешный статус с первой компанией
+        return {"status": "success", "message": "Синхронизация завершена."}
 
     except Exception as e:
         return {"status": "error", "message": str(e)}  # Возвращаем ошибку в случае исключения

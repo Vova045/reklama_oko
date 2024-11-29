@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'bitrix_calc.apps.BaseConfig',
     'corsheaders',
     'jsonfield',
+    'dateutil',
 ]
 
 MIDDLEWARE = [
