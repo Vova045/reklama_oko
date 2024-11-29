@@ -847,22 +847,36 @@ function filterClients() {
             if (typeof BX24 !== 'undefined' && BX24.placement) {
                 // Получаем информацию о текущем размещении приложения
                 const placementInfo = BX24.placement.info();
-                
+
                 // Проверяем, что приложение размещено на странице сделки
                 if (placementInfo.placement === 'CRM_DEAL_DETAIL_TAB') {
                     // Извлекаем ID сделки из параметров
                     const dealId = placementInfo.options.ID;
                     console.log('ID сделки из Bitrix24:', dealId);
+                    
+                    // Получаем информацию о текущем пользователе
+                    BX24.callMethod('user.current', {}, function (result) {
+                        if (result.error()) {
+                            console.error('Ошибка получения информации о пользователе:', result.error());
+                        } else {
+                            const userInfo = result.data();
+                            console.log('Информация о текущем пользователе:', userInfo);
 
-                    // Формируем URL с учетом ID сделки
-                    const calculationListUrl = `https://reklamaoko.ru/calculation_list?deal_id=${dealId}`;
-                    console.log('Ссылка на список калькуляций:', calculationListUrl);
+                            // Извлекаем необходимые данные о пользователе
+                            const userId = userInfo.ID; // ID пользователя
+                            const userName = `${userInfo.NAME} ${userInfo.LAST_NAME}`; // Полное имя пользователя
 
-                    // Устанавливаем обновленный URL для кнопки
-                    const headerButton = document.querySelector('.header-button');
-                    if (headerButton) {
-                        headerButton.href = calculationListUrl; // Устанавливаем ссылку
-                    }
+                            // Формируем URL с учетом ID сделки и ID/имени пользователя
+                            const calculationListUrl = `https://reklamaoko.ru/calculation_list?deal_id=${dealId}&user_id=${userId}&user_name=${encodeURIComponent(userName)}`;
+                            console.log('Ссылка на список калькуляций:', calculationListUrl);
+
+                            // Устанавливаем обновленный URL для кнопки
+                            const headerButton = document.querySelector('.header-button');
+                            if (headerButton) {
+                                headerButton.href = calculationListUrl; // Устанавливаем ссылку
+                            }
+                        }
+                    });
                 } else {
                     console.warn('Приложение не размещено в CRM_DEAL_DETAIL_TAB');
                 }
