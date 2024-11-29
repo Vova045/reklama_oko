@@ -10,18 +10,29 @@ def fetch_and_save_companies():
     try:
         start = 0  # Начало пагинации
         while True:
-            # Запрос данных о компаниях из Bitrix24
+            print(f"Получаем данные с offset: {start}")  # Логирование начала запроса
             response = requests.get(BITRIX_WEBHOOK_URL, params={"start": start})
+            
+            # Проверка, что ответ от API Bitrix24 корректен
+            if response.status_code != 200:
+                print(f"Ошибка запроса к Bitrix24, код ответа: {response.status_code}")
+                break
+
             data = response.json()
+            print(f"Полученные данные: {data}")  # Логирование полученных данных
 
             if "result" not in data:
                 print("Ошибка получения данных:", data)
                 break
 
             companies = data["result"]
+            print(f"Получено компаний: {len(companies)}")  # Логирование количества компаний
+
             for company in companies:
+                print(f"Обрабатываем компанию: {company}")  # Логирование каждой компании
+
                 # Сохранение или обновление данных в базе
-                BitrixCompany.objects.update_or_create(
+                company_obj, created = BitrixCompany.objects.update_or_create(
                     bitrix_id=company["ID"],
                     defaults={
                         "title": company["TITLE"],
@@ -37,10 +48,15 @@ def fetch_and_save_companies():
                     }
                 )
 
-            # Проверяем, есть ли следующая страница с данными
+                if created:
+                    print(f"Компания {company['TITLE']} добавлена в базу данных.")
+                else:
+                    print(f"Компания {company['TITLE']} обновлена в базе данных.")
+
+            # Проверка, есть ли следующая страница с данными
             if not data.get("next"):
                 break
-            start = data["next"]  # Переход на следующую страницу
+            start = data.get("next", 0)  # Переход на следующую страницу
 
     except Exception as e:
         print("Ошибка синхронизации с Bitrix24:", str(e))
