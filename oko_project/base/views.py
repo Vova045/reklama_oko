@@ -2533,12 +2533,19 @@ def fetch_and_save_companies():
                             existing_company.date_created = date_created
                             existing_company.date_modified = date_modified
                             existing_company.save()
-
+                    response = requests.get(
+                        "https://oko.bitrix24.ru/rest/7/5c7fk7e5y2cev81a/crm.company.get",
+                        params={"id": first_company["ID"]}
+                    )
+                    
+                    if response.status_code == 200:
+                        company_details = response.json()
+                        company_data = company_details.get('result', {})
                     # Заполнение контактов компании
                     contacts_data = []
                     
                     # Телефоны
-                    for phone in first_company.get("PHONE", []):
+                    for phone in company_data.get("PHONE", []):
                         contacts_data.append({
                             "contact_type": "PHONE",
                             "value_type": phone.get("VALUE_TYPE"),
@@ -2546,7 +2553,7 @@ def fetch_and_save_companies():
                         })
                     
                     # Email
-                    for email in first_company.get("EMAIL", []):
+                    for email in company_data.get("EMAIL", []):
                         contacts_data.append({
                             "contact_type": "EMAIL",
                             "value_type": email.get("VALUE_TYPE"),
@@ -2554,7 +2561,7 @@ def fetch_and_save_companies():
                         })
                     
                     # Мессенджеры (IM)
-                    for im in first_company.get("IM", []):
+                    for im in company_data.get("IM", []):
                         contacts_data.append({
                             "contact_type": "IM",
                             "value_type": im.get("VALUE_TYPE"),
@@ -2562,15 +2569,16 @@ def fetch_and_save_companies():
                         })
                     
                     # URL-ресурсы (WEB)
-                    for web in first_company.get("WEB", []):
+                    for web in company_data.get("WEB", []):
                         contacts_data.append({
                             "contact_type": "WEB",
                             "value_type": web.get("VALUE_TYPE"),
                             "value": web.get("VALUE")
                         })
-                    
+                    print(contacts_data)
                     # Создание/обновление контактов
                     for contact_data in contacts_data:
+                        
                         contact, created = CompanyContact.objects.update_or_create(
                             company=existing_company,
                             contact_type=contact_data["contact_type"],
