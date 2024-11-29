@@ -1,7 +1,7 @@
 import requests
 from django.utils.timezone import make_aware
 from datetime import datetime
-from .models import BitrixCompany
+from bitrix_calc.models import BitrixCompany
 
 # URL вашего вебхука для Bitrix24
 BITRIX_WEBHOOK_URL = "https://oko.bitrix24.ru/rest/7/5c7fk7e5y2cev81a/crm.company.list"
