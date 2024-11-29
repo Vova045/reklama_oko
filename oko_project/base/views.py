@@ -2476,80 +2476,119 @@ def fetch_and_save_companies():
             response = requests.get(BITRIX_WEBHOOK_URL, params={"start": start})
             if response.status_code != 200:
                 return {"status": "error", "message": f"Ошибка запроса к Bitrix24, код ответа: {response.status_code}"}
+            
             data = response.json()
             if "result" not in data:
                 return {"status": "error", "message": "Ошибка получения данных из Bitrix24"}
+            
             companies = data["result"]
             if companies:
                 for first_company in companies:
-                    # print(first_company.keys())
-                    response = requests.get("https://oko.bitrix24.ru/rest/7/5c7fk7e5y2cev81a/crm.company.get", params={"id": first_company["ID"]})
-                    # print(BITRIX_WEBHOOK_URL + "/crm.company.get", params={"id": first_company["ID"]})
-                    print(response)
-                    if response.status_code == 200:
-                        company_details = response.json()
-                        print(company_details)
-                    # from django.utils.timezone import is_naive
-                    # if "DATE_CREATE" in first_company:
-                    #     try:
-                    #         raw_date_create = first_company["DATE_CREATE"]
-                    #         parsed_date_create = parser.parse(raw_date_create)
-                    #         if is_naive(parsed_date_create):
-                    #             date_created = make_aware(parsed_date_create)
-                    #         else:
-                    #             date_created = parsed_date_create  # Если tzinfo уже установлен, оставляем как есть
-                    #     except Exception as e:
-                    #         date_created = None
-                    # else:
-                    #     date_created = None
-                    # if "DATE_MODIFY" in first_company:
-                    #     try:
-                    #         raw_date_modify = first_company["DATE_MODIFY"]
-                    #         parsed_date_modify = parser.parse(raw_date_modify)
-                    #         if is_naive(parsed_date_modify):
-                    #             date_modified = make_aware(parsed_date_modify)
-                    #         else:
-                    #             date_modified = parsed_date_modify  # Если tzinfo уже установлен, оставляем как есть
-                    #     except Exception as e:
-                    #         date_modified = None
-                    # else:
-                    #     date_modified = None
-                    # existing_company = BitrixCompany.objects.filter(bitrix_id=first_company["ID"]).first()
-                    # if not existing_company:
-                    #     BitrixCompany.objects.create(
-                    #         bitrix_id=first_company["ID"],
-                    #         title=first_company["TITLE"],
-                    #         company_type=first_company.get("COMPANY_TYPE"),
-                    #         industry=first_company.get("INDUSTRY"),
-                    #         revenue=first_company.get("REVENUE"),
-                    #         address=first_company.get("ADDRESS"),
-                    #         phone=first_company.get("PHONE"),
-                    #         email=first_company.get("EMAIL"),
-                    #         assigned_by_id=first_company.get("ASSIGNED_BY_ID"),
-                    #         date_created=date_created,
-                    #         date_modified=date_modified,
-                    #     )
-                    # else:
-                    #     if existing_company.date_modified != date_modified:
-                    #         existing_company.title = first_company["TITLE"]
-                    #         existing_company.company_type = first_company.get("COMPANY_TYPE")
-                    #         existing_company.industry = first_company.get("INDUSTRY")
-                    #         existing_company.revenue = first_company.get("REVENUE")
-                    #         existing_company.address = first_company.get("ADDRESS")
-                    #         existing_company.phone = first_company.get("PHONE")
-                    #         existing_company.email = first_company.get("EMAIL")
-                    #         existing_company.assigned_by_id = first_company.get("ASSIGNED_BY_ID")
-                    #         existing_company.date_created = date_created
-                    #         existing_company.date_modified = date_modified
-                    #         existing_company.save() 
+                    from django.utils.timezone import is_naive
+                    # Обработка дат
+                    date_created = None
+                    date_modified = None
+
+                    if "DATE_CREATE" in first_company:
+                        try:
+                            raw_date_create = first_company["DATE_CREATE"]
+                            parsed_date_create = parser.parse(raw_date_create)
+                            date_created = make_aware(parsed_date_create) if is_naive(parsed_date_create) else parsed_date_create
+                        except Exception:
+                            pass
+
+                    if "DATE_MODIFY" in first_company:
+                        try:
+                            raw_date_modify = first_company["DATE_MODIFY"]
+                            parsed_date_modify = parser.parse(raw_date_modify)
+                            date_modified = make_aware(parsed_date_modify) if is_naive(parsed_date_modify) else parsed_date_modify
+                        except Exception:
+                            pass
+                    
+                    # Проверка существования компании
+                    existing_company = BitrixCompany.objects.filter(bitrix_id=first_company["ID"]).first()
+                    
+                    if not existing_company:
+                        # Создание компании
+                        existing_company = BitrixCompany.objects.create(
+                            bitrix_id=first_company["ID"],
+                            title=first_company["TITLE"],
+                            company_type=first_company.get("COMPANY_TYPE"),
+                            industry=first_company.get("INDUSTRY"),
+                            revenue=first_company.get("REVENUE"),
+                            address=first_company.get("ADDRESS"),
+                            assigned_by_id=first_company.get("ASSIGNED_BY_ID"),
+                            date_created=date_created,
+                            date_modified=date_modified,
+                        )
+                    else:
+                        # Обновление компании, если дата изменения отличается
+                        if existing_company.date_modified != date_modified:
+                            existing_company.title = first_company["TITLE"]
+                            existing_company.company_type = first_company.get("COMPANY_TYPE")
+                            existing_company.industry = first_company.get("INDUSTRY")
+                            existing_company.revenue = first_company.get("REVENUE")
+                            existing_company.address = first_company.get("ADDRESS")
+                            existing_company.assigned_by_id = first_company.get("ASSIGNED_BY_ID")
+                            existing_company.date_created = date_created
+                            existing_company.date_modified = date_modified
+                            existing_company.save()
+
+                    # Заполнение контактов компании
+                    contacts_data = []
+                    
+                    # Телефоны
+                    for phone in first_company.get("PHONE", []):
+                        contacts_data.append({
+                            "contact_type": "PHONE",
+                            "value_type": phone.get("VALUE_TYPE"),
+                            "value": phone.get("VALUE")
+                        })
+                    
+                    # Email
+                    for email in first_company.get("EMAIL", []):
+                        contacts_data.append({
+                            "contact_type": "EMAIL",
+                            "value_type": email.get("VALUE_TYPE"),
+                            "value": email.get("VALUE")
+                        })
+                    
+                    # Мессенджеры (IM)
+                    for im in first_company.get("IM", []):
+                        contacts_data.append({
+                            "contact_type": "IM",
+                            "value_type": im.get("VALUE_TYPE"),
+                            "value": im.get("VALUE")
+                        })
+                    
+                    # URL-ресурсы (WEB)
+                    for web in first_company.get("WEB", []):
+                        contacts_data.append({
+                            "contact_type": "WEB",
+                            "value_type": web.get("VALUE_TYPE"),
+                            "value": web.get("VALUE")
+                        })
+                    
+                    # Создание/обновление контактов
+                    for contact_data in contacts_data:
+                        contact, created = CompanyContact.objects.update_or_create(
+                            company=existing_company,
+                            contact_type=contact_data["contact_type"],
+                            value=contact_data["value"],
+                            defaults={
+                                "value_type": contact_data["value_type"]
+                            }
+                        )
+
+            # Проверка на наличие следующей страницы
             if not data.get("next"):
                 break
-            start = data.get("next", 0) 
+            start = data.get("next", 0)
 
         return {"status": "success", "message": "Синхронизация завершена."}
 
     except Exception as e:
-        return {"status": "error", "message": str(e)}  # Возвращаем ошибку в случае исключения
+        return {"status": "error", "message": str(e)}  # Возвращаем ошибку в случае исключения.
 
 
 from django.http import JsonResponse
