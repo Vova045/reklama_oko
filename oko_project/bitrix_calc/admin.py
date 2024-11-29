@@ -248,6 +248,6 @@ from .models import BitrixCompany
 
 @admin.register(BitrixCompany)
 class CompanyAdmin(admin.ModelAdmin):
-    list_display = ('id', 'title', 'phone','bitrix_id')  # Настраиваем видимые колонки
-    search_fields = ('name', 'email', 'phone')  # Поля для поиска
+    list_display = ('id', 'title','bitrix_id')  # Настраиваем видимые колонки
+    # search_fields = ('name')  # Поля для поиска
     readonly_fields = ('bitrix_id',)  # Поля только для чтения
