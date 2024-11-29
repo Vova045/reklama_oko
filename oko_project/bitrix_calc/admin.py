@@ -241,3 +241,15 @@ class BitrixCalculationAdmin(admin.ModelAdmin):
     
     # Постраничный вывод объектов
     list_per_page = 20
+
+
+from django.contrib import admin
+from .models import Company
+
+@admin.register(Company)
+class CompanyAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'email', 'phone', 'responsible', 'bitrix_id')  # Настраиваем видимые колонки
+    search_fields = ('name', 'email', 'phone', 'responsible')  # Поля для поиска
+    list_filter = ('responsible',)  # Поля для фильтрации
+    ordering = ('name',)  # Порядок сортировки
+    readonly_fields = ('bitrix_id',)  # Поля только для чтения
