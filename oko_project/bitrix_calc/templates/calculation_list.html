@@ -102,29 +102,29 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", () => {
-            function getDealIdFromParent() {
-                if (typeof BX24 !== 'undefined' && BX24.placement) {
-                    const placementInfo = BX24.placement.info();
-                    if (placementInfo.placement === 'CRM_DEAL_DETAIL_TAB') {
-                        const dealId = placementInfo.options.ID;
-                        console.log('ID сделки из Bitrix24:', dealId);
+            // function getDealIdFromParent() {
+            //     if (typeof BX24 !== 'undefined' && BX24.placement) {
+            //         const placementInfo = BX24.placement.info();
+            //         if (placementInfo.placement === 'CRM_DEAL_DETAIL_TAB') {
+            //             const dealId = placementInfo.options.ID;
+            //             console.log('ID сделки из Bitrix24:', dealId);
 
-                        const calculationListUrl = `https://reklamaoko.ru/calculation_list?deal_id=${dealId}`;
-                        const headerButton = document.querySelector('.header-button');
-                        if (headerButton) {
-                            headerButton.href = calculationListUrl;
-                        }
-                    } else {
-                        console.warn('Приложение не размещено в CRM_DEAL_DETAIL_TAB');
-                    }
-                } else {
-                    console.error('Bitrix24 JS API недоступен');
-                }
-            }
+            //             const calculationListUrl = `https://reklamaoko.ru/calculation_list?deal_id=${dealId}`;
+            //             const headerButton = document.querySelector('.header-button');
+            //             if (headerButton) {
+            //                 headerButton.href = calculationListUrl;
+            //             }
+            //         } else {
+            //             console.warn('Приложение не размещено в CRM_DEAL_DETAIL_TAB');
+            //         }
+            //     } else {
+            //         console.error('Bitrix24 JS API недоступен');
+            //     }
+            // }
 
-            BX24.init(() => {
-                getDealIdFromParent();
-            });
+            // BX24.init(() => {
+            //     getDealIdFromParent();
+            // });
 
             // Обработчик для кнопки "Синхронизировать"
             document.querySelector('.sync-button').addEventListener('click', () => {
