@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'base.apps.BaseConfig',
     'bitrix_calc.apps.BaseConfig',
     'corsheaders',
+    'jsonfield',
 ]
 
 MIDDLEWARE = [

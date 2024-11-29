@@ -244,12 +244,10 @@ class BitrixCalculationAdmin(admin.ModelAdmin):
 
 
 from django.contrib import admin
-from .models import Company
+from .models import BitrixCompany
 
-@admin.register(Company)
+@admin.register(BitrixCompany)
 class CompanyAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'email', 'phone', 'responsible', 'bitrix_id')  # Настраиваем видимые колонки
-    search_fields = ('name', 'email', 'phone', 'responsible')  # Поля для поиска
-    list_filter = ('responsible',)  # Поля для фильтрации
-    ordering = ('name',)  # Порядок сортировки
+    list_display = ('id', 'email', 'phone','bitrix_id')  # Настраиваем видимые колонки
+    search_fields = ('name', 'email', 'phone')  # Поля для поиска
     readonly_fields = ('bitrix_id',)  # Поля только для чтения
