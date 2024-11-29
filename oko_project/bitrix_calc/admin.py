@@ -244,10 +244,18 @@ class BitrixCalculationAdmin(admin.ModelAdmin):
 
 
 from django.contrib import admin
-from .models import BitrixCompany
+from .models import BitrixCompany, CompanyContact
+
+class CompanyContactInline(admin.TabularInline):
+    model = CompanyContact
+    extra = 1  # Количество пустых строк для добавления
+    fields = ('contact_type', 'value_type', 'value')  # Поля для редактирования
+    readonly_fields = ('contact_type', 'value_type', 'value')  # Поля только для чтения, если нужно
+    can_delete = True  # Возможность удаления контактов
+    show_change_link = True  # Ссылка для перехода в редактирование контакта
 
 @admin.register(BitrixCompany)
 class CompanyAdmin(admin.ModelAdmin):
-    list_display = ('id', 'title','bitrix_id')  # Настраиваем видимые колонки
-    # search_fields = ('name')  # Поля для поиска
+    list_display = ('id', 'title', 'bitrix_id')  # Настраиваем видимые колонки
     readonly_fields = ('bitrix_id',)  # Поля только для чтения
+    inlines = [CompanyContactInline]  # Добавляем inline для контактов
