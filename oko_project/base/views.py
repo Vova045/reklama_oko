@@ -2511,7 +2511,7 @@ def fetch_and_save_companies():
                 break
             start = data.get("next", 0)  # Переход на следующую страницу
 
-        return companies_data  # Возвращаем собранные данные о компаниях
+        return companies_data, data  # Возвращаем собранные данные о компаниях
 
     except Exception as e:
         print("Ошибка синхронизации с Bitrix24:", str(e))
@@ -2525,10 +2525,10 @@ from django.http import JsonResponse
 def sync_companies(request):
     # Получаем данные о компаниях
     companies_data = fetch_and_save_companies()
-
+    companies_data = companies_data.data
     # Если данные получены, возвращаем их в JsonResponse
     if companies_data:
         return JsonResponse({"status": "success", "data": companies_data}, safe=False)
 
     # Если данных нет, возвращаем сообщение об ошибке
-    return JsonResponse({"status": "error", "message": "Не удалось получить данные о компаниях"}, status=500)
+    return JsonResponse({"status": "error", "message": "Не удалось получить данные о компаниях", 'data':companies_data}, status=500)
