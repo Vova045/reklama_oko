@@ -2471,7 +2471,10 @@ from datetime import datetime
 def fetch_and_save_companies():
     print('Инициализация синхронизации с Bitrix24...')
     try:
+        START_ID = 800  # Начальный ID для обработки
         start = 0
+        total_processed = 0  # Счетчик обработанных компаний
+        
         while True:
             response = requests.get(BITRIX_WEBHOOK_URL, params={"start": start})
             if response.status_code != 200:
@@ -2483,7 +2486,12 @@ def fetch_and_save_companies():
             
             companies = data["result"]
             if companies:
-                for first_company in companies:
+                total_companies = len(companies)  # Общее количество компаний в текущем пакете
+                print(f"Получено {total_companies} компаний для обработки.")
+                
+                for index, first_company in enumerate(companies, start=1):
+                    print(f"компания {index} из {total_companies}: ID = {first_company['ID']}")
+                    
                     from django.utils.timezone import is_naive
                     # Обработка дат
                     date_created = None
@@ -2533,66 +2541,75 @@ def fetch_and_save_companies():
                             existing_company.date_created = date_created
                             existing_company.date_modified = date_modified
                             existing_company.save()
+                    
+                    # Запрос контактов компании
                     response = requests.get(
                         "https://oko.bitrix24.ru/rest/7/5c7fk7e5y2cev81a/crm.company.get",
                         params={"id": first_company["ID"]}
                     )
-                    
-                    if response.status_code == 200:
-                        company_details = response.json()
-                        company_data = company_details.get('result', {})
-                    # Заполнение контактов компании
-                    contacts_data = []
-                    
-                    # Телефоны
-                    for phone in company_data.get("PHONE", []):
-                        contacts_data.append({
-                            "contact_type": "PHONE",
-                            "value_type": phone.get("VALUE_TYPE"),
-                            "value": phone.get("VALUE")
-                        })
-                    
-                    # Email
-                    for email in company_data.get("EMAIL", []):
-                        contacts_data.append({
-                            "contact_type": "EMAIL",
-                            "value_type": email.get("VALUE_TYPE"),
-                            "value": email.get("VALUE")
-                        })
-                    
-                    # Мессенджеры (IM)
-                    for im in company_data.get("IM", []):
-                        contacts_data.append({
-                            "contact_type": "IM",
-                            "value_type": im.get("VALUE_TYPE"),
-                            "value": im.get("VALUE")
-                        })
-                    
-                    # URL-ресурсы (WEB)
-                    for web in company_data.get("WEB", []):
-                        contacts_data.append({
-                            "contact_type": "WEB",
-                            "value_type": web.get("VALUE_TYPE"),
-                            "value": web.get("VALUE")
-                        })
-                    print(contacts_data)
-                    # Создание/обновление контактов
-                    for contact_data in contacts_data:
+                    company_id = int(first_company["ID"])
+                    print(company_id)
+                    print(START_ID)
+                    # Пропускаем компании с ID меньше START_ID
+                    if company_id > START_ID:
+                        print(company_id + 'больше' + START_ID)
+                        print(f"Обработка компании с ID = {company_id}")
+                        if response.status_code == 200:
+                            company_details = response.json()
+                            company_data = company_details.get('result', {})
                         
-                        contact, created = CompanyContact.objects.update_or_create(
-                            company=existing_company,
-                            contact_type=contact_data["contact_type"],
-                            value=contact_data["value"],
-                            defaults={
-                                "value_type": contact_data["value_type"]
-                            }
-                        )
+                            # Заполнение контактов компании
+                            contacts_data = []
+                            
+                            # Телефоны
+                            for phone in company_data.get("PHONE", []):
+                                contacts_data.append({
+                                    "contact_type": "PHONE",
+                                    "value_type": phone.get("VALUE_TYPE"),
+                                    "value": phone.get("VALUE")
+                                })
+                            
+                            # Email
+                            for email in company_data.get("EMAIL", []):
+                                contacts_data.append({
+                                    "contact_type": "EMAIL",
+                                    "value_type": email.get("VALUE_TYPE"),
+                                    "value": email.get("VALUE")
+                                })
+                            
+                            # Мессенджеры (IM)
+                            for im in company_data.get("IM", []):
+                                contacts_data.append({
+                                    "contact_type": "IM",
+                                    "value_type": im.get("VALUE_TYPE"),
+                                    "value": im.get("VALUE")
+                                })
+                            
+                            # URL-ресурсы (WEB)
+                            for web in company_data.get("WEB", []):
+                                contacts_data.append({
+                                    "contact_type": "WEB",
+                                    "value_type": web.get("VALUE_TYPE"),
+                                    "value": web.get("VALUE")
+                                })
+                            
+                            if contacts_data:
+                                for contact_data in contacts_data:
+                                    contact, created = CompanyContact.objects.update_or_create(
+                                        company=existing_company,
+                                        contact_type=contact_data["contact_type"],
+                                        value=contact_data["value"],
+                                        defaults={
+                                            "value_type": contact_data["value_type"]
+                                        }
+                                    )
+                    total_processed += 1
 
-            # Проверка на наличие следующей страницы
             if not data.get("next"):
                 break
             start = data.get("next", 0)
 
+        print(f"Синхронизация завершена. Всего обработано компаний: {total_processed}.")
         return {"status": "success", "message": "Синхронизация завершена."}
 
     except Exception as e:
