@@ -8,7 +8,23 @@ import requests
 # Create your views here.
 @csrf_exempt
 def calculation_list(request):
-    return render(request, 'calculation_list.html')
+    # Извлечение данных из базы
+    calculations = Bitrix_Calculation.objects.all()
+    
+    # Формирование списка для передачи в шаблон
+    calculation_data = []
+    for calc in calculations:
+        calculation_data.append({
+            'date': calc.created_at.strftime('%d.%m.%Y') if hasattr(calc, 'created_at') else 'Неизвестная дата',  # Если поле даты есть
+            'number': calc.id if calc.id else '00000',  # Если id есть
+            'client': 'Неизвестный клиент',  # Используем статическое значение
+            'manager': 'Неизвестный менеджер',  # Используем статическое значение
+            'name': calc.name if calc.name else 'Без названия',
+            'total_price': calc.price_final_price if calc.price_final_price else '0 руб.',  # Общая цена
+        })
+
+    # Передача данных в шаблон
+    return render(request, 'calculation_list.html', {'calculations': calculation_data})
 
 @csrf_exempt
 def calculation_add(request):
@@ -50,6 +66,11 @@ REDIRECT_URI = os.getenv('REDIRECT_URI')  # Ваш redirect_uri
 from base import views
 
 def refresh_bitrix_token(refresh_token):
+    print('рефреш токен')
+    logger.debug("рефреш токен")
+
+    url = "https://oauth.bitrix.info/oauth/token/"
+
     """Обновление токена через refresh_token."""
     try:
         params = {
@@ -59,35 +80,37 @@ def refresh_bitrix_token(refresh_token):
             "refresh_token": refresh_token,
         }
         user_data = BitrixUser.objects.get(refresh_token=refresh_token)
-        print(user_data)
+        # print(user_data)
+        # print(params)
         try:
             response = requests.get(url, params=params)
             response.raise_for_status()  # Выбрасывает исключение, если статус ответа не 200
             data = response.json()
-            print("Ответ от API Bitrix24:")
+            # print("Ответ от API Bitrix24:")
             logger.debug(f"Ответ от API Bitrix24: {data}")
             print(data)
             return data
         except requests.exceptions.RequestException as e:
             print(f"Ошибка при выполнении запроса: {e}")
+            logger.debug(f"Ошибка при выполнении запроса: {e}")
+
         if user_data.is_refresh_token_expired():
             raise Exception("Refresh token has expired. Please reauthorize the application.")
-        print(user_data.is_refresh_token_expired())
+        # print(user_data.is_refresh_token_expired())
         # Запрос на обновление токена
-        url = "https://oauth.bitrix.info/oauth/token/"
         params = {
             "grant_type": "refresh_token",
             "client_id": CLIENT_ID,
             "client_secret": CLIENT_SECRET,
             "refresh_token": refresh_token,
         }
-        print(params)
+        # print(params)
         response = requests.post(url, data=params)
-        print(response)
+        # print(response)
         data = response.json()
         print(data)
         logger.debug(f"Response from Bitrix: {data}")
-        print(f"Response from Bitrix: {data}")
+        # print(f"Response from Bitrix: {data}")
 
         # Если успешно, обновляем токены
         if "access_token" in data:
@@ -96,7 +119,10 @@ def refresh_bitrix_token(refresh_token):
             user_data.save()
             return data["access_token"]
         else:
-            error_description = data.get("error_description", "Unknown error")
+            error_description = data.get("error_description")
+            print('ошибка:' + error_description)
+            logger.debug(f"ошибка {data}")
+
             if data.get("error") == "invalid_grant":
                 raise Exception("invalid_grant: Refresh token недействителен.")
             elif data.get("error") == "invalid_client":
@@ -105,8 +131,9 @@ def refresh_bitrix_token(refresh_token):
                 raise Exception(f"Ошибка обновления токена: {error_description}")
 
     except Exception as e:
-        logger.error(f"Ошибка при обновлении токена: {str(e)}")
-        
+        print(f"Ошибка при обновлении токена: {str(e)}")
+        logger.debug(f"Ошибка при обновлении токена: {str(e)}")
+
         # Обработка ошибки недействительного refresh_token
         if "invalid_grant" in str(e):
             logger.debug("Refresh token недействителен, требуется авторизация.")
@@ -168,7 +195,8 @@ def authoritation(request):
             refresh_token = request.POST.get('REFRESH_ID')
             member_id = request.POST.get('member_id')
             expires_in = request.POST.get('AUTH_EXPIRES')  # Время действия токена в секундах
-
+            # print(domain)
+            # print(member_id)
             # Проверка обязательных параметров
             if not all([domain, auth_token, refresh_token, member_id]):
                 logger.error("Missing required parameters for user setup.")
@@ -208,6 +236,7 @@ def authoritation(request):
         # Если это GET-запрос, проверим данные пользователя и вернем имя и bitrix_id
         logger.info("Checking if user exists in Bitrix...")
         user_data = BitrixUser.objects.first()
+        # print(user_data)
         if not user_data:
             logger.error("User not found in Bitrix")
             return JsonResponse({'error': 'User not registered in Bitrix'}, status=404)
@@ -234,7 +263,7 @@ def authoritation(request):
         if not access_token:
             logger.warning("Access token is missing, authorization required.")
             auth_url = get_authorization_url()
-            print(auth_url)
+            # print(auth_url)
             return JsonResponse({
                 "error": "Authorization required. Please reauthorize the application.",
                 "authorization_url": auth_url
@@ -269,7 +298,7 @@ def authoritation(request):
             })
         else:
             error_description = response_data.get('error_description', 'Unknown error')
-            logger.error(f"Error from Bitrix: {error_description}")
+            print(f"Error from Bitrix: {error_description}")
             return JsonResponse({'error': error_description}, status=400)
 
     except Exception as e:
@@ -353,7 +382,7 @@ def bitrix_callback(request):
         
         if 'access_token' not in token_data:
             error_message = token_data.get('error_description', 'Не найден access_token в ответе')
-            logger.error(f"Ошибка: {error_message}")
+            print(f"Ошибка: {error_message}")
             return JsonResponse({
                 'status': 'error',
                 'message': error_message,

@@ -2258,10 +2258,10 @@ def get_user_correct(request):
     if request.method not in ['GET', 'POST']:
         logger.warning(f"Invalid request method: {request.method}")
         return JsonResponse({'error': 'Invalid request method'}, status=405)
-
     try:
         # Если это POST-запрос, обработаем установку данных пользователя
         if request.method == 'POST':
+            print('get user correct')
             logger.info("Processing user setup via POST request...")
             
             # Чтение параметров из POST
@@ -2270,6 +2270,7 @@ def get_user_correct(request):
             refresh_token = request.POST.get('REFRESH_ID')
             member_id = request.POST.get('member_id')
             expires_in = request.POST.get('AUTH_EXPIRES')  # Время действия токена в секундах
+            print(member_id)
 
             # Проверка обязательных параметров
             if not all([domain, auth_token, refresh_token, member_id]):

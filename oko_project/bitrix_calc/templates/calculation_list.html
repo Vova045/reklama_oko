@@ -136,33 +136,17 @@
             </tr>
         </thead>
         <tbody>
+            {% for calc in calculations %}
             <tr>
-                <td>08.11.2024</td>
-                <td>12345</td>
-                <td>ООО «Пример»</td>
-                <td>Иван Иванов</td>
-                <td>Изделие А</td>
-                <td>5000 руб.</td>
+                <td>{{ calc.date }}</td>
+                <td>{{ calc.number }}</td>
+                <td>{{ calc.client }}</td>
+                <td>{{ calc.manager }}</td>
+                <td>{{ calc.name }}</td>
+                <td>{{ calc.total_price }}</td>
                 <td><button class="attach-button">Прикрепить к лиду</button></td>
             </tr>
-            <tr>
-                <td>07.11.2024</td>
-                <td>67890</td>
-                <td>ООО «Компания»</td>
-                <td>Петр Петров</td>
-                <td>Изделие Б</td>
-                <td>12000 руб.</td>
-                <td><button class="attach-button">Прикрепить к лиду</button></td>
-            </tr>
-            <tr>
-                <td>06.11.2024</td>
-                <td>11223</td>
-                <td>ЗАО «Образец»</td>
-                <td>Анна Смирнова</td>
-                <td>Изделие В</td>
-                <td>7500 руб.</td>
-                <td><button class="attach-button">Прикрепить к лиду</button></td>
-            </tr>
+            {% endfor %}
         </tbody>
     </table>
 </div>
