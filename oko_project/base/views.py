@@ -2456,3 +2456,23 @@ def get_companies(request):
     except Exception as e:
         logger.error(f"Error fetching company data: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
+
+
+
+
+
+
+
+from django.shortcuts import render
+from django.http import JsonResponse
+from .utils import fetch_and_save_companies  # Импортируем функцию синхронизации
+
+def sync_companies(request):
+    """
+    Синхронизирует компании с Bitrix24 при нажатии кнопки.
+    """
+    try:
+        fetch_and_save_companies()
+        return JsonResponse({"status": "success", "message": "Синхронизация завершена успешно!"})
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)}, status=500)

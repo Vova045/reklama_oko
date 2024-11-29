@@ -114,3 +114,32 @@ class Bitrix_Calculation_ParametersNormatives(models.Model):
     class Meta:
         verbose_name = "Параметр и Норма для товара для Калькуляции в Битриксе"
         verbose_name_plural = "Параметры и нормы для товара для Калькуляции в Битриксе"
+
+
+class BitrixCompany(models.Model):
+    # Основные поля
+    bitrix_id = models.BigIntegerField(unique=True, db_index=True)  # ID компании в Bitrix24
+    title = models.CharField(max_length=255, verbose_name="Название компании")
+    company_type = models.CharField(max_length=50, blank=True, null=True, verbose_name="Тип компании")
+    industry = models.CharField(max_length=100, blank=True, null=True, verbose_name="Отрасль")
+    revenue = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True, verbose_name="Доход")
+    address = models.TextField(blank=True, null=True, verbose_name="Адрес")
+
+    # Контактная информация
+    phone = models.JSONField(blank=True, null=True, verbose_name="Телефоны")  # JSON-структура для хранения телефонов
+    email = models.JSONField(blank=True, null=True, verbose_name="Email-ы")  # JSON-структура для хранения email-ов
+
+    # Ответственный менеджер
+    assigned_by_id = models.BigIntegerField(blank=True, null=True, verbose_name="ID ответственного менеджера")
+
+    # Метаданные
+    date_created = models.DateTimeField(blank=True, null=True, verbose_name="Дата создания")
+    date_modified = models.DateTimeField(blank=True, null=True, verbose_name="Дата изменения")
+
+    def __str__(self):
+        return self.title
+
+    class Meta:
+        verbose_name = "Компания (Bitrix)"
+        verbose_name_plural = "Компании (Bitrix)"
+        ordering = ["-date_created"]
