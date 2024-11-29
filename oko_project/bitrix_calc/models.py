@@ -115,19 +115,16 @@ class Bitrix_Calculation_ParametersNormatives(models.Model):
         verbose_name = "Параметр и Норма для товара для Калькуляции в Битриксе"
         verbose_name_plural = "Параметры и нормы для товара для Калькуляции в Битриксе"
 
-from jsonfield import JSONField
+from django.db import models
+
 class BitrixCompany(models.Model):
     # Основные поля
-    bitrix_id = models.BigIntegerField(unique=True, db_index=True)  # ID компании в Bitrix24
+    bitrix_id = models.BigIntegerField(unique=True, db_index=True, verbose_name="ID компании в Bitrix24")
     title = models.CharField(max_length=255, verbose_name="Название компании")
     company_type = models.CharField(max_length=50, blank=True, null=True, verbose_name="Тип компании")
     industry = models.CharField(max_length=100, blank=True, null=True, verbose_name="Отрасль")
     revenue = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True, verbose_name="Доход")
     address = models.TextField(blank=True, null=True, verbose_name="Адрес")
-
-    # Контактная информация
-    phone = JSONField(blank=True, null=True, verbose_name="Телефоны")  # JSON-структура для хранения телефонов
-    email = JSONField(blank=True, null=True, verbose_name="Email-ы")  # JSON-структура для хранения email-ов
 
     # Ответственный менеджер
     assigned_by_id = models.BigIntegerField(blank=True, null=True, verbose_name="ID ответственного менеджера")
@@ -143,3 +140,29 @@ class BitrixCompany(models.Model):
         verbose_name = "Компания (Bitrix)"
         verbose_name_plural = "Компании (Bitrix)"
         ordering = ["-date_created"]
+
+
+class CompanyContact(models.Model):
+    CONTACT_TYPES = [
+        ('PHONE', 'Телефон'),
+        ('EMAIL', 'Электронная почта'),
+        ('IM', 'Мессенджер'),
+        ('WEB', 'Веб-ресурс'),
+    ]
+
+    company = models.ForeignKey(
+        BitrixCompany,
+        on_delete=models.CASCADE,
+        related_name="contacts",
+        verbose_name="Компания"
+    )
+    contact_type = models.CharField(max_length=10, choices=CONTACT_TYPES, verbose_name="Тип контакта")
+    value_type = models.CharField(max_length=50, blank=True, null=True, verbose_name="Тип значения (например, WORK, PERSONAL)")
+    value = models.CharField(max_length=255, verbose_name="Значение")
+
+    def __str__(self):
+        return f"{self.get_contact_type_display()}: {self.value}"
+
+    class Meta:
+        verbose_name = "Контакт компании"
+        verbose_name_plural = "Контакты компании"
