@@ -8,7 +8,7 @@ from .models import MaterialsTechnologicalOperation, ParametersNormativesInCalcu
 from .forms import ParametersNormativesInCalculationForm
 from django.db.models import Q
 from django.views.decorators.csrf import csrf_exempt
-from bitrix_calc.models import Bitrix_Goods, Bitrix_GoodsComposition
+from bitrix_calc.models import Bitrix_Goods, Bitrix_GoodsComposition, CompanyContact
 from django.utils.decorators import method_decorator
 from datetime import datetime, timedelta
 from django.utils import timezone
