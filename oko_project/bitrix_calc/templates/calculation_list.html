@@ -135,6 +135,7 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.status === 'success') {
+                            console.log(data.first_company_data)
                             statusElement.textContent = data.message;
                         } else {
                             statusElement.textContent = 'Ошибка: ' + data.message;

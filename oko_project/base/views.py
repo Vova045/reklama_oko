@@ -2471,14 +2471,13 @@ from django.utils.timezone import make_aware
 from datetime import datetime
 
 def fetch_and_save_companies():
-    # companies_data = []  # Список для хранения данных о компаниях
-    
+    print('тут')
+    first_company_data = None  # Инициализируем переменную для первой компании
     try:
         start = 0  # Начало пагинации
         while True:
             # Запрос к API Bitrix24
             response = requests.get(BITRIX_WEBHOOK_URL, params={"start": start})
-            
             # Проверка ответа от API Bitrix24
             if response.status_code != 200:
                 return {"status": "error", "message": f"Ошибка запроса к Bitrix24, код ответа: {response.status_code}"}
@@ -2490,87 +2489,21 @@ def fetch_and_save_companies():
                 return {"status": "error", "message": "Ошибка получения данных из Bitrix24"}
 
             companies = data["result"]
-
-            # Проходим по всем компаниям
-            for company in companies:
-                # Преобразуем дату последней модификации в datetime
-                date_modified = make_aware(datetime.fromisoformat(company["DATE_MODIFY"])) if "DATE_MODIFY" in company else None
-                date_created = make_aware(datetime.fromisoformat(company["DATE_CREATE"])) if "DATE_CREATE" in company else None
-
-                # Проверка, существует ли уже компания с таким ID
-                existing_company = BitrixCompany.objects.filter(bitrix_id=company["ID"]).first()
-                
-                if not existing_company:
-                    # Если компании нет, создаем новую запись
-                    BitrixCompany.objects.create(
-                        bitrix_id=company["ID"],
-                        title=company["TITLE"],
-                        company_type=company.get("COMPANY_TYPE"),
-                        industry=company.get("INDUSTRY"),
-                        revenue=company.get("REVENUE"),
-                        address=company.get("ADDRESS"),
-                        phone=company.get("PHONE"),
-                        email=company.get("EMAIL"),
-                        assigned_by_id=company.get("ASSIGNED_BY_ID"),
-                        date_created=date_created,
-                        date_modified=date_modified,
-                    )
-                    # companies_data.append({
-                    #     "ID": company["ID"],
-                    #     "TITLE": company["TITLE"],
-                    #     "COMPANY_TYPE": company.get("COMPANY_TYPE"),
-                    #     "INDUSTRY": company.get("INDUSTRY"),
-                    #     "REVENUE": company.get("REVENUE"),
-                    #     "ADDRESS": company.get("ADDRESS"),
-                    #     "PHONE": company.get("PHONE"),
-                    #     "EMAIL": company.get("EMAIL"),
-                    #     "ASSIGNED_BY_ID": company.get("ASSIGNED_BY_ID"),
-                    #     "DATE_CREATE": company.get("DATE_CREATE"),
-                    #     "DATE_MODIFY": company.get("DATE_MODIFY"),
-                    # })
-
-                else:
-                    # Если компания существует, проверяем дату последней модификации
-                    if date_modified and (not existing_company.date_modified or existing_company.date_modified < date_modified):
-                        # Если дата в Bitrix24 более поздняя, обновляем данные компании
-                        existing_company.title = company["TITLE"]
-                        existing_company.company_type = company.get("COMPANY_TYPE")
-                        existing_company.industry = company.get("INDUSTRY")
-                        existing_company.revenue = company.get("REVENUE")
-                        existing_company.address = company.get("ADDRESS")
-                        existing_company.phone = company.get("PHONE")
-                        existing_company.email = company.get("EMAIL")
-                        existing_company.assigned_by_id = company.get("ASSIGNED_BY_ID")
-                        existing_company.date_created = date_created
-                        existing_company.date_modified = date_modified
-
-                        # Сохраняем изменения
-                        existing_company.save()
-
-                        # companies_data.append({
-                        #     "ID": company["ID"],
-                        #     "TITLE": company["TITLE"],
-                        #     "COMPANY_TYPE": company.get("COMPANY_TYPE"),
-                        #     "INDUSTRY": company.get("INDUSTRY"),
-                        #     "REVENUE": company.get("REVENUE"),
-                        #     "ADDRESS": company.get("ADDRESS"),
-                        #     "PHONE": company.get("PHONE"),
-                        #     "EMAIL": company.get("EMAIL"),
-                        #     "ASSIGNED_BY_ID": company.get("ASSIGNED_BY_ID"),
-                        #     "DATE_CREATE": company.get("DATE_CREATE"),
-                        #     "DATE_MODIFY": company.get("DATE_MODIFY"),
-                        # })
+            for idx, company in enumerate(companies):
+                # Сохраняем данные только первой компании
+                if first_company_data is None:
+                    first_company_data = company
+                    print(first_company_data)  # Печатаем только первую компанию
 
             # Проверка на наличие следующей страницы
             if not data.get("next"):
                 break
             start = data.get("next", 0)  # Переход на следующую страницу
 
-        return {"status": "success"}  # Возвращаем успешный статус с данными компаний
+        return {"status": "success", "first_company_data": first_company_data}  # Возвращаем успешный статус с первой компанией
 
     except Exception as e:
         return {"status": "error", "message": str(e)}  # Возвращаем ошибку в случае исключения
-
 
 
 from django.http import JsonResponse
@@ -2581,7 +2514,7 @@ def sync_companies(request):
     companies_data = fetch_and_save_companies()
     # Если данные получены, возвращаем их в JsonResponse
     if companies_data:
-        return JsonResponse({"status": "success"}, safe=False)
+        return JsonResponse({"status": "success",'first_company_data':companies_data}, safe=False)
 
     # Если данных нет, возвращаем сообщение об ошибке
-    return JsonResponse({"status": "error", "message": "Не удалось получить данные о компаниях", 'data':companies_data}, status=500)
+    return JsonResponse({"status": "error", "message": "Не удалось получить данные о компаниях", 'first_company_data': companies_data}, status=500)
