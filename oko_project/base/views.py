@@ -8,7 +8,7 @@ from .models import MaterialsTechnologicalOperation, ParametersNormativesInCalcu
 from .forms import ParametersNormativesInCalculationForm
 from django.db.models import Q
 from django.views.decorators.csrf import csrf_exempt
-from bitrix_calc.models import Bitrix_Goods, Bitrix_GoodsComposition, CompanyContact
+from bitrix_calc.models import Bitrix_Goods, Bitrix_GoodsComposition, CompanyContact, BitrixDeal
 from django.utils.decorators import method_decorator
 from datetime import datetime, timedelta
 from django.utils import timezone
@@ -2467,11 +2467,12 @@ BITRIX_WEBHOOK_URL = "https://oko.bitrix24.ru/rest/7/5c7fk7e5y2cev81a/crm.compan
 # Эта функция будет возвращать данные, а не сохранять их в базе
 from bitrix_calc.models import BitrixCompany
 from django.utils.timezone import make_aware
+from django.utils.timezone import is_naive
 from datetime import datetime
 def fetch_and_save_companies():
     print('Инициализация синхронизации с Bitrix24...')
     try:
-        START_ID = 800  # Начальный ID для обработки
+        START_ID = 0  # Начальный ID для обработки
         start = 0
         total_processed = 0  # Счетчик обработанных компаний
         
@@ -2492,7 +2493,7 @@ def fetch_and_save_companies():
                 for index, first_company in enumerate(companies, start=1):
                     print(f"компания {index} из {total_companies}: ID = {first_company['ID']}")
                     
-                    from django.utils.timezone import is_naive
+                    
                     # Обработка дат
                     date_created = None
                     date_modified = None
@@ -2542,17 +2543,17 @@ def fetch_and_save_companies():
                             existing_company.date_modified = date_modified
                             existing_company.save()
                     
-                    # Запрос контактов компании
-                    response = requests.get(
-                        "https://oko.bitrix24.ru/rest/7/5c7fk7e5y2cev81a/crm.company.get",
-                        params={"id": first_company["ID"]}
-                    )
+
                     company_id = int(first_company["ID"])
                     print(company_id)
                     print(START_ID)
                     # Пропускаем компании с ID меньше START_ID
                     if company_id > START_ID:
-                        print(company_id + 'больше' + START_ID)
+                                            # Запрос контактов компании
+                        response = requests.get(
+                            "https://oko.bitrix24.ru/rest/7/5c7fk7e5y2cev81a/crm.company.get",
+                            params={"id": company_id}
+                        )
                         print(f"Обработка компании с ID = {company_id}")
                         if response.status_code == 200:
                             company_details = response.json()
@@ -2628,3 +2629,64 @@ def sync_companies(request):
 
     # Если данных нет, возвращаем сообщение об ошибке
     return JsonResponse({"status": "error", "message": "Не удалось получить данные о компаниях", 'first_company_data': companies_data}, status=500)
+
+
+BITRIX_WEBHOOK_URL_DEALS = "https://your.bitrix24.url/rest/7/your_webhook_key/crm.deal.list"
+
+@csrf_exempt
+def sync_deals(request):
+    """
+    Синхронизация сделок из Bitrix24
+    """
+    try:
+        print("Инициализация синхронизации сделок...")
+        total_processed = 0
+        start = 0
+
+        while True:
+            response = requests.get(BITRIX_WEBHOOK_URL_DEALS, params={"start": start})
+            if response.status_code != 200:
+                return JsonResponse({"status": "error", "message": f"Ошибка запроса к Bitrix24, код ответа: {response.status_code}"})
+
+            data = response.json()
+            if "result" not in data:
+                return JsonResponse({"status": "error", "message": "Ошибка получения данных из Bitrix24"})
+
+            deals = data["result"]
+            print(f"Получено {len(deals)} сделок для обработки.")
+
+            for deal in deals:
+                deal_id = int(deal["ID"])
+                print(f"Обработка сделки ID = {deal_id}")
+
+                raw_date_create = deal["DATE_CREATE"]
+                parsed_date_create = parser.parse(raw_date_create)
+                date_create = make_aware(parsed_date_create) if is_naive(parsed_date_create) else parsed_date_create
+                raw_date_modify = deal["DATE_MODIFY"]
+                parsed_date_modify = parser.parse(raw_date_modify)
+                date_modify = make_aware(parsed_date_modify) if is_naive(parsed_date_modify) else parsed_date_modify
+
+                # Сохранение или обновление сделки
+                BitrixDeal.objects.update_or_create(
+                    bitrix_id=deal_id,
+                    defaults={
+                        "title": deal.get("TITLE"),
+                        "stage_id": deal.get("STAGE_ID"),
+                        "probability": deal.get("PROBABILITY"),
+                        "opportunity": deal.get("OPPORTUNITY"),
+                        "currency_id": deal.get("CURRENCY_ID"),
+                        "date_created": date_create,
+                        "date_modified": date_modify,
+                    },
+                )
+                total_processed += 1
+
+            if not data.get("next"):
+                break
+            start = data.get("next", 0)
+
+        print(f"Синхронизация сделок завершена. Всего обработано: {total_processed}")
+        return JsonResponse({"status": "success", "message": f"Синхронизация завершена. Обработано сделок: {total_processed}"})
+
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)})

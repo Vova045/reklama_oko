@@ -166,3 +166,23 @@ class CompanyContact(models.Model):
     class Meta:
         verbose_name = "Контакт компании"
         verbose_name_plural = "Контакты компании"
+
+
+from django.db import models
+
+class BitrixDeal(models.Model):
+    bitrix_id = models.PositiveIntegerField(unique=True, verbose_name="ID сделки в Bitrix24")
+    title = models.CharField(max_length=255, verbose_name="Название сделки")
+    stage_id = models.CharField(max_length=50, verbose_name="Стадия сделки")
+    probability = models.FloatField(null=True, blank=True, verbose_name="Вероятность")
+    opportunity = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True, verbose_name="Сумма сделки")
+    currency_id = models.CharField(max_length=10, null=True, blank=True, verbose_name="Валюта")
+    date_created = models.DateTimeField(null=True, blank=True, verbose_name="Дата создания")
+    date_modified = models.DateTimeField(null=True, blank=True, verbose_name="Дата изменения")
+
+    class Meta:
+        verbose_name = "Сделка"
+        verbose_name_plural = "Сделки"
+
+    def __str__(self):
+        return f"{self.title} (ID: {self.bitrix_id})"

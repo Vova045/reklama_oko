@@ -2,7 +2,7 @@ from django.contrib import admin
 from .models import ( 
     Bitrix_Goods, Bitrix_GoodsComposition, Bitrix_GoodsParameters, 
     Bitrix_ParametersNormatives, Birtrix_Price_GoodsComposition,
-    Goods, Bitrix_GoodsParametersInCalculation,
+    Goods, Bitrix_GoodsParametersInCalculation, BitrixDeal
 )
 from django.contrib import admin
 from django.utils.safestring import mark_safe
@@ -259,3 +259,9 @@ class CompanyAdmin(admin.ModelAdmin):
     list_display = ('id', 'title', 'bitrix_id')  # Настраиваем видимые колонки
     readonly_fields = ('bitrix_id',)  # Поля только для чтения
     inlines = [CompanyContactInline]  # Добавляем inline для контактов
+
+
+@admin.register(BitrixDeal)
+class BitrixDealAdmin(admin.ModelAdmin):
+    list_display = ("bitrix_id", "title", "stage_id", "probability", "opportunity", "currency_id")
+    actions = ["sync_deals_action"]

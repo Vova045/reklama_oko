@@ -127,6 +127,38 @@
             // });
 
             // Обработчик для кнопки "Синхронизировать"
+    const syncButton2 = document.getElementById("syncDealsButton");
+
+    if (syncButton2) {
+        syncButton2.addEventListener("click", function () {
+            syncButton2.disabled = true; // Отключаем кнопку на время выполнения
+            syncButton2.textContent = "Синхронизация...";
+
+            fetch("/sync-deals/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": getCookie("csrftoken"), // Убедитесь, что CSRF-токен включен
+                },
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === "success") {
+                        alert(data.message);
+                    } else {
+                        alert(`Ошибка: ${data.message}`);
+                    }
+                })
+                .catch(error => {
+                    alert(`Произошла ошибка: ${error}`);
+                })
+                .finally(() => {
+                    syncButton2.disabled = false; // Возвращаем кнопку в исходное состояние
+                    syncButton2.textContent = "Синхронизировать сделки";
+                });
+        });
+    }
+
             document.querySelector('.sync-button').addEventListener('click', () => {
                 const statusElement = document.getElementById('sync-status');
                 statusElement.textContent = 'Синхронизация началась...';
@@ -146,6 +178,20 @@
                     });
             });
         });
+        function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+        const cookies = document.cookie.split(";");
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === name + "=") {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
     </script>
 </head>
 <body>
@@ -153,6 +199,7 @@
 <div class="container">
     <a href="{% url 'calculation_add' %}" class="header-button">Сделать расчет</a>
     <button class="sync-button">Синхронизировать</button>
+    <button id="syncDealsButton" class="sync-button">Синхронизировать</button>
     <h1>Список калькуляций</h1>
     <p id="sync-status"></p>
     <table>
