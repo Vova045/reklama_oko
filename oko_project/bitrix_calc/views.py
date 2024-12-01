@@ -25,10 +25,7 @@ def calculation_list(request):
 
             # Логика обработки данных
             deal_id = data.get("deal_id") or json.loads(data.get("PLACEMENT_OPTIONS", "{}")).get("ID")
-            if not deal_id:
-                return JsonResponse({"error": "deal_id отсутствует", "data": data}, status=400)
 
-            return JsonResponse({"message": "Успешно обработано", "deal_id": deal_id}, status=200)
         except json.JSONDecodeError as e:
             return JsonResponse({
                 "error": "Некорректный JSON",
