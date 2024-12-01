@@ -53,8 +53,8 @@ def calculation_list(request):
         calculation_data.append({
             'date': calc.created_at.strftime('%d.%m.%Y') if hasattr(calc, 'created_at') else 'Неизвестная дата',
             'number': calc.id if calc.id else '00000',
-            'client': calc.client.name if hasattr(calc.client, 'name') else 'Неизвестный клиент',
-            'manager': calc.manager.name if hasattr(calc.manager, 'name') else 'Неизвестный менеджер',
+            # 'client': calc.client.name if hasattr(calc.client, 'name') else 'Неизвестный клиент',
+            # 'manager': calc.manager.name if hasattr(calc.manager, 'name') else 'Неизвестный менеджер',
             'name': calc.name if calc.name else 'Без названия',
             'total_price': calc.price_final_price if calc.price_final_price else '0 руб.',
         })
