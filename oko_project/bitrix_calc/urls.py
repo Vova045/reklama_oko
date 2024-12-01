@@ -6,4 +6,5 @@ path('calculation_add', views.calculation_add, name='calculation_add'),
 path('authoritation', views.authoritation, name='authoritation'),
 path('callback/', views.bitrix_callback, name='bitrix_callback'),
 path('api/create-calculation/', views.create_calculation, name='create_calculation'),
+path('delete-calculation/<int:pk>/', views.delete_calculation, name='delete_calculation'),
 ]

@@ -57,11 +57,29 @@ class Bitrix_ParametersNormatives(models.Model):
         verbose_name_plural = "Параметры и нормы для товара для Битрикса"
 
 
-class Bitrix_Deal(models.Model):
-    bitrix_deal_number = models.CharField(max_length=100, unique=True, editable=False, verbose_name="Номер сделки")
+from django.db import models
+
+class BitrixDeal(models.Model):
+    bitrix_id = models.PositiveIntegerField(unique=True, verbose_name="ID сделки в Bitrix24")
+    title = models.CharField(max_length=255, verbose_name="Название сделки")
+    stage_id = models.CharField(max_length=50, verbose_name="Стадия сделки")
+    probability = models.FloatField(null=True, blank=True, verbose_name="Вероятность")
+    opportunity = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True, verbose_name="Сумма сделки")
+    currency_id = models.CharField(max_length=10, null=True, blank=True, verbose_name="Валюта")
+    date_created = models.DateTimeField(null=True, blank=True, verbose_name="Дата создания")
+    date_modified = models.DateTimeField(null=True, blank=True, verbose_name="Дата изменения")
+
+    class Meta:
+        verbose_name = "Сделка"
+        verbose_name_plural = "Сделки"
+
+    def __str__(self):
+        return f"{self.title} (ID: {self.bitrix_id})"
+
 
 class Bitrix_Calculation(models.Model):
     name = models.CharField(max_length=100, unique=True, verbose_name="Наименование калькуляции")
+    deal = models.ForeignKey(BitrixDeal, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Сделка")
     goods = models.ForeignKey(Bitrix_Goods, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Товар")
     price_material = models.CharField(max_length=100, verbose_name="Цена за материал")
     price_add_material = models.CharField(max_length=100, verbose_name="Цена за добавочный материал")
@@ -167,22 +185,3 @@ class CompanyContact(models.Model):
         verbose_name = "Контакт компании"
         verbose_name_plural = "Контакты компании"
 
-
-from django.db import models
-
-class BitrixDeal(models.Model):
-    bitrix_id = models.PositiveIntegerField(unique=True, verbose_name="ID сделки в Bitrix24")
-    title = models.CharField(max_length=255, verbose_name="Название сделки")
-    stage_id = models.CharField(max_length=50, verbose_name="Стадия сделки")
-    probability = models.FloatField(null=True, blank=True, verbose_name="Вероятность")
-    opportunity = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True, verbose_name="Сумма сделки")
-    currency_id = models.CharField(max_length=10, null=True, blank=True, verbose_name="Валюта")
-    date_created = models.DateTimeField(null=True, blank=True, verbose_name="Дата создания")
-    date_modified = models.DateTimeField(null=True, blank=True, verbose_name="Дата изменения")
-
-    class Meta:
-        verbose_name = "Сделка"
-        verbose_name_plural = "Сделки"
-
-    def __str__(self):
-        return f"{self.title} (ID: {self.bitrix_id})"

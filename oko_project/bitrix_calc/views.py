@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
-from .models import Bitrix_Goods, Bitrix_GoodsComposition, Birtrix_Price_GoodsComposition, Bitrix_GoodsParametersInCalculation
+from .models import Bitrix_Goods, Bitrix_GoodsComposition, Birtrix_Price_GoodsComposition, Bitrix_GoodsParametersInCalculation, BitrixDeal
 from base.models import ParametersOfProducts
 from django.http import JsonResponse
 import requests
@@ -433,23 +433,67 @@ def bitrix_callback(request):
     
 import json
 from bitrix_calc.models import Bitrix_Calculation
+
+BITRIX_WEBHOOK_URL_DEALS = "https://oko.bitrix24.ru/rest/7/5c7fk7e5y2cev81a/crm.deal.list"
+
 @csrf_exempt
 def create_calculation(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
             print(data)
+
             calculation_name = data.get('name')
             operations_fullprices = data.get('operations_fullprices')
             parameters_dict = data.get('parameters_dict')
+            dealId = data.get('dealId')
+            
             print(operations_fullprices)  # Принт для отладки
 
             if not calculation_name:
                 return JsonResponse({'error': 'Название калькуляции обязательно.'}, status=400)
+            
+            if not dealId:
+                return JsonResponse({'error': 'dealId обязателен.'}, status=400)
+
+            # Проверяем наличие сделки в базе
+            deal = BitrixDeal.objects.filter(bitrix_id=dealId).first()
+
+            if not deal:
+                # Если сделки нет, получаем ее данные из Bitrix24 и создаем
+                response = requests.get(BITRIX_WEBHOOK_URL_DEALS, params={"id": dealId})
+                if response.status_code != 200:
+                    return JsonResponse({'error': f"Не удалось получить данные сделки из Bitrix24, код ответа: {response.status_code}"}, status=500)
+
+                deal_data = response.json()
+                if "result" not in deal_data:
+                    return JsonResponse({'error': "Сделка не найдена в Bitrix24."}, status=404)
+
+                deal_info = deal_data["result"]
+                raw_date_create = deal_info["DATE_CREATE"]
+                parsed_date_create = parser.parse(raw_date_create)
+                date_create = make_aware(parsed_date_create) if is_naive(parsed_date_create) else parsed_date_create
+
+                raw_date_modify = deal_info["DATE_MODIFY"]
+                parsed_date_modify = parser.parse(raw_date_modify)
+                date_modify = make_aware(parsed_date_modify) if is_naive(parsed_date_modify) else parsed_date_modify
+
+                deal = BitrixDeal.objects.create(
+                    bitrix_id=int(dealId),
+                    title=deal_info.get("TITLE", "Без названия"),
+                    stage_id=deal_info.get("STAGE_ID"),
+                    probability=deal_info.get("PROBABILITY"),
+                    opportunity=deal_info.get("OPPORTUNITY"),
+                    currency_id=deal_info.get("CURRENCY_ID"),
+                    date_created=date_create,
+                    date_modified=date_modify,
+                )
+                print(f"Создана новая сделка ID = {dealId}: {deal.title}")
 
             # Создаем объект калькуляции
             calculation = Bitrix_Calculation.objects.create(
                 name=calculation_name,
+                deal=deal,
                 price_material=data.get('price_material'),
                 price_add_material=data.get('price_add_material'),
                 price_salary=data.get('price_salary'),
@@ -461,17 +505,13 @@ def create_calculation(request):
                 price_final_price=data.get('price_final_price'),
             )
 
-            # Проходим по каждому элементу operations_fullprices
+            # Обработка операций
             for item in operations_fullprices:
-                # Получаем состав товара по id
                 goods_composition = Bitrix_GoodsComposition.objects.filter(id=item.get('composition_of_techoperation')).first()
-
                 if not goods_composition:
-                    # Если не нашли товар, пропускаем этот элемент
                     print(f"Состав товара с id {item.get('composition_of_techoperation')} не найден.")
                     continue
 
-                # Создаем запись в Birtrix_Price_GoodsComposition
                 Birtrix_Price_GoodsComposition.objects.create(
                     calculation=calculation,
                     goods_compostion=goods_composition,
@@ -485,24 +525,36 @@ def create_calculation(request):
                     price_salary_fund=item.get('price_salary_fund'),
                     price_final_price=item.get('final_price'),
                 )
-            for formula_name, value in parameters_dict.items():
-                    try:
-                        # Найти параметр по formula_name
-                        parameter = ParametersOfProducts.objects.get(formula_name=formula_name)
-                        
-                        # Создать экземпляр модели
-                        Bitrix_GoodsParametersInCalculation.objects.create(
-                            calculation=calculation,
-                            parameters=parameter,
-                            parameter_value=str(value)  # Преобразуем значение в строку для сохранения
-                        )
-                    except ParametersOfProducts.DoesNotExist:
-                        # Обработать случай, если параметр не найден
-                        print(f"Parameter with formula_name='{formula_name}' not found.")
 
+            # Обработка параметров
+            for formula_name, value in parameters_dict.items():
+                try:
+                    parameter = ParametersOfProducts.objects.get(formula_name=formula_name)
+                    Bitrix_GoodsParametersInCalculation.objects.create(
+                        calculation=calculation,
+                        parameters=parameter,
+                        parameter_value=str(value)
+                    )
+                except ParametersOfProducts.DoesNotExist:
+                    print(f"Parameter with formula_name='{formula_name}' not found.")
 
             return JsonResponse({'id': calculation.id, 'name': calculation.name}, status=201)
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
     return JsonResponse({'error': 'Недопустимый метод.'}, status=405)
+
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+from .models import Bitrix_Calculation
+
+def delete_calculation(request, pk):
+    if request.method == "DELETE":
+        try:
+            calculation = get_object_or_404(Bitrix_Calculation, pk=pk)
+            calculation.delete()  # Удаляет объект и связанные записи благодаря CASCADE
+            return JsonResponse({"status": "success", "message": "Калькуляция успешно удалена."})
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": f"Ошибка удаления: {str(e)}"})
+    else:
+        return JsonResponse({"status": "error", "message": "Неподдерживаемый метод запроса."})

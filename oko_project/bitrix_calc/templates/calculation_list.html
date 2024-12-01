@@ -101,63 +101,69 @@
     <script src="https://cdn.jsdelivr.net/npm/@bitrix/desktop/dist/desktop.bundle.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
+                function deleteCalculation(button) {
+            const calcId = button.getAttribute("data-id");
+            if (!calcId) {
+                alert("Не удалось определить ID калькуляции.");
+                return;
+            }
+
+            if (confirm("Вы уверены, что хотите удалить эту калькуляцию?")) {
+                fetch(`/delete-calculation/${calcId}/`, {
+                    method: "DELETE",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": getCookie("csrftoken"),
+                    },
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === "success") {
+                            alert(data.message);
+                            location.reload(); // Перезагружаем страницу
+                        } else {
+                            alert(`Ошибка: ${data.message}`);
+                        }
+                    })
+                    .catch(error => {
+                        alert(`Произошла ошибка: ${error}`);
+                    });
+            }
+        }
+
         document.addEventListener("DOMContentLoaded", () => {
-            // function getDealIdFromParent() {
-            //     if (typeof BX24 !== 'undefined' && BX24.placement) {
-            //         const placementInfo = BX24.placement.info();
-            //         if (placementInfo.placement === 'CRM_DEAL_DETAIL_TAB') {
-            //             const dealId = placementInfo.options.ID;
-            //             console.log('ID сделки из Bitrix24:', dealId);
 
-            //             const calculationListUrl = `https://reklamaoko.ru/calculation_list?deal_id=${dealId}`;
-            //             const headerButton = document.querySelector('.header-button');
-            //             if (headerButton) {
-            //                 headerButton.href = calculationListUrl;
-            //             }
-            //         } else {
-            //             console.warn('Приложение не размещено в CRM_DEAL_DETAIL_TAB');
-            //         }
-            //     } else {
-            //         console.error('Bitrix24 JS API недоступен');
-            //     }
-            // }
+            const syncButton2 = document.getElementById("syncDealsButton");
 
-            // BX24.init(() => {
-            //     getDealIdFromParent();
-            // });
+            if (syncButton2) {
+                syncButton2.addEventListener("click", function () {
+                    syncButton2.disabled = true; // Отключаем кнопку на время выполнения
+                    syncButton2.textContent = "Синхронизация...";
 
-            // Обработчик для кнопки "Синхронизировать"
-    const syncButton2 = document.getElementById("syncDealsButton");
-
-    if (syncButton2) {
-        syncButton2.addEventListener("click", function () {
-            syncButton2.disabled = true; // Отключаем кнопку на время выполнения
-            syncButton2.textContent = "Синхронизация...";
-
-            fetch("/sync-deals/", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRFToken": getCookie("csrftoken"), // Убедитесь, что CSRF-токен включен
-                },
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === "success") {
-                        alert(data.message);
-                    } else {
-                        alert(`Ошибка: ${data.message}`);
-                    }
-                })
-                .catch(error => {
-                    alert(`Произошла ошибка: ${error}`);
-                })
-                .finally(() => {
-                    syncButton2.disabled = false; // Возвращаем кнопку в исходное состояние
-                    syncButton2.textContent = "Синхронизировать сделки";
+                    fetch("/sync-deals/", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRFToken": getCookie("csrftoken"), // Убедитесь, что CSRF-токен включен
+                        },
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === "success") {
+                                alert(data.message);
+                            } else {
+                                alert(`Ошибка: ${data.message}`);
+                            }
+                        })
+                        .catch(error => {
+                            alert(`Произошла ошибка: ${error}`);
+                        })
+                        .finally(() => {
+                            syncButton2.disabled = false; // Возвращаем кнопку в исходное состояние
+                            syncButton2.textContent = "Синхронизировать сделки";
+                        });
                 });
-        });
-    }
+            }
 
             document.querySelector('.sync-button').addEventListener('click', () => {
                 const statusElement = document.getElementById('sync-status');
@@ -198,9 +204,9 @@
 
 <div class="container">
     <a href="{% url 'calculation_add' %}" class="header-button">Сделать расчет</a>
-    <button class="sync-button">Синхронизировать</button>
-    <button id="syncDealsButton" class="sync-button">Синхронизировать</button>
+    <button class="sync-button">Синхронизировать компании</button>
     <h1>Список калькуляций</h1>
+    <button id="syncDealsButton" class="sync-button2">Синхронизировать сделки</button>
     <p id="sync-status"></p>
     <table>
         <thead>
@@ -223,11 +229,15 @@
                 <td>{{ calc.manager }}</td>
                 <td>{{ calc.name }}</td>
                 <td>{{ calc.total_price }}</td>
-                <td><button class="attach-button">Прикрепить к лиду</button></td>
+                <td>
+                    <button class="attach-button">Прикрепить к лиду</button>
+                    <button class="delete-button" onclick="deleteCalculation(this)" data-id="{{ calc.number }}">Удалить калькуляцию</button>
+                </td>                
             </tr>
             {% endfor %}
         </tbody>
     </table>
+    
 </div>
 
 </body>

@@ -917,6 +917,7 @@ document.querySelector('.submit-button').addEventListener('click', function () {
             ...currentParameters, // Передаем сохраненные данные
             operations_fullprices: operationsFullprices,
             parameters_dict:parameters_dict,
+            dealId:dealId,
         }),
     })
     .then(response => {

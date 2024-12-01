@@ -2631,7 +2631,7 @@ def sync_companies(request):
     return JsonResponse({"status": "error", "message": "Не удалось получить данные о компаниях", 'first_company_data': companies_data}, status=500)
 
 
-BITRIX_WEBHOOK_URL_DEALS = "https://your.bitrix24.url/rest/7/your_webhook_key/crm.deal.list"
+BITRIX_WEBHOOK_URL_DEALS = "https://oko.bitrix24.ru/rest/7/5c7fk7e5y2cev81a/crm.deal.list"
 
 @csrf_exempt
 def sync_deals(request):
@@ -2641,7 +2641,10 @@ def sync_deals(request):
     try:
         print("Инициализация синхронизации сделок...")
         total_processed = 0
+        total_added = 0
+        total_updated = 0
         start = 0
+        all_deals_count = None  # Общее количество сделок (узнаем из ответа)
 
         while True:
             response = requests.get(BITRIX_WEBHOOK_URL_DEALS, params={"start": start})
@@ -2652,41 +2655,73 @@ def sync_deals(request):
             if "result" not in data:
                 return JsonResponse({"status": "error", "message": "Ошибка получения данных из Bitrix24"})
 
+            # Получаем общее количество сделок
+            if all_deals_count is None:
+                all_deals_count = data.get("total", 0)
+                print(f"Общее количество сделок для обработки: {all_deals_count}")
+
             deals = data["result"]
             print(f"Получено {len(deals)} сделок для обработки.")
 
-            for deal in deals:
+            for index, deal in enumerate(deals, start=start + 1):
                 deal_id = int(deal["ID"])
-                print(f"Обработка сделки ID = {deal_id}")
+                print(f"Обработка сделки ID = {deal_id}, это {index} из {all_deals_count} сделок")
 
+                # Обработка дат
                 raw_date_create = deal["DATE_CREATE"]
                 parsed_date_create = parser.parse(raw_date_create)
                 date_create = make_aware(parsed_date_create) if is_naive(parsed_date_create) else parsed_date_create
+
                 raw_date_modify = deal["DATE_MODIFY"]
                 parsed_date_modify = parser.parse(raw_date_modify)
                 date_modify = make_aware(parsed_date_modify) if is_naive(parsed_date_modify) else parsed_date_modify
 
-                # Сохранение или обновление сделки
-                BitrixDeal.objects.update_or_create(
-                    bitrix_id=deal_id,
-                    defaults={
-                        "title": deal.get("TITLE"),
-                        "stage_id": deal.get("STAGE_ID"),
-                        "probability": deal.get("PROBABILITY"),
-                        "opportunity": deal.get("OPPORTUNITY"),
-                        "currency_id": deal.get("CURRENCY_ID"),
-                        "date_created": date_create,
-                        "date_modified": date_modify,
-                    },
-                )
+                # Проверка существования сделки
+                existing_deal = BitrixDeal.objects.filter(bitrix_id=deal_id).first()
+                if existing_deal:
+                    if existing_deal.date_modified != date_modify:
+                        # Обновляем только если дата изменения отличается
+                        existing_deal.title = deal.get("TITLE")
+                        existing_deal.stage_id = deal.get("STAGE_ID")
+                        existing_deal.probability = deal.get("PROBABILITY")
+                        existing_deal.opportunity = deal.get("OPPORTUNITY")
+                        existing_deal.currency_id = deal.get("CURRENCY_ID")
+                        existing_deal.date_created = date_create
+                        existing_deal.date_modified = date_modify
+                        existing_deal.save()
+
+                        print(f"Обновлена сделка ID = {deal_id}: {existing_deal.title}")
+                        total_updated += 1
+                    else:
+                        print(f"Пропуск сделки ID = {deal_id} (данные не изменились)")
+                else:
+                    # Создаем новую сделку
+                    BitrixDeal.objects.create(
+                        bitrix_id=deal_id,
+                        title=deal.get("TITLE"),
+                        stage_id=deal.get("STAGE_ID"),
+                        probability=deal.get("PROBABILITY"),
+                        opportunity=deal.get("OPPORTUNITY"),
+                        currency_id=deal.get("CURRENCY_ID"),
+                        date_created=date_create,
+                        date_modified=date_modify,
+                    )
+                    print(f"Добавлена новая сделка ID = {deal_id}: {deal.get('TITLE')}")
+                    total_added += 1
+
                 total_processed += 1
 
             if not data.get("next"):
                 break
             start = data.get("next", 0)
 
-        print(f"Синхронизация сделок завершена. Всего обработано: {total_processed}")
-        return JsonResponse({"status": "success", "message": f"Синхронизация завершена. Обработано сделок: {total_processed}"})
+        print(f"Синхронизация завершена. Всего обработано: {total_processed}")
+        print(f"Добавлено сделок: {total_added}")
+        print(f"Обновлено сделок: {total_updated}")
+        return JsonResponse({
+            "status": "success",
+            "message": f"Синхронизация завершена. Обработано: {total_processed}, добавлено: {total_added}, обновлено: {total_updated}"
+        })
 
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)})
