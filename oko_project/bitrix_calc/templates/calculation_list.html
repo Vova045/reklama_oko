@@ -149,7 +149,6 @@
                 BX24.init(() => {
                     if (BX24.placement && BX24.placement.info().placement === 'CRM_DEAL_DETAIL_TAB') {
                         const dealId = BX24.placement.info().options.ID;
-                        dealId = str(dealId)
                         if (!dealId) {
                             console.error("Не удалось получить ID сделки.");
                             return;

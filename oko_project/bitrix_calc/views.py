@@ -11,26 +11,31 @@ def calculation_list(request):
     deal_id = None
     if request.method == "POST":
         try:
-            # Проверяем, есть ли тело запроса
-            if not request.body:
-                return JsonResponse({"error": "Пустое тело запроса"}, status=400)
-            
-            # Пытаемся разобрать JSON
-            data = json.loads(request.body)
-            deal_id = data.get("deal_id")
+            # Проверяем Content-Type
+            if request.content_type == "application/json":
+                data = json.loads(request.body)
+            elif request.content_type == "application/x-www-form-urlencoded":
+                # Если данные передаются как x-www-form-urlencoded
+                parsed_data = parse_qs(request.body.decode('utf-8'))
+                data = {key: value[0] for key, value in parsed_data.items()}  # Конвертируем в обычный словарь
+            else:
+                return JsonResponse({"error": "Unsupported Content-Type"}, status=400)
 
-            # Проверяем, что deal_id передан
+            # Логика обработки данных
+            deal_id = data.get("deal_id") or data.get("PLACEMENT_OPTIONS", {}).get("ID")
             if not deal_id:
                 return JsonResponse({"error": "deal_id отсутствует", "data": data}, status=400)
 
-            # Основная логика
             return JsonResponse({"message": "Успешно обработано", "deal_id": deal_id}, status=200)
         except json.JSONDecodeError as e:
             return JsonResponse({
                 "error": "Некорректный JSON",
                 "details": str(e),
-                "raw_body": request.body.decode('utf-8')  # Тело запроса в виде строки для анализа
+                "raw_body": request.body.decode('utf-8')  # Тело запроса для анализа
             }, status=400)
+        except Exception as e:
+            return JsonResponse({"error": "Неизвестная ошибка", "details": str(e)}, status=500)
+
     if deal_id:
         # Находим сделку по bitrix_id
         try:
