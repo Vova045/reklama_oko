@@ -7,36 +7,20 @@
     <style>
         body {
             font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
             margin: 0;
-            padding: 20px; /* Добавляем отступ сверху */
             background-color: #f4f4f9;
         }
 
         .container {
             display: flex;
-            width: 100%;
-            max-width: 1200px;
-            margin: 0 auto;
+            width: 80%;
+            height: 80%;
             border: 1px solid #ccc;
             background-color: #fff;
-        }
-
-        .back-button {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            padding: 10px 15px;
-            font-size: 16px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-
-        .back-button:hover {
-            background-color: #0056b3;
         }
 
         .item-list, .item-types, .item-details {
@@ -75,6 +59,40 @@
 
         .item-list li:hover, .item-types li:hover {
             background-color: #ddd;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .name-type {
+            cursor: pointer;
+            font-weight: bold;
+            padding: 8px;
+            border-radius: 3px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .name-type:hover {
+            background-color: #f0f0f0;
+        }
+
+        .name-type.active {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .name-type ul {
+            margin-top: 5px;
+            margin-left: 20px;
+            padding-left: 0;
+            list-style: none;
+        }
+
+        .inner_name-type.selected {
+            background-color: #007bff;
+            color: white;
+            font-weight: bold;
         }
 
         .image-frame {
