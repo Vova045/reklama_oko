@@ -10,9 +10,39 @@
             background-color: #f4f4f9;
             display: flex;
             justify-content: center;
-            align-items: center;
-            height: 100vh;
+            align-items: flex-start; /* Изменено для предотвращения перекрытия */
+            min-height: 100vh;
             margin: 0;
+        }
+
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: #007bff;
+            color: #fff;
+            padding: 10px 15px;
+            z-index: 1000;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .header a, .header button {
+            color: #fff;
+            text-decoration: none;
+            margin-right: 10px;
+            padding: 10px 15px;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .header a:hover, .header button:hover {
+            background-color: #0056b3;
         }
 
         .container {
@@ -22,45 +52,7 @@
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            position: relative;
-        }
-
-        .header-button {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            padding: 10px 15px;
-            background-color: #007bff;
-            color: #fff;
-            text-decoration: none;
-            border-radius: 5px;
-            font-size: 14px;
-            font-weight: bold;
-            transition: background-color 0.3s;
-        }
-
-        .header-button:hover {
-            background-color: #0056b3;
-        }
-
-        .sync-button {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            padding: 10px 15px;
-            background-color: #28a745;
-            color: #fff;
-            text-decoration: none;
-            border: none;
-            border-radius: 5px;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-
-        .sync-button:hover {
-            background-color: #218838;
+            margin-top: 80px; /* Отступ для фиксации шапки */
         }
 
         h1 {
@@ -83,7 +75,7 @@
             background-color: #f2f2f2;
         }
 
-        .attach-button {
+        .attach-button, .delete-button {
             padding: 5px 10px;
             color: white;
             background-color: #28a745;
@@ -93,21 +85,52 @@
             transition: background-color 0.3s;
         }
 
+        .delete-button {
+            background-color: #dc3545;
+        }
+
         .attach-button:hover {
             background-color: #218838;
         }
+
+        .delete-button:hover {
+            background-color: #c82333;
+        }
     </style>
-    <script src="https://api.bitrix24.com/api/v1/"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@bitrix/desktop/dist/desktop.bundle.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-                function deleteCalculation(button) {
-            const calcId = button.getAttribute("data-id");
-            if (!calcId) {
-                alert("Не удалось определить ID калькуляции.");
-                return;
-            }
+        document.addEventListener("DOMContentLoaded", () => {
+            const syncButton = document.getElementById("syncDealsButton");
 
+            if (syncButton) {
+                syncButton.addEventListener("click", () => {
+                    syncButton.disabled = true;
+                    syncButton.textContent = "Синхронизация...";
+
+                    fetch("/sync-deals/", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRFToken": getCookie("csrftoken"),
+                        },
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            alert(data.message || "Синхронизация завершена.");
+                        })
+                        .catch(error => {
+                            alert(`Ошибка: ${error}`);
+                        })
+                        .finally(() => {
+                            syncButton.disabled = false;
+                            syncButton.textContent = "Синхронизировать сделки";
+                        });
+                });
+            }
+        });
+
+        function deleteCalculation(button) {
+            const calcId = button.getAttribute("data-id");
             if (confirm("Вы уверены, что хотите удалить эту калькуляцию?")) {
                 fetch(`/delete-calculation/${calcId}/`, {
                     method: "DELETE",
@@ -118,96 +141,37 @@
                 })
                     .then(response => response.json())
                     .then(data => {
-                        if (data.status === "success") {
-                            alert(data.message);
-                            location.reload(); // Перезагружаем страницу
-                        } else {
-                            alert(`Ошибка: ${data.message}`);
-                        }
+                        alert(data.message);
+                        if (data.status === "success") location.reload();
                     })
                     .catch(error => {
-                        alert(`Произошла ошибка: ${error}`);
+                        alert(`Ошибка: ${error}`);
                     });
             }
         }
 
-        document.addEventListener("DOMContentLoaded", () => {
-
-            const syncButton2 = document.getElementById("syncDealsButton");
-
-            if (syncButton2) {
-                syncButton2.addEventListener("click", function () {
-                    syncButton2.disabled = true; // Отключаем кнопку на время выполнения
-                    syncButton2.textContent = "Синхронизация...";
-
-                    fetch("/sync-deals/", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "X-CSRFToken": getCookie("csrftoken"), // Убедитесь, что CSRF-токен включен
-                        },
-                    })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.status === "success") {
-                                alert(data.message);
-                            } else {
-                                alert(`Ошибка: ${data.message}`);
-                            }
-                        })
-                        .catch(error => {
-                            alert(`Произошла ошибка: ${error}`);
-                        })
-                        .finally(() => {
-                            syncButton2.disabled = false; // Возвращаем кнопку в исходное состояние
-                            syncButton2.textContent = "Синхронизировать сделки";
-                        });
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie) {
+                const cookies = document.cookie.split(";");
+                cookies.forEach(cookie => {
+                    const [key, value] = cookie.trim().split("=");
+                    if (key === name) cookieValue = decodeURIComponent(value);
                 });
             }
-
-            document.querySelector('.sync-button').addEventListener('click', () => {
-                const statusElement = document.getElementById('sync-status');
-                statusElement.textContent = 'Синхронизация началась...';
-
-                fetch("{% url 'sync_companies' %}")
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.status === 'success') {
-                            console.log(data.first_company_data)
-                            statusElement.textContent = data.message;
-                        } else {
-                            statusElement.textContent = 'Ошибка: ' + data.message;
-                        }
-                    })
-                    .catch(error => {
-                        statusElement.textContent = 'Ошибка синхронизации: ' + error.message;
-                    });
-            });
-        });
-        function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== "") {
-        const cookies = document.cookie.split(";");
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === name + "=") {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
+            return cookieValue;
         }
-    }
-    return cookieValue;
-}
     </script>
 </head>
 <body>
 
+<div class="header">
+    <a href="{% url 'calculation_add' %}">Сделать расчет</a>
+    <button id="syncDealsButton">Синхронизировать сделки</button>
+</div>
+
 <div class="container">
-    <a href="{% url 'calculation_add' %}" class="header-button">Сделать расчет</a>
-    <button class="sync-button">Синхронизировать компании</button>
     <h1>Список калькуляций</h1>
-    <button id="syncDealsButton" class="sync-button2">Синхронизировать сделки</button>
-    <p id="sync-status"></p>
     <table>
         <thead>
             <tr>
@@ -231,13 +195,12 @@
                 <td>{{ calc.total_price }}</td>
                 <td>
                     <button class="attach-button">Прикрепить к лиду</button>
-                    <button class="delete-button" onclick="deleteCalculation(this)" data-id="{{ calc.number }}">Удалить калькуляцию</button>
-                </td>                
+                    <button class="delete-button" onclick="deleteCalculation(this)" data-id="{{ calc.number }}">Удалить</button>
+                </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
-    
 </div>
 
 </body>
