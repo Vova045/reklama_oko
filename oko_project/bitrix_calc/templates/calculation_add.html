@@ -763,8 +763,8 @@ function filterClients() {
                 // Проверяем, что приложение размещено на странице сделки
                 if (placementInfo.placement === 'CRM_DEAL_DETAIL_TAB') {
                     // Извлекаем ID сделки из параметров
-                    const dealId = placementInfo.options.ID;
-                    console.log('ID сделки из Bitrix24:', dealId);
+                    const dealId_from_bx = placementInfo.options.ID;
+                    console.log('ID сделки из Bitrix24:', dealId_from_bx);
                     
                     // Получаем информацию о текущем пользователе
                     BX24.callMethod('user.current', {}, function (result) {
@@ -779,7 +779,7 @@ function filterClients() {
                             const userName = `${userInfo.NAME} ${userInfo.LAST_NAME}`; // Полное имя пользователя
 
                             // Формируем URL с учетом ID сделки и ID/имени пользователя
-                            const calculationListUrl = `https://reklamaoko.ru/calculation_list?deal_id=${dealId}&user_id=${userId}&user_name=${encodeURIComponent(userName)}`;
+                            const calculationListUrl = `https://reklamaoko.ru/calculation_list?deal_id=${dealId_from_bx}&user_id=${dealId_from_bx}&user_name=${encodeURIComponent(userName)}`;
                             console.log('Ссылка на список калькуляций:', calculationListUrl);
 
                             // Устанавливаем обновленный URL для кнопки
