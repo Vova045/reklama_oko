@@ -64,6 +64,10 @@ def calculation_list(request):
 
 @csrf_exempt
 def calculation_add(request):
+    calc_number = request.GET.get('calc_number', None)
+    if calc_number:
+        # Логика для работы с calc_number
+        pass
     # Извлекаем список изделий
     goods = Bitrix_Goods.objects.all()
 
@@ -84,7 +88,7 @@ def calculation_add(request):
         grouped_compositions[name].append(type_)
 
     # Передаем данные в шаблон
-    return render(request, "calculation_add.html", {"goods": goods, "grouped_compositions": grouped_compositions})
+    return render(request, "calculation_add.html", {"goods": goods, "grouped_compositions": grouped_compositions, 'calc_number':calc_number})
 
 
 import logging

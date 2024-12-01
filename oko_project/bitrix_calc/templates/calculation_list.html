@@ -246,7 +246,7 @@
                 <td>{{ calc.total_price }}</td>
                 <td>
                     <button class="attach-button">Прикрепить к лиду</button>
-                    <button class="change-button">Редактировать</button>
+                    <button class="change-button" onclick="location.href='{% url 'calculation_add' %}?calc_number={{ calc.number }}';">Редактировать</button>
                     <button class="delete-button" onclick="deleteCalculation(this)" data-id="{{ calc.number }}">Удалить</button>
                 </td>
             </tr>
