@@ -354,6 +354,7 @@ function submitForm() {
 let currentParameters = {};
 let currentFinalPrice = 0;
 let operationsFullprices = [];
+let dealId = null; // Глобальная переменная для хранения ID сделки
 
 // Функция отправки параметров на сервер
 function sendParameterDataToServer() {
@@ -425,60 +426,6 @@ function sendParameterDataToServer() {
 
 
 
-
-
-// function updateFinalPrice(productParameters) {
-//     console.log('updateFinalPrice');
-
-
-//     fetch('/api/update_parameters/', {
-//         method: 'POST',
-//         headers: {
-//             'Content-Type': 'application/json',
-//             'X-CSRFToken': '{{ csrf_token }}'
-//         },
-//         body: JSON.stringify({
-//             product_parameters: productParameters,            
-//         })
-//     })
-//     .then(response => response.json())
-//     .then(data => {
-//     const container2 = document.getElementById('price-container2');
-//     container2.innerHTML = ''; // Очищаем контейнер перед выводом новых данных
-
-//     if (data.success) {
-//         // Проверяем, получены ли данные по операциям
-//         if (nomenclaturePrice && data.operations.length > 0) {
-//             data.operations.forEach(operation => {
-//                 // Создаем новый элемент для каждой операции
-//                 const operationElement = document.createElement('div');
-                
-//                 // Форматируем цену для текущей операции
-//                 const finalPrice = Math.floor(operation.final_price);
-//                 operationElement.textContent = `Операция: ${operation.operation}, Цена: ${finalPrice} руб.`;
-
-//                 // Добавляем элемент в контейнер
-//                 container2.appendChild(operationElement);
-//             });
-//         } else {
-//             container2.textContent = 'Цена не найдена';
-//         }
-//     } else {
-//         console.error('Ошибка при обновлении параметров:', data.message);
-//         container2.textContent = 'Параметр в цене не выбран';
-//     }
-// })
-// .catch(error => {
-//     console.error('Error sending parameter data to server:', error);
-// });
-
-// }
-
-
-
-// getUserCurrent();
-// Функция для загрузки списка клиентов
-
 function createDealInBitrix() {
     const container = document.getElementById('PriceContainer');
     const priceText = container.textContent;
@@ -522,30 +469,6 @@ function getCsrfToken() {
     }
     return '';
 }
-
-// function getUserCurrent() {
-//         fetch('/api/user-current/', {
-//             method: 'GET',
-//             headers: {
-//                 'X-CSRFToken': getCsrfToken(),
-//             },
-//         })
-//         .then(response => response.json())
-//         .then(data => {
-//             console.log(data)
-//             if (data.user_name) {
-//                 alert('Имя пользователя: ' + data.user_name); // Выводим имя пользователя в alert
-//             } else {
-//                 console.log('Ошибка получения данных:', data.error);
-//             }
-//         })
-//         .catch(error => {
-//             console.error('Ошибка запроса:', error);
-//         });
-//     }
-
-//     document.getElementById('getUserNameButton').addEventListener('click', getUserCurrent);
-
 
 function createAuthorizationModal(message, authorizationUrl) {
     // Создаем фоновый затемнённый блок
@@ -647,8 +570,6 @@ function getUserCurrent() {
     });
 }
 
-
-
 function createAuthorizationModal(message, authorizationUrl) {
     console.log("Creating authorization modal...");
     console.log("Message:", message);
@@ -719,9 +640,6 @@ function createAuthorizationModal(message, authorizationUrl) {
 
 
 document.getElementById('getUserNameButton').addEventListener('click', getUserCurrent);
-
-
-// Вызов функции при загрузке страницы
 
 function filterClients() {
         const searchValue = document.getElementById("clientSearch").value.toLowerCase();
@@ -834,7 +752,6 @@ function filterClients() {
         alert('Произошла ошибка запроса. Проверьте соединение с сервером.');
     });
 }
-let dealId = null; // Глобальная переменная для хранения ID сделки
 
     document.addEventListener("DOMContentLoaded", () => {
         function getDealIdFromParent() {
