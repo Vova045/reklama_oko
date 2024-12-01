@@ -103,32 +103,59 @@
         document.addEventListener("DOMContentLoaded", () => {
             let dealId_from_bx = null;
 
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie) {
+                    const cookies = document.cookie.split(";");
+                    cookies.forEach(cookie => {
+                        const [key, value] = cookie.trim().split("=");
+                        if (key === name) cookieValue = decodeURIComponent(value);
+                    });
+                }
+                return cookieValue;
+            }
+
             function getDealIdFromParent() {
                 if (typeof BX24 !== 'undefined' && BX24.placement) {
                     const placementInfo = BX24.placement.info();
                     if (placementInfo.placement === 'CRM_DEAL_DETAIL_TAB') {
                         dealId_from_bx = placementInfo.options.ID;
-                        console.log('ID сделки из Bitrix24:', dealId_from_bx);
+                        console.log("Получен ID сделки:", dealId_from_bx);
 
-                        // Передача dealId на сервер
+                        if (!dealId_from_bx) {
+                            console.error("dealId_from_bx не определён!");
+                            return;
+                        }
+
+                        // Отправка ID на сервер
+                        const requestData = { deal_id: dealId_from_bx };
+                        console.log("Отправляемые данные:", requestData);
+
                         fetch(`/calculation_list/`, {
                             method: "POST",
                             headers: {
                                 "Content-Type": "application/json",
                                 "X-CSRFToken": getCookie("csrftoken"),
                             },
-                            body: JSON.stringify({ deal_id: dealId_from_bx }),
+                            body: JSON.stringify(requestData),
                         })
-                            .then(response => response.text())
+                            .then(response => {
+                                console.log("Ответ сервера:", response);
+                                if (!response.ok) {
+                                    throw new Error(`HTTP ошибка: ${response.status}`);
+                                }
+                                return response.text();
+                            })
                             .then(html => {
+                                console.log("Полученный HTML:", html);
                                 document.querySelector(".container").innerHTML = html;
                             })
                             .catch(error => console.error("Ошибка загрузки калькуляций:", error));
                     } else {
-                        console.warn('Приложение не размещено в CRM_DEAL_DETAIL_TAB');
+                        console.warn("Приложение не размещено в CRM_DEAL_DETAIL_TAB");
                     }
                 } else {
-                    console.error('Bitrix24 JS API недоступен');
+                    console.error("Bitrix24 JS API недоступен");
                 }
             }
 
