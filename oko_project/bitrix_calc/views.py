@@ -13,16 +13,18 @@ def calculation_list(request):
         try:
             # Проверяем Content-Type
             if request.content_type == "application/json":
+                # Если данные в формате JSON
                 data = json.loads(request.body)
             elif request.content_type == "application/x-www-form-urlencoded":
                 # Если данные передаются как x-www-form-urlencoded
                 parsed_data = parse_qs(request.body.decode('utf-8'))
-                data = {key: value[0] for key, value in parsed_data.items()}  # Конвертируем в обычный словарь
+                # Конвертируем значения в обычный словарь (берем только первое значение из списка)
+                data = {key: value[0] for key, value in parsed_data.items()}
             else:
                 return JsonResponse({"error": "Unsupported Content-Type"}, status=400)
 
             # Логика обработки данных
-            deal_id = data.get("deal_id") or data.get("PLACEMENT_OPTIONS", {}).get("ID")
+            deal_id = data.get("deal_id") or json.loads(data.get("PLACEMENT_OPTIONS", "{}")).get("ID")
             if not deal_id:
                 return JsonResponse({"error": "deal_id отсутствует", "data": data}, status=400)
 
