@@ -75,7 +75,7 @@
             background-color: #f2f2f2;
         }
 
-        .attach-button, .delete-button {
+        .attach-button, .delete-button, .change-button {
             padding: 5px 10px;
             color: white;
             background-color: #28a745;
@@ -87,6 +87,9 @@
 
         .delete-button {
             background-color: #dc3545;
+        }
+        .change-button {
+            background-color: #0f457e;
         }
 
         .attach-button:hover {
@@ -243,6 +246,7 @@
                 <td>{{ calc.total_price }}</td>
                 <td>
                     <button class="attach-button">Прикрепить к лиду</button>
+                    <button class="change-button">Редактировать</button>
                     <button class="delete-button" onclick="deleteCalculation(this)" data-id="{{ calc.number }}">Удалить</button>
                 </td>
             </tr>
