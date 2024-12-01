@@ -14,7 +14,23 @@
             margin: 0;
             background-color: #f4f4f9;
         }
+        .back-button {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            padding: 10px 15px;
+            font-size: 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
 
+        .back-button:hover {
+            background-color: #0056b3;
+        }
         .container {
             display: flex;
             width: 80%;
@@ -181,7 +197,7 @@
     </div>
 </div>
 
-<div class="company-search">
+<!-- <div class="company-search">
     <h3>Поиск компании</h3>
     <div class="input-group">
         <label for="companySearch">Поиск компании:</label>
@@ -190,7 +206,7 @@
     <ul id="companyList"></ul>
     <button id="getUserNameButton">Получить имя</button>
     <button id="getCompanyButton" onclick="getCompanies()">Получить компании</button>
-</div>
+</div> -->
 
 </body>
 </html>
