@@ -8,22 +8,39 @@ import requests
 # Create your views here.
 @csrf_exempt
 def calculation_list(request):
-    # Извлечение данных из базы
-    calculations = Bitrix_Calculation.objects.all()
-    
-    # Формирование списка для передачи в шаблон
+    deal_id = None
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            deal_id = data.get("deal_id")
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    if deal_id:
+        # Находим сделку по bitrix_id
+        try:
+            deal = BitrixDeal.objects.get(bitrix_id=deal_id)
+        except BitrixDeal.DoesNotExist:
+            return JsonResponse({"error": "Deal not found"}, status=404)
+        
+        # Фильтруем связанные калькуляции
+        calculations = Bitrix_Calculation.objects.filter(deal=deal)
+    else:
+        calculations = Bitrix_Calculation.objects.none()  # Если ID сделки нет, показываем пустой список
+
+    # Формируем данные для шаблона
     calculation_data = []
     for calc in calculations:
         calculation_data.append({
-            'date': calc.created_at.strftime('%d.%m.%Y') if hasattr(calc, 'created_at') else 'Неизвестная дата',  # Если поле даты есть
-            'number': calc.id if calc.id else '00000',  # Если id есть
-            'client': 'Неизвестный клиент',  # Используем статическое значение
-            'manager': 'Неизвестный менеджер',  # Используем статическое значение
+            'date': calc.created_at.strftime('%d.%m.%Y') if hasattr(calc, 'created_at') else 'Неизвестная дата',
+            'number': calc.id if calc.id else '00000',
+            'client': calc.client.name if hasattr(calc.client, 'name') else 'Неизвестный клиент',
+            'manager': calc.manager.name if hasattr(calc.manager, 'name') else 'Неизвестный менеджер',
             'name': calc.name if calc.name else 'Без названия',
-            'total_price': calc.price_final_price if calc.price_final_price else '0 руб.',  # Общая цена
+            'total_price': calc.price_final_price if calc.price_final_price else '0 руб.',
         })
 
-    # Передача данных в шаблон
+    # Рендерим HTML
     return render(request, 'calculation_list.html', {'calculations': calculation_data})
 
 @csrf_exempt

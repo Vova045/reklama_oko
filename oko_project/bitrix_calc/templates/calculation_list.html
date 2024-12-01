@@ -101,33 +101,42 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", () => {
-        let dealId_from_bx = null; // Глобальная переменная для хранения ID сделки
-        function getDealIdFromParent() {
-            // Проверяем доступность Bitrix24 JS API
-            if (typeof BX24 !== 'undefined' && BX24.placement) {
-                // Получаем информацию о текущем размещении приложения
-                const placementInfo = BX24.placement.info();
-                // Проверяем, что приложение размещено на странице сделки
-                if (placementInfo.placement === 'CRM_DEAL_DETAIL_TAB') {
-                    // Извлекаем ID сделки из параметров
-                    dealId_from_bx = placementInfo.options.ID;
-                    console.log('ID сделки из Bitrix24:', dealId_from_bx);
-                    
+            let dealId_from_bx = null;
+
+            function getDealIdFromParent() {
+                if (typeof BX24 !== 'undefined' && BX24.placement) {
+                    const placementInfo = BX24.placement.info();
+                    if (placementInfo.placement === 'CRM_DEAL_DETAIL_TAB') {
+                        dealId_from_bx = placementInfo.options.ID;
+                        console.log('ID сделки из Bitrix24:', dealId_from_bx);
+
+                        // Передача dealId на сервер
+                        fetch(`/calculation_list/`, {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "X-CSRFToken": getCookie("csrftoken"),
+                            },
+                            body: JSON.stringify({ deal_id: dealId_from_bx }),
+                        })
+                            .then(response => response.text())
+                            .then(html => {
+                                document.querySelector(".container").innerHTML = html;
+                            })
+                            .catch(error => console.error("Ошибка загрузки калькуляций:", error));
+                    } else {
+                        console.warn('Приложение не размещено в CRM_DEAL_DETAIL_TAB');
+                    }
                 } else {
-                    console.warn('Приложение не размещено в CRM_DEAL_DETAIL_TAB');
+                    console.error('Bitrix24 JS API недоступен');
                 }
-            } else {
-                console.error('Bitrix24 JS API недоступен');
             }
-        }
-        if(BX24){
-            BX24.init(() => {
-            getDealIdFromParent();
-        });
-        } else {
-            // Authoritation()
-        }
-        // Инициализируем API и выполняем извлечение ID
+
+            if (BX24) {
+                BX24.init(() => {
+                    getDealIdFromParent();
+                });
+            }
 
         
             const syncButton = document.getElementById("syncDealsButton");
