@@ -175,11 +175,6 @@
             <input type="text" id="calculationName" placeholder="Введите название калькуляции">
         </div>
 
-        <div class="input-group">
-            <label for="dealNumber">Номер сделки Битрикса:</label>
-            <input type="text" id="dealNumber" placeholder="Введите номер сделки">
-        </div>
-
         <button class="submit-button">Создать</button>
     </div>
 </div>
@@ -839,7 +834,7 @@ function filterClients() {
         alert('Произошла ошибка запроса. Проверьте соединение с сервером.');
     });
 }
-
+let dealId = null; // Глобальная переменная для хранения ID сделки
 
     document.addEventListener("DOMContentLoaded", () => {
         function getDealIdFromParent() {
@@ -895,48 +890,52 @@ function filterClients() {
 
     });
 
-
-    // Слушатель событий для создания калькуляции
+// Добавляем обработчик для кнопки создания калькуляции
 document.querySelector('.submit-button').addEventListener('click', function () {
-    const calculationName = document.getElementById('calculationName').value;
+        const calculationName = document.getElementById('calculationName').value;
 
-    if (!calculationName) {
-        alert("Пожалуйста, введите название калькуляции.");
-        return;
-    }
-
-    // Используем сохраненные данные для создания калькуляции
-    fetch('/api/create-calculation/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
-        },
-        body: JSON.stringify({
-            name: calculationName,
-            ...currentParameters, // Передаем сохраненные данные
-            operations_fullprices: operationsFullprices,
-            parameters_dict:parameters_dict,
-            dealId:dealId,
-        }),
-    })
-    .then(response => {
-        if (response.ok) {
-            return response.json();
-        } else {
-            return response.json().then(errorData => {
-                throw new Error(errorData.error || 'Ошибка при создании калькуляции.');
-            });
+        if (!calculationName) {
+            alert("Пожалуйста, введите название калькуляции.");
+            return;
         }
-    })
-    .then(data => {
-        alert(`Калькуляция "${data.name}" успешно создана.`);
-    })
-    .catch(error => {
-        console.error('Ошибка:', error);
-        alert('Не удалось создать калькуляцию: ' + error.message);
+
+        if (!dealId) {
+            alert("ID сделки не был загружен. Повторите попытку.");
+            return;
+        }
+
+        // Используем сохраненные данные для создания калькуляции
+        fetch('/api/create-calculation/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                name: calculationName,
+                ...currentParameters, // Передаем сохраненные данные
+                operations_fullprices: operationsFullprices,
+                parameters_dict: parameters_dict,
+                dealId: dealId, // Используем загруженный ID сделки
+            }),
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            } else {
+                return response.json().then(errorData => {
+                    throw new Error(errorData.error || 'Ошибка при создании калькуляции.');
+                });
+            }
+        })
+        .then(data => {
+            alert(`Калькуляция "${data.name}" успешно создана.`);
+        })
+        .catch(error => {
+            console.error('Ошибка:', error);
+            alert('Не удалось создать калькуляцию: ' + error.message);
+        });
     });
-});
 
 // Функция для получения CSRF-токена из cookie
 function getCookie(name) {
