@@ -4,114 +4,165 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Список калькуляций</title>
-    <script src="https://api.bitrix24.com/api/v1/"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: #007bff;
+            color: #fff;
+            padding: 10px 15px;
+            z-index: 1000;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .header a, .header button {
+            color: #fff;
+            text-decoration: none;
+            margin-right: 10px;
+            padding: 10px 15px;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .header a:hover, .header button:hover {
+            background-color: #0056b3;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-top: 80px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 10px;
+            border: 1px solid #ccc;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        .attach-button, .delete-button {
+            padding: 5px 10px;
+            color: white;
+            background-color: #28a745;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .delete-button {
+            background-color: #dc3545;
+        }
+
+        .attach-button:hover {
+            background-color: #218838;
+        }
+
+        .delete-button:hover {
+            background-color: #c82333;
+        }
+    </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", () => {
-            let dealIdFromBx = null;
+            const container = document.querySelector(".container");
+            const initialContent = container.innerHTML;
 
-            /**
-             * Получение CSRF-токена из cookie.
-             */
             function getCookie(name) {
                 let cookieValue = null;
                 if (document.cookie) {
-                    const cookies = document.cookie.split(";");
+                    const cookies = document.cookie.split(';');
                     cookies.forEach(cookie => {
-                        const [key, value] = cookie.trim().split("=");
+                        const [key, value] = cookie.trim().split('=');
                         if (key === name) cookieValue = decodeURIComponent(value);
                     });
                 }
                 return cookieValue;
             }
 
-            /**
-             * Получение ID сделки из Bitrix24.
-             */
-            function getDealIdFromParent() {
-                if (typeof BX24 !== 'undefined' && BX24.placement) {
-                    const placementInfo = BX24.placement.info();
-                    console.log("Информация о размещении:", placementInfo);
-
-                    if (placementInfo.placement === 'CRM_DEAL_DETAIL_TAB') {
-                        dealIdFromBx = placementInfo.options.ID;
-                        console.log("Получен ID сделки:", dealIdFromBx);
-
-                        if (!dealIdFromBx) {
-                            console.error("dealIdFromBx не определён!");
-                            return;
-                        }
-
-                        sendDealIdToServer(dealIdFromBx);
-                    } else {
-                        console.warn("Приложение не размещено в CRM_DEAL_DETAIL_TAB");
-                    }
-                } else {
-                    console.error("Bitrix24 JS API недоступен");
-                }
+            function handleError(error) {
+                console.error("Ошибка:", error.message || error);
+                alert("Произошла ошибка. Проверьте консоль для деталей.");
+                container.innerHTML = initialContent; // Восстанавливаем начальный вид страницы
             }
 
-            /**
-             * Отправка ID сделки на сервер и обновление содержимого страницы.
-             */
-            function sendDealIdToServer(dealId) {
-                const requestData = { deal_id: dealId };
-                console.log("Отправляемые данные:", requestData);
-
+            function loadCalculations(dealId) {
                 fetch(`/calculation_list/`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
                         "X-CSRFToken": getCookie("csrftoken"),
                     },
-                    body: JSON.stringify(requestData),
+                    body: JSON.stringify({ deal_id: dealId }),
                 })
-                .then(async response => {
-                    const data = await response.text();
-                    console.log("Ответ сервера (текст):", data);
-                    if (!response.ok) {
-                        throw new Error(`HTTP ошибка: ${response.status} - ${data}`);
-                    }
-                    return data;
+                .then(response => {
+                    if (!response.ok) throw new Error(`HTTP ошибка: ${response.status}`);
+                    return response.text();
                 })
                 .then(html => {
-                    console.log("Обновляем содержимое страницы.");
-                    document.querySelector(".container").innerHTML = html;
+                    container.innerHTML = html;
                 })
-                .catch(error => {
-                    console.error("Ошибка загрузки калькуляций:", error.message);
+                .catch(handleError);
+            }
+
+            function initializeBitrix24() {
+                if (typeof BX24 === 'undefined') {
+                    console.error("BX24 не найден. Загрузка данных без интеграции с Bitrix24.");
+                    return;
+                }
+
+                BX24.init(() => {
+                    if (BX24.placement && BX24.placement.info().placement === 'CRM_DEAL_DETAIL_TAB') {
+                        const dealId = BX24.placement.info().options.ID;
+                        if (!dealId) {
+                            console.error("Не удалось получить ID сделки.");
+                            return;
+                        }
+                        loadCalculations(dealId);
+                    } else {
+                        console.warn("Приложение не размещено в CRM_DEAL_DETAIL_TAB.");
+                    }
                 });
             }
 
-            /**
-             * Удаление калькуляции.
-             */
-            window.deleteCalculation = function(button) {
-                const calcId = button.getAttribute("data-id");
-                if (confirm("Вы уверены, что хотите удалить эту калькуляцию?")) {
-                    fetch(`/delete-calculation/${calcId}/`, {
-                        method: "DELETE",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "X-CSRFToken": getCookie("csrftoken"),
-                        },
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        console.log("Ответ сервера на удаление:", data);
-                        alert(data.message);
-                        if (data.status === "success") location.reload();
-                    })
-                    .catch(error => {
-                        console.error("Ошибка удаления калькуляции:", error.message);
-                        alert(`Ошибка: ${error.message}`);
-                    });
-                }
-            };
+            initializeBitrix24();
 
-            /**
-             * Синхронизация сделок.
-             */
+            // Синхронизация сделок
             const syncButton = document.getElementById("syncDealsButton");
             if (syncButton) {
                 syncButton.addEventListener("click", () => {
@@ -127,71 +178,82 @@
                     })
                     .then(response => response.json())
                     .then(data => {
-                        console.log("Ответ сервера на синхронизацию:", data);
                         alert(data.message || "Синхронизация завершена.");
                     })
-                    .catch(error => {
-                        console.error("Ошибка синхронизации сделок:", error.message);
-                        alert(`Ошибка: ${error.message}`);
-                    })
+                    .catch(handleError)
                     .finally(() => {
                         syncButton.disabled = false;
                         syncButton.textContent = "Синхронизировать сделки";
                     });
                 });
             }
-
-            /**
-             * Инициализация Bitrix24.
-             */
-            if (BX24) {
-                BX24.init(() => {
-                    console.log("BX24 инициализирован.");
-                    getDealIdFromParent();
-                });
-            } else {
-                console.error("BX24 не найден.");
-            }
         });
+
+        function deleteCalculation(button) {
+            const calcId = button.getAttribute("data-id");
+            if (confirm("Вы уверены, что хотите удалить эту калькуляцию?")) {
+                fetch(`/delete-calculation/${calcId}/`, {
+                    method: "DELETE",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": getCookie("csrftoken"),
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    if (data.status === "success") location.reload();
+                })
+                .catch(error => {
+                    alert(`Ошибка: ${error.message || error}`);
+                });
+            }
+        }
     </script>
 </head>
 <body>
-    <div class="header">
-        <a href="{% url 'calculation_add' %}">Сделать расчет</a>
-        <button id="syncDealsButton">Синхронизировать сделки</button>
-    </div>
+<div class="header">
+    <a href="{% url 'calculation_add' %}">Сделать расчет</a>
+    <button id="syncDealsButton">Синхронизировать сделки</button>
+</div>
 
-    <div class="container">
-        <h1>Список калькуляций</h1>
-        <table>
-            <thead>
-                <tr>
-                    <th>Дата</th>
-                    <th>Номер</th>
-                    <th>Клиент</th>
-                    <th>Менеджер</th>
-                    <th>Наименование</th>
-                    <th>Сумма</th>
-                    <th>Действие</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for calc in calculations %}
-                <tr>
-                    <td>{{ calc.date }}</td>
-                    <td>{{ calc.number }}</td>
-                    <td>{{ calc.client }}</td>
-                    <td>{{ calc.manager }}</td>
-                    <td>{{ calc.name }}</td>
-                    <td>{{ calc.total_price }}</td>
-                    <td>
-                        <button class="attach-button">Прикрепить к лиду</button>
-                        <button class="delete-button" onclick="deleteCalculation(this)" data-id="{{ calc.number }}">Удалить</button>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+<div class="container">
+    <h1>Список калькуляций</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Дата</th>
+                <th>Номер</th>
+                <th>Клиент</th>
+                <th>Менеджер</th>
+                <th>Наименование</th>
+                <th>Сумма</th>
+                <th>Действие</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if calculations %}
+            {% for calc in calculations %}
+            <tr>
+                <td>{{ calc.date }}</td>
+                <td>{{ calc.number }}</td>
+                <td>{{ calc.client }}</td>
+                <td>{{ calc.manager }}</td>
+                <td>{{ calc.name }}</td>
+                <td>{{ calc.total_price }}</td>
+                <td>
+                    <button class="attach-button">Прикрепить к лиду</button>
+                    <button class="delete-button" onclick="deleteCalculation(this)" data-id="{{ calc.number }}">Удалить</button>
+                </td>
+            </tr>
+            {% endfor %}
+            {% else %}
+            <tr>
+                <td colspan="7">Нет доступных калькуляций.</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
 </body>
 </html>
