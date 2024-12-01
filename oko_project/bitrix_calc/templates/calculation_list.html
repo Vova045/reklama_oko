@@ -97,9 +97,39 @@
             background-color: #c82333;
         }
     </style>
+    <script src="https://api.bitrix24.com/api/v1/"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", () => {
+        let dealId_from_bx = null; // Глобальная переменная для хранения ID сделки
+        function getDealIdFromParent() {
+            // Проверяем доступность Bitrix24 JS API
+            if (typeof BX24 !== 'undefined' && BX24.placement) {
+                // Получаем информацию о текущем размещении приложения
+                const placementInfo = BX24.placement.info();
+                // Проверяем, что приложение размещено на странице сделки
+                if (placementInfo.placement === 'CRM_DEAL_DETAIL_TAB') {
+                    // Извлекаем ID сделки из параметров
+                    dealId_from_bx = placementInfo.options.ID;
+                    console.log('ID сделки из Bitrix24:', dealId_from_bx);
+                    
+                } else {
+                    console.warn('Приложение не размещено в CRM_DEAL_DETAIL_TAB');
+                }
+            } else {
+                console.error('Bitrix24 JS API недоступен');
+            }
+        }
+        if(BX24){
+            BX24.init(() => {
+            getDealIdFromParent();
+        });
+        } else {
+            // Authoritation()
+        }
+        // Инициализируем API и выполняем извлечение ID
+
+        
             const syncButton = document.getElementById("syncDealsButton");
 
             if (syncButton) {
