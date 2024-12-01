@@ -90,7 +90,8 @@ class Bitrix_Calculation(models.Model):
     price_profit = models.CharField(max_length=100, verbose_name="Прибыль")
     price_salary_fund = models.CharField(max_length=100, verbose_name="Фонд заработной платы")
     price_final_price = models.CharField(max_length=100, verbose_name="Общая цена")  # Убрано editable=False
-
+    created_at = models.DateTimeField(blank=True, null=True,auto_now_add=True)  # Дата создания
+    updated_at = models.DateTimeField(blank=True, null=True,auto_now=True)
 
 class Birtrix_Price_GoodsComposition(models.Model):
     calculation = models.ForeignKey(Bitrix_Calculation, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Калькуляция")
