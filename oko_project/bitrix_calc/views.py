@@ -14,7 +14,7 @@ def calculation_list(request):
             data = json.loads(request.body)
             deal_id = data.get("deal_id")
         except json.JSONDecodeError:
-            return JsonResponse({"error": "Invalid JSON"}, status=400)
+            return JsonResponse({"error": "Invalid JSON",'data':json.loads(request.body), 'deal_id':data.get("deal_id")}, status=400)
 
     if deal_id:
         # Находим сделку по bitrix_id
