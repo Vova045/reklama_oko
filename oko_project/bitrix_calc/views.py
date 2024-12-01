@@ -11,25 +11,27 @@ def calculation_list(request):
     deal_id = None
     if request.method == "POST":
         try:
-            # Проверяем, есть ли тело запроса
-            if not request.body:
-                return JsonResponse({"error": "Пустое тело запроса"}, status=400)
+            # Проверка типа содержимого
+            content_type = request.content_type
             
-            # Пытаемся разобрать JSON
-            data = json.loads(request.body)
-            deal_id = data.get("deal_id")
+            if content_type == "application/json":
+                data = json.loads(request.body)
+            elif content_type == "application/x-www-form-urlencoded":
+                data = request.POST  # request.POST автоматически обрабатывает URL-encoded данные
+            else:
+                return JsonResponse({"error": "Неподдерживаемый Content-Type", "content_type": content_type}, status=400)
 
-            # Проверяем, что deal_id передан
+            deal_id = data.get("deal_id") or data.get("PLACEMENT_OPTIONS", {}).get("ID")
+
             if not deal_id:
                 return JsonResponse({"error": "deal_id отсутствует", "data": data}, status=400)
 
-            # Основная логика
             return JsonResponse({"message": "Успешно обработано", "deal_id": deal_id}, status=200)
         except json.JSONDecodeError as e:
             return JsonResponse({
                 "error": "Некорректный JSON",
                 "details": str(e),
-                "raw_body": request.body.decode('utf-8')  # Тело запроса в виде строки для анализа
+                "raw_body": request.body.decode('utf-8')
             }, status=400)
     if deal_id:
         # Находим сделку по bitrix_id
