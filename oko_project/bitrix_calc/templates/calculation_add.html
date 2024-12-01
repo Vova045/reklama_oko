@@ -195,6 +195,8 @@
 
 <script src="https://api.bitrix24.com/api/v1/"></script>
 <script>
+let dealId_from_bx = null; // Глобальная переменная для хранения ID сделки
+
 let selectedProductId = null;
 let selectedProductName = null;
 
@@ -354,7 +356,6 @@ function submitForm() {
 let currentParameters = {};
 let currentFinalPrice = 0;
 let operationsFullprices = [];
-let dealId_from_bx = null; // Глобальная переменная для хранения ID сделки
 
 // Функция отправки параметров на сервер
 function sendParameterDataToServer() {
@@ -763,7 +764,7 @@ function filterClients() {
                 // Проверяем, что приложение размещено на странице сделки
                 if (placementInfo.placement === 'CRM_DEAL_DETAIL_TAB') {
                     // Извлекаем ID сделки из параметров
-                    const dealId_from_bx = placementInfo.options.ID;
+                    dealId_from_bx = placementInfo.options.ID;
                     console.log('ID сделки из Bitrix24:', dealId_from_bx);
                     
                     // Получаем информацию о текущем пользователе
