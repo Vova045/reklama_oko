@@ -354,7 +354,7 @@ function submitForm() {
 let currentParameters = {};
 let currentFinalPrice = 0;
 let operationsFullprices = [];
-let dealId = null; // Глобальная переменная для хранения ID сделки
+let dealId_from_bx = null; // Глобальная переменная для хранения ID сделки
 
 // Функция отправки параметров на сервер
 function sendParameterDataToServer() {
@@ -809,6 +809,7 @@ function filterClients() {
 
 // Добавляем обработчик для кнопки создания калькуляции
 document.querySelector('.submit-button').addEventListener('click', function () {
+
         const calculationName = document.getElementById('calculationName').value;
 
         if (!calculationName) {
@@ -816,7 +817,7 @@ document.querySelector('.submit-button').addEventListener('click', function () {
             return;
         }
 
-        if (!dealId) {
+        if (!dealId_from_bx) {
             alert("ID сделки не был загружен. Повторите попытку.");
             return;
         }
@@ -833,7 +834,7 @@ document.querySelector('.submit-button').addEventListener('click', function () {
                 ...currentParameters, // Передаем сохраненные данные
                 operations_fullprices: operationsFullprices,
                 parameters_dict: parameters_dict,
-                dealId: dealId, // Используем загруженный ID сделки
+                dealId: dealId_from_bx, // Используем загруженный ID сделки
             }),
         })
         .then(response => {
