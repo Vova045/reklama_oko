@@ -136,7 +136,7 @@ def calculation_add(request):
                 if parameter.parameters:
                     # Добавляем в parameters_data пару "parameter_name - parameter_value"
                     parameters_data.append({
-                        parameter.parameters.name: parameter.parameter_value
+                        parameter.parameters.parameters_product: parameter.parameter_value
                     })
 
         # Теперь у нас есть две переменные:
