@@ -48,6 +48,8 @@ def calculation_list(request):
             }, status=500)
 
         if not deal:
+            response = requests.get(BITRIX_WEBHOOK_URL_DEALS, params={"id": deal_id})
+
             return JsonResponse({"error": "Неизвестная ошибка", "response": response}, status=500)
 
             try:
