@@ -25,7 +25,7 @@ def calculation_list(request):
 
             # Логика обработки данных
             deal_id = data.get("deal_id") or json.loads(data.get("PLACEMENT_OPTIONS", "{}")).get("ID")
-
+            BITRIX_WEBHOOK_URL_CURRECT_DEAL = "https://oko.bitrix24.ru/rest/7/5c7fk7e5y2cev81a/crm.deal.get.json"
         except json.JSONDecodeError as e:
             return JsonResponse({
                 "error": "Некорректный JSON",
@@ -48,23 +48,17 @@ def calculation_list(request):
             }, status=500)
 
         if not deal:
-            response = requests.get(BITRIX_WEBHOOK_URL_DEALS, params={"id": deal_id})
+            response = requests.get(BITRIX_WEBHOOK_URL_CURRECT_DEAL, params={"id": deal_id})
             if response.status_code != 200:
                 return JsonResponse({
                     'error': f"Не удалось получить данные сделки из Bitrix24, код ответа: {response.status_code}"
                 }, status=500)
 
             deal_data = response.json()
-            type_deal = type(deal_data).__name__
             if "result" not in deal_data:
                 return JsonResponse({'error': "Сделка не найдена в Bitrix24."}, status=404)
-            # deal_info = next((deal for deal in deal_data if str(deal.get("ID")) == str(deal_id)), None)
-            return JsonResponse({'deal_info': type_deal}, status=404)
-            # deal_info = deal_data["result"]
-            # return JsonResponse({
-            #         'error': f"Не удалось получить данные сделки из Bitrix24, код ответа: {deal_info}"
-            #     }, status=500)
 
+            deal_info = deal_data["result"]
             raw_date_create = deal_info["DATE_CREATE"]
             parsed_date_create = parser.parse(raw_date_create)
             date_create = make_aware(parsed_date_create) if is_naive(parsed_date_create) else parsed_date_create
