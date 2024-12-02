@@ -588,6 +588,8 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from .models import Bitrix_Calculation
 
+
+@csrf_exempt
 def delete_calculation(request, pk):
     if request.method == "GET":
         try:

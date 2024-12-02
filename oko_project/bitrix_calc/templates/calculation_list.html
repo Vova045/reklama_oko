@@ -216,13 +216,15 @@ function getCookie(name) {
 function deleteCalculation(button) {
     const calcId = button.getAttribute("data-id");
     if (confirm("Вы уверены, что хотите удалить эту калькуляцию?")) {
+        const csrfToken = getCookie("csrftoken");  // Убедитесь, что CSRF-токен корректно получен
+
         fetch(`/delete-calculation/${calcId}/`, {
-            method: "POST", // Используем POST вместо DELETE
+            method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "X-CSRFToken": getCookie("csrftoken"),
+                "X-CSRFToken": csrfToken,  // Передаем CSRF-токен в заголовке
             },
-            body: JSON.stringify({ _method: "DELETE" }) // Указываем метод удаления в теле запроса
+            body: JSON.stringify({ _method: "DELETE" }),
         })
         .then(response => {
             if (!response.ok) {
@@ -239,6 +241,7 @@ function deleteCalculation(button) {
         });
     }
 }
+
 
     </script>
 </head>
