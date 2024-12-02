@@ -102,21 +102,22 @@
     </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie) {
+                const cookies = document.cookie.split(';');
+                cookies.forEach(cookie => {
+                    const [key, value] = cookie.trim().split('=');
+                    if (key === name) cookieValue = decodeURIComponent(value);
+                });
+            }
+            return cookieValue;
+        }
         document.addEventListener("DOMContentLoaded", () => {
             const container = document.querySelector(".container");
             const initialContent = container.innerHTML;
 
-            function getCookie(name) {
-                let cookieValue = null;
-                if (document.cookie) {
-                    const cookies = document.cookie.split(';');
-                    cookies.forEach(cookie => {
-                        const [key, value] = cookie.trim().split('=');
-                        if (key === name) cookieValue = decodeURIComponent(value);
-                    });
-                }
-                return cookieValue;
-            }
+
 
             function handleError(error) {
                 console.error("Ошибка:", error.message || error);
