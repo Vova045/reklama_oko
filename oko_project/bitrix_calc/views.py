@@ -5,6 +5,9 @@ from base.models import ParametersOfProducts
 from django.http import JsonResponse
 import requests
 from dateutil import parser
+from django.utils.timezone import make_aware
+from django.utils.timezone import is_naive
+
 # Create your views here.
 @csrf_exempt
 def calculation_list(request):
