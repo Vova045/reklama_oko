@@ -123,14 +123,21 @@ def calculation_add(request):
         for composition in price_compositions:
             # Получаем объект Bitrix_GoodsComposition, связанный с composition
             goods_composition = composition.goods_compostion
-            select_goods = goods_composition.goods.all()
+            select_goods = goods_composition.goods
             if goods_composition:
                 # Добавляем в goods_compositions_data пару "name_type_of_goods - type_of_goods"
                 goods_compositions_data.append({
                     goods_composition.name_type_of_goods: goods_composition.type_of_goods
                 })
-            if first_good is None:  # Если еще не нашли первого товара
-                first_good = select_goods.first().bitrix_goods_name
+                    # Проверяем, что товар существует
+            if select_goods:
+                # Сохраняем первый товар в переменную (если еще не сохранен)
+                if first_good is None:
+                    first_good = goods.bitrix_goods_name  # Наименование товара
+                goods_data.append(goods.bitrix_goods_name)  # Наименование товара для Битрикс
+            else:
+                goods_data.append("No goods found")
+                
             goods_data.append(select_goods.first().bitrix_goods_name)
             # Получаем связанные параметры для этой калькуляции
             parameters_in_calculation = Bitrix_GoodsParametersInCalculation.objects.filter(calculation=calculation)
