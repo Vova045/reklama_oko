@@ -476,9 +476,6 @@ from bitrix_calc.models import Bitrix_Calculation
 
 BITRIX_WEBHOOK_URL_DEALS = "https://oko.bitrix24.ru/rest/7/5c7fk7e5y2cev81a/crm.deal.list"
 
-from django.http import JsonResponse, HttpResponseRedirect
-from django.urls import reverse
-
 @csrf_exempt
 def create_calculation(request):
     if request.method == 'POST':
@@ -490,7 +487,7 @@ def create_calculation(request):
             operations_fullprices = data.get('operations_fullprices')
             parameters_dict = data.get('parameters_dict')
             dealId = data.get('dealId')
-
+            
             print(operations_fullprices)  # Принт для отладки
 
             if not calculation_name:
@@ -581,12 +578,10 @@ def create_calculation(request):
                 except ParametersOfProducts.DoesNotExist:
                     print(f"Parameter with formula_name='{formula_name}' not found.")
 
-            # После успешного создания калькуляции, перенаправляем на список
-            return HttpResponseRedirect(reverse('calculation_list'))
+            return JsonResponse({'id': calculation.id, 'name': calculation.name}, status=201)
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
-    
     return JsonResponse({'error': 'Недопустимый метод.'}, status=405)
 
 from django.http import JsonResponse
