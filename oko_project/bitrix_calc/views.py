@@ -38,6 +38,8 @@ def calculation_list(request):
     if deal_id:
         # Находим сделку по bitrix_id
         try:
+            return JsonResponse({'error': f"Не удалось получить данные сделки из Bitrix24, код ответа: {deal_id}"}, status=500)
+
             deal = BitrixDeal.objects.get(bitrix_id=deal_id)
             if not deal:
                 # Если сделки нет, получаем ее данные из Bitrix24 и создаем
@@ -50,7 +52,6 @@ def calculation_list(request):
                     return JsonResponse({'error': "Сделка не найдена в Bitrix24."}, status=404)
 
                 deal_info = deal_data["result"]
-                return JsonResponse({'error': f"Не удалось получить данные сделки из Bitrix24, код ответа: {deal_info}"}, status=500)
                 raw_date_create = deal_info["DATE_CREATE"]
                 parsed_date_create = parser.parse(raw_date_create)
                 date_create = make_aware(parsed_date_create) if is_naive(parsed_date_create) else parsed_date_create
