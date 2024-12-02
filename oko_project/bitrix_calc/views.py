@@ -59,6 +59,7 @@ def calculation_list(request):
             if "result" not in deal_data:
                 return JsonResponse({'error': "Сделка не найдена в Bitrix24."}, status=404)
             deal_info = next((deal for deal in deal_data if str(deal.get("ID")) == str(deal_id)), None)
+            return JsonResponse({'deal_info': deal_info}, status=404)
             # deal_info = deal_data["result"]
             # return JsonResponse({
             #         'error': f"Не удалось получить данные сделки из Bitrix24, код ответа: {deal_info}"
