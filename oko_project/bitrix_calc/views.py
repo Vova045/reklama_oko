@@ -4,7 +4,7 @@ from .models import Bitrix_Goods, Bitrix_GoodsComposition, Birtrix_Price_GoodsCo
 from base.models import ParametersOfProducts
 from django.http import JsonResponse
 import requests
-
+from dateutil import parser
 # Create your views here.
 @csrf_exempt
 def calculation_list(request):
