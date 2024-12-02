@@ -589,6 +589,7 @@ from django.shortcuts import get_object_or_404
 from .models import Bitrix_Calculation
 
 def delete_calculation(request, pk):
+    delete = request.method
     if request.method == "DELETE":
         try:
             calculation = get_object_or_404(Bitrix_Calculation, pk=pk)
@@ -597,4 +598,4 @@ def delete_calculation(request, pk):
         except Exception as e:
             return JsonResponse({"status": "error", "message": f"Ошибка удаления: {str(e)}"})
     else:
-        return JsonResponse({"status": "error", "message": "Неподдерживаемый метод запроса.","pk":pk})
+        return JsonResponse({"status": "error", "message": "Неподдерживаемый метод запроса.","pk":pk,'delete':delete})
