@@ -38,9 +38,10 @@ def calculation_list(request):
     if deal_id:
         # Находим сделку по bitrix_id
         try:
-            return JsonResponse({'error': f"Не удалось получить данные сделки из Bitrix24, код ответа: {deal_id}"}, status=500)
 
             deal = BitrixDeal.objects.get(bitrix_id=deal_id)
+            return JsonResponse({'error': f"Не удалось получить данные сделки из Bitrix24, код ответа: {deal}"}, status=500)
+
             if not deal:
                 # Если сделки нет, получаем ее данные из Bitrix24 и создаем
                 response = requests.get(BITRIX_WEBHOOK_URL_DEALS, params={"id": deal_id})
