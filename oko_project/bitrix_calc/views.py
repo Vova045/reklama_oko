@@ -36,17 +36,25 @@ def calculation_list(request):
             return JsonResponse({"error": "Неизвестная ошибка", "details": str(e)}, status=500)
 
     if deal_id:
-        # Находим сделку по bitrix_id
         try:
+            # Попробуем найти сделку в базе данных
+            deal = BitrixDeal.objects.filter(bitrix_id=deal_id).first()
+        except Exception as e:
+            # Если ошибка возникает, возвращаем больше информации о проблеме
+            return JsonResponse({
+                "error": "Database query failed while retrieving deal.",
+                "details": str(e),
+                "deal_id": deal_id,
+            }, status=500)
 
-            deal = BitrixDeal.objects.get(bitrix_id=deal_id)
-            return JsonResponse({'error': f"Не удалось получить данные сделки из Bitrix24, код ответа: {deal}"}, status=500)
-
-            if not deal:
-                # Если сделки нет, получаем ее данные из Bitrix24 и создаем
+        if not deal:
+            try:
+                # Если сделки нет, получаем её данные из Bitrix24
                 response = requests.get(BITRIX_WEBHOOK_URL_DEALS, params={"id": deal_id})
                 if response.status_code != 200:
-                    return JsonResponse({'error': f"Не удалось получить данные сделки из Bitrix24, код ответа: {response.status_code}"}, status=500)
+                    return JsonResponse({
+                        'error': f"Не удалось получить данные сделки из Bitrix24, код ответа: {response.status_code}"
+                    }, status=500)
 
                 deal_data = response.json()
                 if "result" not in deal_data:
@@ -72,10 +80,12 @@ def calculation_list(request):
                     date_modified=date_modify,
                 )
                 print(f"Создана новая сделка ID = {deal_id}: {deal.title}")
-                return JsonResponse({"status": "success", "message": "Сделка успешно добавлена.", 'deal':deal.title})
-        except BitrixDeal.DoesNotExist:
-
-            return JsonResponse({"error": "Deal not found2",'deal_id':deal_id}, status=404)
+            except Exception as e:
+                return JsonResponse({
+                    "error": "Error occurred while retrieving or creating deal from Bitrix24.",
+                    "details": str(e),
+                    "deal_id": deal_id,
+                }, status=500)
         
         # Фильтруем связанные калькуляции
         calculations = Bitrix_Calculation.objects.filter(deal=deal)
