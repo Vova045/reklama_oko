@@ -104,6 +104,8 @@ def calculation_list(request):
 
 @csrf_exempt
 def calculation_add(request):
+    goods_compositions_data = []
+    parameters_data = []
     calc_number = request.GET.get('calc_number', '')
     if calc_number:
         
@@ -113,8 +115,7 @@ def calculation_add(request):
         price_compositions = Birtrix_Price_GoodsComposition.objects.filter(calculation=calculation)
 
         # Инициализируем две переменные для хранения данных
-        goods_compositions_data = []
-        parameters_data = []
+
 
         # Проходим по всем price_compositions
         for composition in price_compositions:
