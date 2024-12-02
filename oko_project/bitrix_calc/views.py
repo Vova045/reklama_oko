@@ -589,7 +589,7 @@ from django.shortcuts import get_object_or_404
 from .models import Bitrix_Calculation
 
 def delete_calculation(request, pk):
-    if request.method == "DELETE":
+    if request.method == "GET":
         try:
             calculation = get_object_or_404(Bitrix_Calculation, pk=pk)
             calculation.delete()  # Удаляет объект и связанные записи благодаря CASCADE
