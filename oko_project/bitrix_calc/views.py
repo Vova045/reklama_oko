@@ -106,6 +106,8 @@ def calculation_list(request):
 def calculation_add(request):
     goods_compositions_data = []
     parameters_data = []
+    goods_data = []
+    first_good = None
     calc_number = request.GET.get('calc_number', '')
     if calc_number:
         
@@ -121,13 +123,15 @@ def calculation_add(request):
         for composition in price_compositions:
             # Получаем объект Bitrix_GoodsComposition, связанный с composition
             goods_composition = composition.goods_compostion
-            
+            select_goods = goods_composition.goods.all()
             if goods_composition:
                 # Добавляем в goods_compositions_data пару "name_type_of_goods - type_of_goods"
                 goods_compositions_data.append({
                     goods_composition.name_type_of_goods: goods_composition.type_of_goods
                 })
-            
+            if first_good is None:  # Если еще не нашли первого товара
+                first_good = select_goods.first().bitrix_goods_name
+            goods_data.append(select_goods.first().bitrix_goods_name)
             # Получаем связанные параметры для этой калькуляции
             parameters_in_calculation = Bitrix_GoodsParametersInCalculation.objects.filter(calculation=calculation)
 
@@ -167,7 +171,7 @@ def calculation_add(request):
         grouped_compositions[name].append(type_)
 
     # Передаем данные в шаблон
-    return render(request, "calculation_add.html", {"goods": goods, "grouped_compositions": grouped_compositions, 'calc_number':calc_number, 'goods_compositions_data':goods_compositions_data, 'parameters_data':parameters_data})
+    return render(request, "calculation_add.html", {"goods": goods, "grouped_compositions": grouped_compositions, 'calc_number':calc_number, 'goods_compositions_data':goods_compositions_data, 'parameters_data':parameters_data, 'first_good': first_good})
 
 
 import logging
