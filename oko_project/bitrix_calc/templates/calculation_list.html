@@ -114,6 +114,28 @@
             return cookieValue;
         }
         document.addEventListener("DOMContentLoaded", () => {
+            function initializeBitrix24() {
+                if (typeof BX24 === 'undefined') {
+                    console.error("BX24 не найден. Загрузка данных без интеграции с Bitrix24.");
+                    return;
+                }
+
+                BX24.init(() => {
+                    if (BX24.placement && BX24.placement.info().placement === 'CRM_DEAL_DETAIL_TAB') {
+                        const dealId = BX24.placement.info().options.ID;
+                        if (!dealId) {
+                            console.error("Не удалось получить ID сделки.");
+                            return;
+                        }
+                        loadCalculations(dealId);
+                    } else {
+                        console.warn("Приложение не размещено в CRM_DEAL_DETAIL_TAB.");
+                    }
+                });
+            }
+
+            initializeBitrix24();
+            
             const container = document.querySelector(".container");
             const initialContent = container.innerHTML;
 
@@ -144,27 +166,7 @@
                 .catch(handleError);
             }
 
-            function initializeBitrix24() {
-                if (typeof BX24 === 'undefined') {
-                    console.error("BX24 не найден. Загрузка данных без интеграции с Bitrix24.");
-                    return;
-                }
-
-                BX24.init(() => {
-                    if (BX24.placement && BX24.placement.info().placement === 'CRM_DEAL_DETAIL_TAB') {
-                        const dealId = BX24.placement.info().options.ID;
-                        if (!dealId) {
-                            console.error("Не удалось получить ID сделки.");
-                            return;
-                        }
-                        loadCalculations(dealId);
-                    } else {
-                        console.warn("Приложение не размещено в CRM_DEAL_DETAIL_TAB.");
-                    }
-                });
-            }
-
-            initializeBitrix24();
+            
 
             // Синхронизация сделок
             const syncButton = document.getElementById("syncDealsButton");
