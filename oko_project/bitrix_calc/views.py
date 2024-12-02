@@ -138,7 +138,7 @@ def calculation_add(request):
             else:
                 goods_data.append("No goods found")
                 
-            goods_data.append(goods.bitrix_goods_name)
+            goods_data.append(select_goods.bitrix_goods_name)
             # Получаем связанные параметры для этой калькуляции
             parameters_in_calculation = Bitrix_GoodsParametersInCalculation.objects.filter(calculation=calculation)
 
