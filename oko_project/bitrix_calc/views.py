@@ -71,7 +71,7 @@ def calculation_list(request):
                 print(f"Создана новая сделка ID = {deal_id}: {deal.title}")
         except BitrixDeal.DoesNotExist:
 
-            return JsonResponse({"error": "Deal not found2"}, status=404)
+            return JsonResponse({"error": "Deal not found2",'deal_id':deal_id}, status=404)
         
         # Фильтруем связанные калькуляции
         calculations = Bitrix_Calculation.objects.filter(deal=deal)
