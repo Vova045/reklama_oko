@@ -107,8 +107,45 @@ def calculation_add(request):
     calc_number = request.GET.get('calc_number', '')
     if calc_number:
         
-        # Логика для работы с calc_number
-        pass
+        calculation = get_object_or_404(Bitrix_Calculation, id=calc_number)
+
+        # Получаем все композиции товаров для текущей калькуляции
+        price_compositions = Birtrix_Price_GoodsComposition.objects.filter(calculation=calculation)
+
+        # Инициализируем две переменные для хранения данных
+        goods_compositions_data = []
+        parameters_data = []
+
+        # Проходим по всем price_compositions
+        for composition in price_compositions:
+            # Получаем объект Bitrix_GoodsComposition, связанный с composition
+            goods_composition = composition.goods_composition
+            
+            if goods_composition:
+                # Добавляем в goods_compositions_data пару "name_type_of_goods - type_of_goods"
+                goods_compositions_data.append({
+                    goods_composition.name_type_of_goods: goods_composition.type_of_goods
+                })
+            
+            # Получаем связанные параметры для этой калькуляции
+            parameters_in_calculation = Bitrix_GoodsParametersInCalculation.objects.filter(calculation=calculation)
+
+            # Проходим по каждому параметру
+            for parameter in parameters_in_calculation:
+                if parameter.parameters:
+                    # Добавляем в parameters_data пару "parameter_name - parameter_value"
+                    parameters_data.append({
+                        parameter.parameters.name: parameter.parameter_value
+                    })
+
+        # Теперь у нас есть две переменные:
+        # goods_compositions_data с парами "name_type_of_goods - type_of_goods"
+        # parameters_data с парами "parameter_name - parameter_value"
+
+        # Можно выводить или использовать их дальше
+        print("Goods Compositions:", goods_compositions_data)
+        print("Parameters Data:", parameters_data)
+
     # Извлекаем список изделий
     goods = Bitrix_Goods.objects.all()
 
@@ -129,7 +166,7 @@ def calculation_add(request):
         grouped_compositions[name].append(type_)
 
     # Передаем данные в шаблон
-    return render(request, "calculation_add.html", {"goods": goods, "grouped_compositions": grouped_compositions, 'calc_number':calc_number})
+    return render(request, "calculation_add.html", {"goods": goods, "grouped_compositions": grouped_compositions, 'calc_number':calc_number, 'goods_compositions_data':goods_compositions_data, 'parameters_data':parameters_data})
 
 
 import logging
