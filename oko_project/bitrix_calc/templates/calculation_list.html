@@ -205,6 +205,7 @@
                         "Content-Type": "application/json",
                         "X-CSRFToken": getCookie("csrftoken"),
                     },
+                    body: JSON.stringify({ _method: "DELETE" }),
                 })
                 .then(response => response.json())
                 .then(data => {

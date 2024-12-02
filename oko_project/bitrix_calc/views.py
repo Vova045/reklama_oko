@@ -590,7 +590,7 @@ from .models import Bitrix_Calculation
 
 def delete_calculation(request, pk):
     delete = request.method
-    if request.method == "DELETE":
+    if request.method == "POST" and request.POST.get("_method") == "DELETE":
         try:
             calculation = get_object_or_404(Bitrix_Calculation, pk=pk)
             calculation.delete()  # Удаляет объект и связанные записи благодаря CASCADE
