@@ -591,7 +591,7 @@ from .models import Bitrix_Calculation
 
 @csrf_exempt
 def delete_calculation(request, pk):
-    if request.method == "DELETE":
+    if request.method == "POST":
         try:
             calculation = get_object_or_404(Bitrix_Calculation, pk=pk)
             calculation.delete()  # Удаляет объект и связанные записи благодаря CASCADE
