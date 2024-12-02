@@ -201,15 +201,28 @@
 }
 
 
-        function deleteCalculation(button) {
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie) {
+        const cookies = document.cookie.split(';');
+        cookies.forEach(cookie => {
+            const [key, value] = cookie.trim().split('=');
+            if (key === name) cookieValue = decodeURIComponent(value);
+        });
+    }
+    return cookieValue;
+}
+
+function deleteCalculation(button) {
     const calcId = button.getAttribute("data-id");
     if (confirm("Вы уверены, что хотите удалить эту калькуляцию?")) {
         fetch(`/delete-calculation/${calcId}/`, {
-            method: "DELETE",
+            method: "POST", // Используем POST вместо DELETE
             headers: {
                 "Content-Type": "application/json",
                 "X-CSRFToken": getCookie("csrftoken"),
             },
+            body: JSON.stringify({ _method: "DELETE" }) // Указываем метод удаления в теле запроса
         })
         .then(response => {
             if (!response.ok) {
@@ -219,9 +232,7 @@
         })
         .then(data => {
             alert(data.message);
-            if (data.status === "success") {
-                location.reload();
-            }
+            if (data.status === "success") location.reload();
         })
         .catch(error => {
             alert(`Ошибка: ${error.message || error}`);
