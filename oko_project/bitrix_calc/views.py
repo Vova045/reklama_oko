@@ -48,10 +48,11 @@ def calculation_list(request):
             }, status=500)
 
         if not deal:
+            return JsonResponse({"error": "Неизвестная ошибка", "response": response}, status=500)
+
             try:
                 # Если сделки нет, получаем её данные из Bitrix24
                 response = requests.get(BITRIX_WEBHOOK_URL_DEALS, params={"id": deal_id})
-                return JsonResponse({"error": "Неизвестная ошибка", "response": response}, status=500)
                 if response.status_code != 200:
                     return JsonResponse({
                         'error': f"Не удалось получить данные сделки из Bitrix24, код ответа: {response.status_code}"
