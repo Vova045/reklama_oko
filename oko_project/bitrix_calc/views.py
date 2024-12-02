@@ -49,47 +49,35 @@ def calculation_list(request):
 
         if not deal:
             response = requests.get(BITRIX_WEBHOOK_URL_DEALS, params={"id": deal_id})
-            deal_data = response.json()
-            return JsonResponse({"error": "Неизвестная ошибка", "deal_data": deal_data}, status=500)
-
-            try:
-                # Если сделки нет, получаем её данные из Bitrix24
-                response = requests.get(BITRIX_WEBHOOK_URL_DEALS, params={"id": deal_id})
-                if response.status_code != 200:
-                    return JsonResponse({
-                        'error': f"Не удалось получить данные сделки из Bitrix24, код ответа: {response.status_code}"
-                    }, status=500)
-
-                deal_data = response.json()
-                if "result" not in deal_data:
-                    return JsonResponse({'error': "Сделка не найдена в Bitrix24."}, status=404)
-
-                deal_info = deal_data["result"]
-                raw_date_create = deal_info["DATE_CREATE"]
-                parsed_date_create = parser.parse(raw_date_create)
-                date_create = make_aware(parsed_date_create) if is_naive(parsed_date_create) else parsed_date_create
-
-                raw_date_modify = deal_info["DATE_MODIFY"]
-                parsed_date_modify = parser.parse(raw_date_modify)
-                date_modify = make_aware(parsed_date_modify) if is_naive(parsed_date_modify) else parsed_date_modify
-
-                deal = BitrixDeal.objects.create(
-                    bitrix_id=int(deal_id),
-                    title=deal_info.get("TITLE", "Без названия"),
-                    stage_id=deal_info.get("STAGE_ID"),
-                    probability=deal_info.get("PROBABILITY"),
-                    opportunity=deal_info.get("OPPORTUNITY"),
-                    currency_id=deal_info.get("CURRENCY_ID"),
-                    date_created=date_create,
-                    date_modified=date_modify,
-                )
-                print(f"Создана новая сделка ID = {deal_id}: {deal.title}")
-            except Exception as e:
+            if response.status_code != 200:
                 return JsonResponse({
-                    "error": "Error occurred while retrieving or creating deal from Bitrix24.",
-                    "details": str(e),
-                    "deal_id": deal_id,
+                    'error': f"Не удалось получить данные сделки из Bitrix24, код ответа: {response.status_code}"
                 }, status=500)
+
+            deal_data = response.json()
+            if "result" not in deal_data:
+                return JsonResponse({'error': "Сделка не найдена в Bitrix24."}, status=404)
+
+            deal_info = deal_data["result"]
+            raw_date_create = deal_info["DATE_CREATE"]
+            parsed_date_create = parser.parse(raw_date_create)
+            date_create = make_aware(parsed_date_create) if is_naive(parsed_date_create) else parsed_date_create
+
+            raw_date_modify = deal_info["DATE_MODIFY"]
+            parsed_date_modify = parser.parse(raw_date_modify)
+            date_modify = make_aware(parsed_date_modify) if is_naive(parsed_date_modify) else parsed_date_modify
+
+            deal = BitrixDeal.objects.create(
+                bitrix_id=int(deal_id),
+                title=deal_info.get("TITLE", "Без названия"),
+                stage_id=deal_info.get("STAGE_ID"),
+                probability=deal_info.get("PROBABILITY"),
+                opportunity=deal_info.get("OPPORTUNITY"),
+                currency_id=deal_info.get("CURRENCY_ID"),
+                date_created=date_create,
+                date_modified=date_modify,
+            )
+            print(f"Создана новая сделка ID = {deal_id}: {deal.title}")
         
         # Фильтруем связанные калькуляции
         calculations = Bitrix_Calculation.objects.filter(deal=deal)
