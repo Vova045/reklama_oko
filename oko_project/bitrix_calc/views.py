@@ -133,8 +133,8 @@ def calculation_add(request):
             if select_goods:
                 # Сохраняем первый товар в переменную (если еще не сохранен)
                 if first_good is None:
-                    first_good = goods.bitrix_goods_name  # Наименование товара
-                goods_data.append(goods.bitrix_goods_name)  # Наименование товара для Битрикс
+                    first_good = select_goods.bitrix_goods_name  # Наименование товара
+                goods_data.append(select_goods.bitrix_goods_name)  # Наименование товара для Битрикс
             else:
                 goods_data.append("No goods found")
                 
