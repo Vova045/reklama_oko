@@ -601,7 +601,7 @@ def delete_calculation(request, pk):
     else:
         return JsonResponse({
             "status": "error",
-            "message": "Неподдерживаемый метод запроса.",
+            "message": "Неподдерживаемый метод запроса." + request.method + pk,
             "pk": pk,
             "method_received": request.method,
         })
