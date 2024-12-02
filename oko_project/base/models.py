@@ -7,7 +7,7 @@ from django.utils import timezone
 
 class Folder(models.Model):
     name = models.CharField(max_length=100, verbose_name="Название папки")
-    parent = models.ForeignKey('self', on_delete=models.CASCADE, blank=True, null=True, related_name='subfolders', verbose_name="Родительская папка")
+    parent = models.ForeignKey('self', on_delete=models.PROTECT, blank=True, null=True, related_name='subfolders', verbose_name="Родительская папка")
     folder_type = models.CharField(max_length=100, blank=True, null=True, verbose_name="Тип папки")  # например, "Операции", "Изделия", "Калькуляции"
 
     class Meta:
@@ -18,8 +18,8 @@ class Folder(models.Model):
         return self.name
     
 class FolderItem(models.Model):
-    folder = models.ForeignKey(Folder, on_delete=models.CASCADE, verbose_name="Папка")
-    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    folder = models.ForeignKey(Folder, on_delete=models.PROTECT, verbose_name="Папка")
+    content_type = models.ForeignKey(ContentType, on_delete=models.PROTECT)
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey('content_type', 'object_id')
 
@@ -55,7 +55,7 @@ class Formulas(models.Model):
 class ParametersOfProducts(models.Model):
     parameters_product = models.CharField(max_length=255, blank=True, null=True, verbose_name="Наименование параметра изделия")
     formula_name = models.CharField(max_length=200, blank=True, null=True, verbose_name="Представление в формуле")
-    measure_unit = models.ForeignKey(MeasureUnit, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Единица измерения")
+    measure_unit = models.ForeignKey(MeasureUnit, on_delete=models.PROTECT, blank=True, null=True, verbose_name="Единица измерения")
     formula = models.CharField(max_length=500, blank=True, null=True, verbose_name="Формула расчета")
     
     def __str__(self):
@@ -69,7 +69,7 @@ class Product(models.Model):
     id = models.AutoField(primary_key=True)  # Automatically generated identifier
     product_code = models.CharField(max_length=100, unique=True, editable=False, verbose_name="Код изделия")
     product_name = models.CharField(max_length=255, blank=True, null=True, verbose_name="Наименование изделия")
-    folder = models.ForeignKey(Folder, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Папка")
+    folder = models.ForeignKey(Folder, on_delete=models.PROTECT, blank=True, null=True, verbose_name="Папка")
 
     def save(self, *args, **kwargs):
         if not self.product_code:  # Генерируем product_code только если его нет
@@ -88,7 +88,7 @@ class Goods(models.Model):
     id = models.AutoField(primary_key=True)  # Automatically generated identifier
     goods_code = models.CharField(max_length=100, unique=True, editable=False, verbose_name="Код изделия")
     goods_name = models.CharField(max_length=255, blank=True, null=True, verbose_name="Наименование изделия")
-    folder = models.ForeignKey(Folder, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Папка")
+    folder = models.ForeignKey(Folder, on_delete=models.PROTECT, blank=True, null=True, verbose_name="Папка")
 
     def save(self, *args, **kwargs):
         if not self.goods_code:  # Генерируем product_code только если его нет
@@ -108,7 +108,7 @@ class TechnologicalLink(models.Model):
     id = models.AutoField(primary_key=True)  # Automatically generated identifier
     operation_link_code = models.CharField(max_length=100, unique=True, blank=True, null=True, verbose_name="Код технологического узла")
     operation_link_name = models.CharField(max_length=255, blank=True, null=True, verbose_name="Наименование технологического узла")
-    folder = models.ForeignKey(Folder, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Папка")
+    folder = models.ForeignKey(Folder, on_delete=models.PROTECT, blank=True, null=True, verbose_name="Папка")
 
     def save(self, *args, **kwargs):
         if not self.operation_link_code: 
@@ -128,8 +128,8 @@ class Nomenklatura(models.Model):
     nomenklatura_code = models.CharField(max_length=100, unique=True, blank=True, null=True, verbose_name="Код номенклатуры")
     nomenklatura_name = models.CharField(max_length=400, blank=True, null=True, verbose_name="Наименование коменклатуры")
     full_name = models.CharField(max_length=400, blank=True, null=True, verbose_name="Полное наименование")
-    measure_unit = models.ForeignKey(MeasureUnit, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Единица измерения")
-    folder = models.ForeignKey(Folder, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Папка")
+    measure_unit = models.ForeignKey(MeasureUnit, on_delete=models.PROTECT, blank=True, null=True, verbose_name="Единица измерения")
+    folder = models.ForeignKey(Folder, on_delete=models.PROTECT, blank=True, null=True, verbose_name="Папка")
     comment = models.CharField(max_length=400, blank=True, null=True, verbose_name="Комментарий")
     waste_rate = models.CharField(max_length=400, blank=True, null=True, verbose_name="Норма отходов")
     material_markup = models.CharField(max_length=400, blank=True, null=True, verbose_name="Наценка материала")
@@ -153,7 +153,7 @@ class TechnologicalOperation(models.Model):
     id = models.AutoField(primary_key=True)  # Automatically generated identifier
     operation_code = models.CharField(max_length=100, unique=True, blank=True, null=True, verbose_name="Код технологической операции")
     operation_link_name = models.CharField(max_length=255, blank=True, null=True, verbose_name="Наименование технологической операции")
-    folder = models.ForeignKey(Folder, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Папка")
+    folder = models.ForeignKey(Folder, on_delete=models.PROTECT, blank=True, null=True, verbose_name="Папка")
     formula_name = models.CharField(max_length=100, blank=True, null=True, verbose_name="Представление в формуле")
     formula = models.CharField(max_length=500, blank=True, null=True, verbose_name="Формула расчета")
 
@@ -174,8 +174,8 @@ class TechnologicalOperation(models.Model):
 
 
 class TechnologicalLinkComposition(models.Model):
-    technical_link = models.ForeignKey(TechnologicalLink, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Технологический узел")
-    technical_operation = models.ForeignKey(TechnologicalOperation, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Технологическая операция")
+    technical_link = models.ForeignKey(TechnologicalLink, on_delete=models.PROTECT, blank=True, null=True, verbose_name="Технологический узел")
+    technical_operation = models.ForeignKey(TechnologicalOperation, on_delete=models.PROTECT, blank=True, null=True, verbose_name="Технологическая операция")
     order = models.PositiveIntegerField(default=0)
 
     class Meta:
@@ -203,9 +203,9 @@ class ChapterCalculation(models.Model):
 
 class MaterialsTechnologicalOperation(models.Model):
     id = models.AutoField(primary_key=True)  # Automatically generated identifier
-    technicological_operation = models.ForeignKey(TechnologicalOperation, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Технологическая операция")
-    nomenklatura = models.ForeignKey(Nomenklatura, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Номенклатура")
-    chapter_calculation = models.ForeignKey(ChapterCalculation, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Раздел Калькуляции")
+    technicological_operation = models.ForeignKey(TechnologicalOperation, on_delete=models.PROTECT, blank=True, null=True, verbose_name="Технологическая операция")
+    nomenklatura = models.ForeignKey(Nomenklatura, on_delete=models.PROTECT, blank=True, null=True, verbose_name="Номенклатура")
+    chapter_calculation = models.ForeignKey(ChapterCalculation, on_delete=models.PROTECT, blank=True, null=True, verbose_name="Раздел Калькуляции")
     formula = models.CharField(max_length=500, blank=True, null=True, verbose_name="Формула")
     formula_name = models.CharField(max_length=100, blank=True, null=True, verbose_name="Представление в формуле")
 
@@ -218,10 +218,10 @@ class MaterialsTechnologicalOperation(models.Model):
 
 class AddingMaterialsTechnologicalOperation(models.Model):
     id = models.AutoField(primary_key=True)  # Automatically generated identifier
-    technicological_operation = models.ForeignKey(TechnologicalOperation, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Технологическая операция")
-    nomenklatura = models.ForeignKey(Nomenklatura, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Номенклатура")
+    technicological_operation = models.ForeignKey(TechnologicalOperation, on_delete=models.PROTECT, blank=True, null=True, verbose_name="Технологическая операция")
+    nomenklatura = models.ForeignKey(Nomenklatura, on_delete=models.PROTECT, blank=True, null=True, verbose_name="Номенклатура")
     formula = models.CharField(max_length=500, blank=True, null=True, verbose_name="Формула расчета")
-    chapter_calculation = models.ForeignKey(ChapterCalculation, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Раздел Калькуляции")
+    chapter_calculation = models.ForeignKey(ChapterCalculation, on_delete=models.PROTECT, blank=True, null=True, verbose_name="Раздел Калькуляции")
     formula_name = models.CharField(max_length=200, blank=True, null=True, verbose_name="Представление в формуле")
 
 
@@ -248,9 +248,9 @@ class ProductionOperation(models.Model):
     id = models.AutoField(primary_key=True)
     operation_code = models.CharField(max_length=100, unique=True, blank=True, null=True, verbose_name="Код операции производства")
     operation_name = models.CharField(max_length=100, blank=True, null=True, verbose_name='Наименование операции производства')
-    job_title = models.ForeignKey('JopTitles', on_delete=models.CASCADE, blank=True, null=True, verbose_name="Должность")
-    measure_unit = models.ForeignKey('MeasureUnit', on_delete=models.CASCADE, blank=True, null=True, verbose_name="Единица измерения")
-    folder = models.ForeignKey(Folder, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Папка")
+    job_title = models.ForeignKey('JopTitles', on_delete=models.PROTECT, blank=True, null=True, verbose_name="Должность")
+    measure_unit = models.ForeignKey('MeasureUnit', on_delete=models.PROTECT, blank=True, null=True, verbose_name="Единица измерения")
+    folder = models.ForeignKey(Folder, on_delete=models.PROTECT, blank=True, null=True, verbose_name="Папка")
 
     def save(self, *args, **kwargs):
         # Сначала проверка, если код не задан, то сохраняем с его генерацией
@@ -280,8 +280,8 @@ class ProductionOperation(models.Model):
 
 class OperationOfTechnologicalOperation(models.Model):
     id = models.AutoField(primary_key=True)
-    technicological_operation = models.ForeignKey(TechnologicalOperation, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Технологическая операция")
-    production_operation = models.ForeignKey(ProductionOperation, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Операция производства")
+    technicological_operation = models.ForeignKey(TechnologicalOperation, on_delete=models.PROTECT, blank=True, null=True, verbose_name="Технологическая операция")
+    production_operation = models.ForeignKey(ProductionOperation, on_delete=models.PROTECT, blank=True, null=True, verbose_name="Операция производства")
     formula = models.CharField(max_length=500, blank=True, null=True, verbose_name="Формула расчета")
     formula_name = models.CharField(max_length=100, blank=True, null=True, verbose_name="Представление в формуле")
 
@@ -294,11 +294,11 @@ class OperationOfTechnologicalOperation(models.Model):
     
 
 class ProductComposition(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Изделие")
-    technology = models.ForeignKey(TechnologicalLink, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Технология")
-    techoperation = models.ForeignKey(TechnologicalOperation, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Технологическая операция")
-    nomenclature = models.ForeignKey(Nomenklatura, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Номенклатура")
-    operation = models.ForeignKey(OperationOfTechnologicalOperation, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Операция производства")
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, blank=True, null=True, verbose_name="Изделие")
+    technology = models.ForeignKey(TechnologicalLink, on_delete=models.PROTECT, blank=True, null=True, verbose_name="Технология")
+    techoperation = models.ForeignKey(TechnologicalOperation, on_delete=models.PROTECT, blank=True, null=True, verbose_name="Технологическая операция")
+    nomenclature = models.ForeignKey(Nomenklatura, on_delete=models.PROTECT, blank=True, null=True, verbose_name="Номенклатура")
+    operation = models.ForeignKey(OperationOfTechnologicalOperation, on_delete=models.PROTECT, blank=True, null=True, verbose_name="Операция производства")
     default_selected = models.BooleanField(default=False, verbose_name="Выбран по умолчанию")
 
     def __str__(self):
@@ -309,11 +309,11 @@ class ProductComposition(models.Model):
         verbose_name_plural = "Составы изделий"
 
 class GoodsComposition(models.Model):
-    goods = models.ForeignKey(Goods, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Товар")
-    technology = models.ForeignKey(TechnologicalLink, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Технология")
-    techoperation = models.ForeignKey(TechnologicalOperation, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Технологическая операция")
-    nomenclature = models.ForeignKey(Nomenklatura, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Номенклатура")
-    operation = models.ForeignKey(OperationOfTechnologicalOperation, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Операция производства")
+    goods = models.ForeignKey(Goods, on_delete=models.PROTECT, blank=True, null=True, verbose_name="Товар")
+    technology = models.ForeignKey(TechnologicalLink, on_delete=models.PROTECT, blank=True, null=True, verbose_name="Технология")
+    techoperation = models.ForeignKey(TechnologicalOperation, on_delete=models.PROTECT, blank=True, null=True, verbose_name="Технологическая операция")
+    nomenclature = models.ForeignKey(Nomenklatura, on_delete=models.PROTECT, blank=True, null=True, verbose_name="Номенклатура")
+    operation = models.ForeignKey(OperationOfTechnologicalOperation, on_delete=models.PROTECT, blank=True, null=True, verbose_name="Операция производства")
     name_type_of_goods = models.CharField(max_length=100, blank=True, null=True, verbose_name="Наименование типа товара")
     type_of_goods = models.CharField(max_length=100, blank=True, null=True, verbose_name="Тип товара")
     default_selected = models.BooleanField(default=False, verbose_name="Выбран по умолчанию")
@@ -327,7 +327,7 @@ class GoodsComposition(models.Model):
 
 class ProductionOperationTariffs(models.Model):
     id = models.AutoField(primary_key=True)
-    production_operation = models.ForeignKey(ProductionOperation, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Операция производства")
+    production_operation = models.ForeignKey(ProductionOperation, on_delete=models.PROTECT, blank=True, null=True, verbose_name="Операция производства")
     lead_time = models.CharField(max_length=100, blank=True, null=True, verbose_name="Время выполнения")
     min_time = models.CharField(max_length=100, blank=True, null=True, verbose_name="Минимальное время")
     preporation_time = models.CharField(max_length=100, blank=True, null=True, verbose_name="Время на подготовку")
@@ -340,7 +340,7 @@ class ProductionOperationTariffs(models.Model):
 
 class ParametersNormatives(models.Model):
     id = models.AutoField(primary_key=True)
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Изделие")
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, blank=True, null=True, verbose_name="Изделие")
     overheads = models.CharField(max_length=100, blank=True, null=True, verbose_name="Накладные расходы")
     salary_fund = models.CharField(max_length=100, blank=True, null=True, verbose_name="Фонд зарплаты")
     profit = models.CharField(max_length=100, blank=True, null=True, verbose_name="Прибыль")
@@ -370,11 +370,11 @@ class Calculation(models.Model):
 
 
 class CalculationComposition(models.Model):
-    calculation = models.ForeignKey(Calculation, on_delete=models.CASCADE, verbose_name='Калькуляция')
-    technological_link = models.ForeignKey(TechnologicalLink, on_delete=models.CASCADE, verbose_name='Технологический узел')
-    technological_operation = models.ForeignKey(TechnologicalOperation, on_delete=models.CASCADE, verbose_name='Технологическая операция')
-    nomenclature = models.ForeignKey(Nomenklatura, on_delete=models.CASCADE, verbose_name='Номенклатура')
-    production_operation = models.ForeignKey(ProductionOperation, on_delete=models.CASCADE, verbose_name='Операция производства')
+    calculation = models.ForeignKey(Calculation, on_delete=models.PROTECT, verbose_name='Калькуляция')
+    technological_link = models.ForeignKey(TechnologicalLink, on_delete=models.PROTECT, verbose_name='Технологический узел')
+    technological_operation = models.ForeignKey(TechnologicalOperation, on_delete=models.PROTECT, verbose_name='Технологическая операция')
+    nomenclature = models.ForeignKey(Nomenklatura, on_delete=models.PROTECT, verbose_name='Номенклатура')
+    production_operation = models.ForeignKey(ProductionOperation, on_delete=models.PROTECT, verbose_name='Операция производства')
 
     def __str__(self):
         return f"{self.calculation} - {self.technological_link} - {self.technological_operation}"
