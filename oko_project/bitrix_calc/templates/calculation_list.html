@@ -103,17 +103,7 @@
     <script src="https://api.bitrix24.com/api/v1/"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie) {
-                const cookies = document.cookie.split(';');
-                cookies.forEach(cookie => {
-                    const [key, value] = cookie.trim().split('=');
-                    if (key === name) cookieValue = decodeURIComponent(value);
-                });
-            }
-            return cookieValue;
-        }
+
         document.addEventListener("DOMContentLoaded", () => {
             function initializeBitrix24() {
                 if (typeof BX24 === 'undefined') {
