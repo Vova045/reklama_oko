@@ -69,6 +69,7 @@ def calculation_list(request):
                     date_modified=date_modify,
                 )
                 print(f"Создана новая сделка ID = {deal_id}: {deal.title}")
+                return JsonResponse({"status": "success", "message": "Сделка успешно добавлена.", 'deal':deal.title})
         except BitrixDeal.DoesNotExist:
 
             return JsonResponse({"error": "Deal not found2",'deal_id':deal_id}, status=404)
