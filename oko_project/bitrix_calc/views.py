@@ -120,7 +120,7 @@ def calculation_add(request):
         # Проходим по всем price_compositions
         for composition in price_compositions:
             # Получаем объект Bitrix_GoodsComposition, связанный с composition
-            goods_composition = composition.goods_composition
+            goods_composition = composition.goods_compostion
             
             if goods_composition:
                 # Добавляем в goods_compositions_data пару "name_type_of_goods - type_of_goods"
