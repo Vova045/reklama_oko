@@ -597,4 +597,4 @@ def delete_calculation(request, pk):
         except Exception as e:
             return JsonResponse({"status": "error", "message": f"Ошибка удаления: {str(e)}"})
     else:
-        return JsonResponse({"status": "error", "message": "Неподдерживаемый метод запроса."})
+        return JsonResponse({"status": "error", "message": "Неподдерживаемый метод запроса.","pk":pk})
