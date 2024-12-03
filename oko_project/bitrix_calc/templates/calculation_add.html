@@ -220,7 +220,6 @@ let selectedProductName = null;
 document.addEventListener("DOMContentLoaded", () => {
     const calculationName = "{{calculation_name}}"; // Название калькуляции
     const submitButton = document.querySelector('.submit-button');
-    console.log("{{calc_number}}")
 
     const calc_number = "{{calc_number}}";
     const firstSelectedProductId = "{{first_good_id}}";
@@ -963,6 +962,7 @@ function createCalculation() {
 
 function updateCalculation() {
     console.log("Обновление калькуляции");
+    console.log(calc_number)
     const calculationName = document.getElementById('calculationName').value;
 
     if (!calculationName) {
