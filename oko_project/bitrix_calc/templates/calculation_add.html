@@ -222,6 +222,7 @@ let selectedProductName = null;
 document.addEventListener("DOMContentLoaded", () => {
     const firstSelectedProductId = "{{first_good_id}}";
     const goodsCompositionsData = {{goods_compositions_data | safe}}; // Данные в формате JSON
+    const parametersData = {{parameters_data | safe}}; // Данные параметров
 
     const productListItems = document.querySelectorAll("#productList li");
 
@@ -231,15 +232,19 @@ document.addEventListener("DOMContentLoaded", () => {
         if (productId === firstSelectedProductId) {
             loadItemTypes(item);
 
-            // Ждём завершения загрузки видов (если loadItemTypes асинхронная функция)
+            // Ждём завершения загрузки видов
             setTimeout(() => {
                 // Проверяем и раскрываем совпадающие элементы
                 expandAndSelectMatchingTypes(goodsCompositionsData);
-            }, 500); // Ожидание для загрузки данных (можно настроить)
+
+                // Заполняем поля параметров
+                setTimeout(() => {
+                    populateParameterFields(parametersData);
+                }, 500);
+            }, 500); // Ожидание для загрузки данных
         }
     });
 });
-
 function expandAndSelectMatchingTypes(compositionsData) {
     if (!compositionsData || compositionsData.length === 0) return;
 
@@ -252,19 +257,13 @@ function expandAndSelectMatchingTypes(compositionsData) {
                 const parentNameType = typeList.previousElementSibling;
 
                 if (parentNameType && parentNameType.textContent === key) {
-                    // Проверяем наличие совпадения внутри typeList
                     const matchingType = Array.from(typeList.children).find(
                         item => item.textContent === value
                     );
 
                     if (matchingType) {
-                        // Раскрываем typeList
                         toggleTypes(typeList);
-
-                        // Вызываем toggleSelection для найденного элемента
                         toggleSelection(value, key, matchingType);
-
-                        // Останавливаем дальнейшую обработку для текущей пары key-value
                         return;
                     }
                 }
@@ -273,7 +272,21 @@ function expandAndSelectMatchingTypes(compositionsData) {
     });
 }
 
+function populateParameterFields(parametersData) {
+    if (!parametersData || parametersData.length === 0) return;
 
+    const paramsContainer = document.getElementById("paramsContainer");
+    if (!paramsContainer) return;
+
+    parametersData.forEach(parameter => {
+        for (const [key, value] of Object.entries(parameter)) {
+            const inputField = paramsContainer.querySelector(`input[name="${key}"]`);
+            if (inputField) {
+                inputField.value = value;
+            }
+        }
+    });
+}
 function loadItemTypes(element) {
     console.log('loadItemTypes')
     const productId = element.getAttribute("data-product-id");
