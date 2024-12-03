@@ -687,7 +687,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 
 @csrf_exempt
-def update_calculation(request, calculation_id=None):
+def update_calculation(request, calculation_id):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)

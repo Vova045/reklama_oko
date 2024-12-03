@@ -961,7 +961,7 @@ function createCalculation() {
         .catch(error => alert(`Ошибка при создании: ${error.message}`));
 }
 
-function updateCalculation(calculationId = null) {
+function updateCalculation() {
     console.log("Обновление калькуляции");
     const calculationName = document.getElementById('calculationName').value;
 
@@ -977,7 +977,7 @@ function updateCalculation(calculationId = null) {
             'X-CSRFToken': getCookie('csrftoken'),
         },
         body: JSON.stringify({
-            calculation_id: calculationId,
+            calculation_id: calc_number,
             name: calculationName,
             ...currentParameters,
             operations_fullprices: operationsFullprices,
