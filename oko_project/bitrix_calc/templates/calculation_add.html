@@ -220,10 +220,25 @@
 let dealId_from_bx = null; // Глобальная переменная для хранения ID сделки
 let selectedProductId = null;
 let selectedProductName = null;
-let first_selectedProductId = "{{first_good_id}}";
-let first_selectedProductName = "{{first_good_name}}";
-console.log(first_selectedProductId)
-console.log(first_selectedProductName)
+document.addEventListener("DOMContentLoaded", () => {
+    const firstSelectedProductId = "{{first_good_id}}"; // Значение для сравнения
+    const firstSelectedProductName = "{{first_good_name}}"; // Для отладки
+
+    console.log("First selected product ID:", firstSelectedProductId);
+    console.log("First selected product Name:", firstSelectedProductName);
+
+    const productListItems = document.querySelectorAll("#productList li");
+
+    productListItems.forEach(item => {
+        const productId = item.getAttribute("data-product-id");
+
+        // Проверяем, соответствует ли текущий элемент firstSelectedProductId
+        if (productId === firstSelectedProductId) {
+            // Вызываем loadItemTypes с этим элементом
+            loadItemTypes(item);
+        }
+    });
+});
 
 function loadItemTypes(element) {
     console.log('loadItemTypes')
