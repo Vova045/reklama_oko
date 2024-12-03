@@ -217,11 +217,15 @@
 
 <script src="https://api.bitrix24.com/api/v1/"></script>
 <script>
+console.log({{first_good_id}})
+console.log({{first_good_name}})
 let dealId_from_bx = null; // Глобальная переменная для хранения ID сделки
 let selectedProductId = null;
 let selectedProductName = null;
 let first_selectedProductId = {{first_good_id}}
 let first_selectedProductName = {{first_good_name}}
+
+
 function loadItemTypes(element) {
     console.log('loadItemTypes')
     const productId = element.getAttribute("data-product-id");
