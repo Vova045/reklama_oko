@@ -166,7 +166,7 @@
     <div class="item-list">
         <h4>{{goods_compositions_data}}</h4>
         <h4>{{parameters_data}}</h4>
-        <h4>{{first_good}}</h4>
+        <h4>{{first_good_id}}</h4>
         <h3>Список изделий {{calc_number}}</h3>
         <ul id="productList">
             {% for good in goods %}
@@ -218,11 +218,12 @@
 <script src="https://api.bitrix24.com/api/v1/"></script>
 <script>
 let dealId_from_bx = null; // Глобальная переменная для хранения ID сделки
-
 let selectedProductId = null;
 let selectedProductName = null;
-
+let first_selectedProductId = {{first_good_id}}
+let first_selectedProductName = {{first_good_name}}
 function loadItemTypes(element) {
+    console.log('loadItemTypes')
     const productId = element.getAttribute("data-product-id");
     const productName = element.getAttribute("data-name");
     selectedProductId = productId;
@@ -282,6 +283,7 @@ function loadItemTypes(element) {
 }
 
 function toggleTypes(typeList) {
+    console.log('toggleTypes')
     if (typeList.classList.contains("hidden")) {
         typeList.classList.remove("hidden");
     } else {
@@ -290,6 +292,7 @@ function toggleTypes(typeList) {
 }
 
 function collapseProductTypes() {
+    console.log('collapseProductTypes')
     const itemTypesList = document.getElementById("itemTypesList");
     itemTypesList.innerHTML = ""; // Скрыть все виды товаров для текущего продукта
 }
@@ -299,6 +302,7 @@ let selectedItems = [];
 
 // Управление выделением элементов
 function toggleSelection(type, nameType, typeElement) {
+    console.log('toggleSelection')
     console.log('клик' + type, nameType, typeElement);
     if (!typeElement) {
         console.error('Element is null or undefined');
@@ -318,6 +322,7 @@ function toggleSelection(type, nameType, typeElement) {
 
 // Обновление параметров для всех выделенных элементов
 function fetchParametersForSelectedTypes(nameType) {
+    console.log('fetchParametersForSelectedTypes')
     const parametersProductContainer = document.getElementById('paramsContainer');
 
     // Собираем все выделенные типы товаров и их родителей
@@ -369,6 +374,7 @@ function fetchParametersForSelectedTypes(nameType) {
 
 
 function submitForm() {
+    console.log('submitForm')
     const width = document.getElementById("width").value;
     const height = document.getElementById("height").value;
     alert(`Создано изделие с размерами: ширина - ${width}, высота - ${height}`);
@@ -381,6 +387,7 @@ let operationsFullprices = [];
 
 // Функция отправки параметров на сервер
 function sendParameterDataToServer() {
+    console.log('sendParameterDataToServer')
     const productParameters = Array.from(document.querySelectorAll('#paramsContainer input'))
         .reduce((params, input) => {
             if (input.value) {
@@ -777,7 +784,6 @@ function filterClients() {
 }
 
     document.addEventListener("DOMContentLoaded", () => {
-        console.log({{first_good}})
         function getDealIdFromParent() {
             // Проверяем доступность Bitrix24 JS API
             if (typeof BX24 !== 'undefined' && BX24.placement) {
@@ -828,7 +834,6 @@ function filterClients() {
             // Authoritation()
         }
         // Инициализируем API и выполняем извлечение ID
-
     });
 
 // Добавляем обработчик для кнопки создания калькуляции

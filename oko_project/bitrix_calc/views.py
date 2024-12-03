@@ -133,7 +133,8 @@ def calculation_add(request):
             if select_goods:
                 # Сохраняем первый товар в переменную (если еще не сохранен)
                 if first_good is None:
-                    first_good = select_goods.id  # Наименование товара
+                    first_good_id = select_goods.id  # Наименование товара
+                    first_good_name = select_goods.bitrix_goods_name  # Наименование товара
                 goods_data.append(select_goods.bitrix_goods_name)  # Наименование товара для Битрикс
             else:
                 goods_data.append("No goods found")
@@ -178,7 +179,7 @@ def calculation_add(request):
         grouped_compositions[name].append(type_)
 
     # Передаем данные в шаблон
-    return render(request, "calculation_add.html", {"goods": goods, "grouped_compositions": grouped_compositions, 'calc_number':calc_number, 'goods_compositions_data':goods_compositions_data, 'parameters_data':parameters_data, 'first_good': first_good})
+    return render(request, "calculation_add.html", {"goods": goods, "grouped_compositions": grouped_compositions, 'calc_number':calc_number, 'goods_compositions_data':goods_compositions_data, 'parameters_data':parameters_data, 'first_good_id': first_good_id, 'first_good_name': first_good_name})
 
 
 import logging
