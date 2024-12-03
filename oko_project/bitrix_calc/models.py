@@ -78,7 +78,7 @@ class BitrixDeal(models.Model):
 
 
 class Bitrix_Calculation(models.Model):
-    name = models.CharField(max_length=100, unique=True, verbose_name="Наименование калькуляции")
+    name = models.CharField(max_length=100, verbose_name="Наименование калькуляции")
     deal = models.ForeignKey(BitrixDeal, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Сделка")
     goods = models.ForeignKey(Bitrix_Goods, on_delete=models.CASCADE, blank=True, null=True, verbose_name="Товар")
     price_material = models.CharField(max_length=100, verbose_name="Цена за материал")
