@@ -228,7 +228,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const parametersData = {{parameters_data | safe}}; // Данные параметров
 
     const productListItems = document.querySelectorAll("#productList li");
-    if (firstSelectedProductId) {
+    if (firstSelectedProductId !== "None") {
         console.log(firstSelectedProductId)
         submitButton.textContent = 'Изменить';
         submitButton.addEventListener('click', updateCalculation);
