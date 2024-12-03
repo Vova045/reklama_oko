@@ -164,9 +164,7 @@
 <div class="container">
     <!-- Список изделий -->
     <div class="item-list">
-        <h4>{{goods_compositions_data}}</h4>
-        <h4>{{parameters_data}}</h4>
-        <h3>Список изделий {{calc_number}}</h3>
+        <h3>Список изделий</h3>
         <ul id="productList">
             {% for good in goods %}
                 <li data-product-id="{{ good.id }}" data-name="{{ good.bitrix_goods_name }}" onclick="loadItemTypes(this)">{{ good.bitrix_goods_name }}</li>
@@ -223,6 +221,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const firstSelectedProductId = "{{first_good_id}}";
     const goodsCompositionsData = {{goods_compositions_data | safe}}; // Данные в формате JSON
     const parametersData = {{parameters_data | safe}}; // Данные параметров
+    const calculationName = "{{calculation_name}}"; // Название калькуляции
 
     const productListItems = document.querySelectorAll("#productList li");
 
@@ -237,9 +236,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 // Проверяем и раскрываем совпадающие элементы
                 expandAndSelectMatchingTypes(goodsCompositionsData);
 
-                // Заполняем поля параметров
+                // Заполняем поля параметров и название калькуляции
                 setTimeout(() => {
-                    populateParameterFields(parametersData);
+                    populateParameterFields(parametersData, calculationName);
                 }, 500);
             }, 500); // Ожидание для загрузки данных
         }
@@ -272,20 +271,26 @@ function expandAndSelectMatchingTypes(compositionsData) {
     });
 }
 
-function populateParameterFields(parametersData) {
+function populateParameterFields(parametersData, calculationName) {
     if (!parametersData || parametersData.length === 0) return;
 
     const paramsContainer = document.getElementById("paramsContainer");
-    if (!paramsContainer) return;
-
-    parametersData.forEach(parameter => {
-        for (const [key, value] of Object.entries(parameter)) {
-            const inputField = paramsContainer.querySelector(`input[name="${key}"]`);
-            if (inputField) {
-                inputField.value = value;
+    if (paramsContainer) {
+        parametersData.forEach(parameter => {
+            for (const [key, value] of Object.entries(parameter)) {
+                const inputField = paramsContainer.querySelector(`input[name="${key}"]`);
+                if (inputField) {
+                    inputField.value = value;
+                }
             }
-        }
-    });
+        });
+    }
+
+    // Заполняем поле "Название калькуляции"
+    const calculationNameField = document.getElementById("calculationName");
+    if (calculationNameField) {
+        calculationNameField.value = calculationName;
+    }
 }
 function loadItemTypes(element) {
     console.log('loadItemTypes')

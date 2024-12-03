@@ -114,7 +114,7 @@ def calculation_add(request):
     if calc_number:
         
         calculation = get_object_or_404(Bitrix_Calculation, id=calc_number)
-
+        calculation_name = calculation.name
         # Получаем все композиции товаров для текущей калькуляции
         price_compositions = Birtrix_Price_GoodsComposition.objects.filter(calculation=calculation)
 
@@ -181,7 +181,7 @@ def calculation_add(request):
         grouped_compositions[name].append(type_)
 
     # Передаем данные в шаблон
-    return render(request, "calculation_add.html", {"goods": goods, "grouped_compositions": grouped_compositions, 'calc_number':calc_number, 'goods_compositions_data':goods_compositions_data, 'parameters_data':parameters_data, 'first_good_id': first_good_id, 'first_good_name': first_good_name})
+    return render(request, "calculation_add.html", {"goods": goods, "grouped_compositions": grouped_compositions, 'calc_number':calc_number, 'goods_compositions_data':goods_compositions_data, 'parameters_data':parameters_data, 'first_good_id': first_good_id, 'first_good_name': first_good_name, 'calculation_name':calculation_name})
 
 
 import logging
