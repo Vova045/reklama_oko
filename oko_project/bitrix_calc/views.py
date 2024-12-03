@@ -108,6 +108,8 @@ def calculation_add(request):
     parameters_data = []
     goods_data = []
     first_good = None
+    first_good_id = None
+    first_good_name = None
     calc_number = request.GET.get('calc_number', '')
     if calc_number:
         
