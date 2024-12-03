@@ -218,6 +218,7 @@ let dealId_from_bx = null; // Глобальная переменная для �
 let selectedProductId = null;
 let selectedProductName = null;
 document.addEventListener("DOMContentLoaded", () => {
+    const calculationName = "{{calculation_name}}"; // Название калькуляции
     const submitButton = document.querySelector('.submit-button');
 
     if (calculationName) {
@@ -230,7 +231,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const firstSelectedProductId = "{{first_good_id}}";
     const goodsCompositionsData = {{goods_compositions_data | safe}}; // Данные в формате JSON
     const parametersData = {{parameters_data | safe}}; // Данные параметров
-    const calculationName = "{{calculation_name}}"; // Название калькуляции
 
     const productListItems = document.querySelectorAll("#productList li");
 
