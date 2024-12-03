@@ -250,7 +250,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 setTimeout(() => {
                     populateParameterFields(parametersData, calculationName);
                     setTimeout(() => {
-                        initializePage();
+                        sendParameterDataToServer();
+                        setTimeout(() => {
+                            initializePage();
+                        },500)
                     }, 500);
                 }, 500);
             }, 500); // Ожидание для загрузки данных
@@ -266,7 +269,7 @@ function initializePage() {
     }
 
     // Отправляем данные на сервер, если они загружены
-    sendParameterDataToServer();
+    
 }
 function expandAndSelectMatchingTypes(compositionsData) {
     if (!compositionsData || compositionsData.length === 0) return;
