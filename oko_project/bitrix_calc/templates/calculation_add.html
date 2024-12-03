@@ -166,7 +166,6 @@
     <div class="item-list">
         <h4>{{goods_compositions_data}}</h4>
         <h4>{{parameters_data}}</h4>
-        <h4>{{first_good_id}}</h4>
         <h3>Список изделий {{calc_number}}</h3>
         <ul id="productList">
             {% for good in goods %}
@@ -221,24 +220,57 @@ let dealId_from_bx = null; // Глобальная переменная для �
 let selectedProductId = null;
 let selectedProductName = null;
 document.addEventListener("DOMContentLoaded", () => {
-    const firstSelectedProductId = "{{first_good_id}}"; // Значение для сравнения
-    const firstSelectedProductName = "{{first_good_name}}"; // Для отладки
-
-    console.log("First selected product ID:", firstSelectedProductId);
-    console.log("First selected product Name:", firstSelectedProductName);
+    const firstSelectedProductId = "{{first_good_id}}";
+    const goodsCompositionsData = "{{goods_compositions_data | safe}}"; // Данные в формате JSON
 
     const productListItems = document.querySelectorAll("#productList li");
 
     productListItems.forEach(item => {
         const productId = item.getAttribute("data-product-id");
 
-        // Проверяем, соответствует ли текущий элемент firstSelectedProductId
         if (productId === firstSelectedProductId) {
-            // Вызываем loadItemTypes с этим элементом
             loadItemTypes(item);
+
+            // Ждём завершения загрузки видов (если loadItemTypes асинхронная функция)
+            setTimeout(() => {
+                // Проверяем и раскрываем совпадающие элементы
+                expandMatchingTypes(goodsCompositionsData);
+            }, 500); // Ожидание для загрузки данных (можно настроить)
         }
     });
 });
+
+function expandMatchingTypes(compositionsData) {
+    if (!compositionsData || compositionsData.length === 0) return;
+
+    const itemTypesList = document.getElementById("itemTypesList");
+    const typeLists = itemTypesList.querySelectorAll("ul.hidden");
+
+    // Перебираем каждый элемент из goodsCompositionsData
+    compositionsData.forEach(composition => {
+        for (const [key, value] of Object.entries(composition)) {
+            // Ищем совпадающий nameType и его typeList
+            typeLists.forEach(typeList => {
+                const parentNameType = typeList.previousElementSibling;
+
+                if (parentNameType && parentNameType.textContent === key) {
+                    // Проверяем наличие совпадения внутри typeList
+                    const matchingType = Array.from(typeList.children).find(
+                        item => item.textContent === value
+                    );
+
+                    if (matchingType) {
+                        // Раскрываем typeList
+                        toggleTypes(typeList);
+                        // Раскрываем только первый совпадающий элемент, выходим
+                        return;
+                    }
+                }
+            });
+        }
+    });
+}
+
 
 function loadItemTypes(element) {
     console.log('loadItemTypes')
