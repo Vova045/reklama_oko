@@ -687,11 +687,11 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 
 @csrf_exempt
-def update_calculation(request, calculation_id):
+def update_calculation(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            
+            calculation_id = data.calculation_id
             if calculation_id:
                 # Получаем существующую калькуляцию
                 calculation = get_object_or_404(Bitrix_Calculation, id=calculation_id)
