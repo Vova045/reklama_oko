@@ -687,13 +687,19 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 
 @csrf_exempt
-def update_calculation(request, calculation_id):
+def update_calculation(request, calculation_id=None):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
             
-            calculation = get_object_or_404(Bitrix_Calculation, id=calculation_id)
-            
+            if calculation_id:
+                # Получаем существующую калькуляцию
+                calculation = get_object_or_404(Bitrix_Calculation, id=calculation_id)
+            else:
+                # Создаем новую калькуляцию
+                calculation = Bitrix_Calculation()
+
+            # Обновление данных калькуляции
             calculation.name = data.get('name', calculation.name)
             calculation.price_material = data.get('price_material', calculation.price_material)
             calculation.price_add_material = data.get('price_add_material', calculation.price_add_material)
@@ -708,10 +714,8 @@ def update_calculation(request, calculation_id):
 
             # Обновление операций
             operations_fullprices = data.get('operations_fullprices', [])
-            # Удаляем старые записи
             Birtrix_Price_GoodsComposition.objects.filter(calculation=calculation).delete()
             
-            # Создаем новые записи
             for item in operations_fullprices:
                 goods_composition = Bitrix_GoodsComposition.objects.filter(id=item.get('composition_of_techoperation')).first()
                 if goods_composition:
@@ -732,7 +736,7 @@ def update_calculation(request, calculation_id):
             # Обновление параметров
             parameters_dict = data.get('parameters_dict', {})
             Bitrix_GoodsParametersInCalculation.objects.filter(calculation=calculation).delete()
-
+            
             for formula_name, value in parameters_dict.items():
                 try:
                     parameter = ParametersOfProducts.objects.get(formula_name=formula_name)

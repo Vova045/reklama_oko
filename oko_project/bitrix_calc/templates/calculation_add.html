@@ -961,7 +961,7 @@ function createCalculation() {
         .catch(error => alert(`Ошибка при создании: ${error.message}`));
 }
 
-function updateCalculation() {
+function updateCalculation(calculationId = null) {
     console.log("Обновление калькуляции");
     const calculationName = document.getElementById('calculationName').value;
 
@@ -974,11 +974,12 @@ function updateCalculation() {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
+            'X-CSRFToken': getCookie('csrftoken'),
         },
         body: JSON.stringify({
+            calculation_id: calculationId,
             name: calculationName,
-            ...currentParameters, // Передаем сохраненные данные
+            ...currentParameters,
             operations_fullprices: operationsFullprices,
             parameters_dict: parameters_dict,
             dealId: dealId_from_bx,
@@ -987,6 +988,7 @@ function updateCalculation() {
         .then(response => handleResponse(response, "Калькуляция успешно обновлена"))
         .catch(error => alert(`Ошибка при обновлении: ${error.message}`));
 }
+
 
 function handleResponse(response, successMessage) {
     if (response.ok) {
