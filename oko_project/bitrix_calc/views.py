@@ -110,6 +110,7 @@ def calculation_add(request):
     first_good = None
     first_good_id = None
     first_good_name = None
+    calculation_name = None
     calc_number = request.GET.get('calc_number', '')
     if calc_number:
         

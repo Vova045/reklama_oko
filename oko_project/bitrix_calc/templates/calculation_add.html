@@ -252,7 +252,18 @@ document.addEventListener("DOMContentLoaded", () => {
             }, 500); // Ожидание для загрузки данных
         }
     });
+    initializePage();
 });
+function initializePage() {
+    // Убедимся, что данные parameters_dict доступны
+    if (typeof parameters_dict === 'undefined') {
+        console.error("parameters_dict не определен.");
+        return;
+    }
+
+    // Отправляем данные на сервер, если они загружены
+    sendParameterDataToServer();
+}
 function expandAndSelectMatchingTypes(compositionsData) {
     if (!compositionsData || compositionsData.length === 0) return;
 
