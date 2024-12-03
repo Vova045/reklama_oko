@@ -229,6 +229,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const productListItems = document.querySelectorAll("#productList li");
     if (firstSelectedProductId) {
+        console.log(firstSelectedProductId)
         submitButton.textContent = 'Изменить';
         submitButton.addEventListener('click', updateCalculation);
     } else {
