@@ -222,7 +222,7 @@ let selectedProductName = null;
 document.addEventListener("DOMContentLoaded", () => {
     const firstSelectedProductId = "{{first_good_id}}";
     const goodsCompositionsData = {{goods_compositions_data | safe}}; // Данные в формате JSON
-    console.log(goodsCompositionsData)
+
     const productListItems = document.querySelectorAll("#productList li");
 
     productListItems.forEach(item => {
@@ -234,22 +234,20 @@ document.addEventListener("DOMContentLoaded", () => {
             // Ждём завершения загрузки видов (если loadItemTypes асинхронная функция)
             setTimeout(() => {
                 // Проверяем и раскрываем совпадающие элементы
-                expandMatchingTypes(goodsCompositionsData);
+                expandAndSelectMatchingTypes(goodsCompositionsData);
             }, 500); // Ожидание для загрузки данных (можно настроить)
         }
     });
 });
 
-function expandMatchingTypes(compositionsData) {
+function expandAndSelectMatchingTypes(compositionsData) {
     if (!compositionsData || compositionsData.length === 0) return;
 
     const itemTypesList = document.getElementById("itemTypesList");
     const typeLists = itemTypesList.querySelectorAll("ul.hidden");
 
-    // Перебираем каждый элемент из goodsCompositionsData
     compositionsData.forEach(composition => {
         for (const [key, value] of Object.entries(composition)) {
-            // Ищем совпадающий nameType и его typeList
             typeLists.forEach(typeList => {
                 const parentNameType = typeList.previousElementSibling;
 
@@ -262,7 +260,11 @@ function expandMatchingTypes(compositionsData) {
                     if (matchingType) {
                         // Раскрываем typeList
                         toggleTypes(typeList);
-                        // Раскрываем только первый совпадающий элемент, выходим
+
+                        // Вызываем toggleSelection для найденного элемента
+                        toggleSelection(value, key, matchingType);
+
+                        // Останавливаем дальнейшую обработку для текущей пары key-value
                         return;
                     }
                 }
