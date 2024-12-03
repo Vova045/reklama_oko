@@ -218,6 +218,16 @@ let dealId_from_bx = null; // Глобальная переменная для �
 let selectedProductId = null;
 let selectedProductName = null;
 document.addEventListener("DOMContentLoaded", () => {
+    const calculationName = "{{calculation_name}}";
+    const submitButton = document.querySelector('.submit-button');
+
+    if (calculationName) {
+        submitButton.textContent = 'Изменить';
+        submitButton.addEventListener('click', updateCalculation);
+    } else {
+        submitButton.addEventListener('click', createCalculation);
+    }
+
     const firstSelectedProductId = "{{first_good_id}}";
     const goodsCompositionsData = {{goods_compositions_data | safe}}; // Данные в формате JSON
     const parametersData = {{parameters_data | safe}}; // Данные параметров
@@ -907,8 +917,8 @@ function filterClients() {
     });
 
 // Добавляем обработчик для кнопки создания калькуляции
-document.querySelector('.submit-button').addEventListener('click', function () {
-    console.log(dealId_from_bx);
+function createCalculation() {
+    console.log("Создание новой калькуляции");
     const calculationName = document.getElementById('calculationName').value;
 
     if (!calculationName) {
@@ -916,12 +926,6 @@ document.querySelector('.submit-button').addEventListener('click', function () {
         return;
     }
 
-    if (!dealId_from_bx) {
-        alert("ID сделки не был загружен. Повторите попытку.");
-        return;
-    }
-
-    // Используем сохраненные данные для создания калькуляции
     fetch('/api/create-calculation/', {
         method: 'POST',
         headers: {
@@ -933,30 +937,52 @@ document.querySelector('.submit-button').addEventListener('click', function () {
             ...currentParameters, // Передаем сохраненные данные
             operations_fullprices: operationsFullprices,
             parameters_dict: parameters_dict,
-            dealId: dealId_from_bx, // Используем загруженный ID сделки
+            dealId: dealId_from_bx,
         }),
     })
-    .then(response => {
-        if (response.ok) {
-            return response.json();
-        } else {
-            return response.json().then(errorData => {
-                throw new Error(errorData.error || 'Ошибка при создании калькуляции.');
-            });
-        }
-    })
-    .then(data => {
-        alert(`Калькуляция "${data.name}" успешно создана.`);
-        
-        // Редирект на страницу списка калькуляций
-        window.location.href = '/calculation_list';  // Замените на URL вашего списка калькуляций
-    })
-    .catch(error => {
-        console.error('Ошибка:', error);
-        alert('Не удалось создать калькуляцию: ' + error.message);
-    });
-});
+        .then(response => handleResponse(response, "Калькуляция успешно создана"))
+        .catch(error => alert(`Ошибка при создании: ${error.message}`));
+}
 
+function updateCalculation() {
+    console.log("Обновление калькуляции");
+    const calculationName = document.getElementById('calculationName').value;
+
+    if (!calculationName) {
+        alert("Пожалуйста, введите название калькуляции.");
+        return;
+    }
+
+    fetch('/api/update-calculation/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            name: calculationName,
+            ...currentParameters, // Передаем сохраненные данные
+            operations_fullprices: operationsFullprices,
+            parameters_dict: parameters_dict,
+            dealId: dealId_from_bx,
+        }),
+    })
+        .then(response => handleResponse(response, "Калькуляция успешно обновлена"))
+        .catch(error => alert(`Ошибка при обновлении: ${error.message}`));
+}
+
+function handleResponse(response, successMessage) {
+    if (response.ok) {
+        return response.json().then(data => {
+            alert(successMessage);
+            window.location.href = '/calculation_list';
+        });
+    } else {
+        return response.json().then(errorData => {
+            throw new Error(errorData.error || 'Ошибка при обработке запроса.');
+        });
+    }
+}
 
 // Функция для получения CSRF-токена из cookie
 function getCookie(name) {

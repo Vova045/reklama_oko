@@ -682,6 +682,85 @@ from django.shortcuts import get_object_or_404
 from .models import Bitrix_Calculation
 
 
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+
+@csrf_exempt
+def update_calculation(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+
+            calculation_name = data.get('name')
+            operations_fullprices = data.get('operations_fullprices')
+            parameters_dict = data.get('parameters_dict')
+            dealId = data.get('dealId')
+
+            if not calculation_name:
+                return JsonResponse({'error': 'Название калькуляции обязательно.'}, status=400)
+            if not dealId:
+                return JsonResponse({'error': 'dealId обязателен.'}, status=400)
+
+            # Проверяем существование сделки
+            deal = get_object_or_404(BitrixDeal, bitrix_id=dealId)
+
+            # Проверяем существование калькуляции
+            calculation = Bitrix_Calculation.objects.filter(deal=deal, name=calculation_name).first()
+            if not calculation:
+                return JsonResponse({'error': 'Калькуляция не найдена.'}, status=404)
+
+            # Обновляем данные калькуляции
+            calculation.name = calculation_name
+            calculation.price_material = data.get('price_material', calculation.price_material)
+            calculation.price_add_material = data.get('price_add_material', calculation.price_add_material)
+            calculation.price_salary = data.get('price_salary', calculation.price_salary)
+            calculation.price_payroll = data.get('price_payroll', calculation.price_payroll)
+            calculation.price_overheads = data.get('price_overheads', calculation.price_overheads)
+            calculation.price_cost = data.get('price_cost', calculation.price_cost)
+            calculation.price_profit = data.get('price_profit', calculation.price_profit)
+            calculation.price_salary_fund = data.get('price_salary_fund', calculation.price_salary_fund)
+            calculation.price_final_price = data.get('price_final_price', calculation.price_final_price)
+            calculation.save()
+
+            # Обновляем операции
+            calculation.operations.clear()
+            for item in operations_fullprices:
+                goods_composition = Bitrix_GoodsComposition.objects.filter(id=item.get('composition_of_techoperation')).first()
+                if goods_composition:
+                    Birtrix_Price_GoodsComposition.objects.create(
+                        calculation=calculation,
+                        goods_compostion=goods_composition,
+                        price_material=item.get('price_material'),
+                        price_add_material=item.get('price_add_material'),
+                        price_salary=item.get('price_salary'),
+                        price_payroll=item.get('price_payroll'),
+                        price_overheads=item.get('price_overheads'),
+                        price_cost=item.get('price_cost'),
+                        price_profit=item.get('price_profit'),
+                        price_salary_fund=item.get('price_salary_fund'),
+                        price_final_price=item.get('final_price'),
+                    )
+
+            # Обновляем параметры
+            calculation.parameters.clear()
+            for formula_name, value in parameters_dict.items():
+                try:
+                    parameter = ParametersOfProducts.objects.get(formula_name=formula_name)
+                    Bitrix_GoodsParametersInCalculation.objects.create(
+                        calculation=calculation,
+                        parameters=parameter,
+                        parameter_value=str(value)
+                    )
+                except ParametersOfProducts.DoesNotExist:
+                    print(f"Parameter with formula_name='{formula_name}' not found.")
+
+            return JsonResponse({'id': calculation.id, 'name': calculation.name}, status=200)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({'error': 'Недопустимый метод.'}, status=405)
+
+
 @csrf_exempt
 def delete_calculation(request, pk):
     if request.method == "POST":
