@@ -221,19 +221,19 @@ document.addEventListener("DOMContentLoaded", () => {
     const calculationName = "{{calculation_name}}"; // Название калькуляции
     const submitButton = document.querySelector('.submit-button');
 
-    if (calculationName) {
-        submitButton.textContent = 'Изменить';
-        submitButton.addEventListener('click', updateCalculation);
-    } else {
-        submitButton.addEventListener('click', createCalculation);
-    }
+
 
     const firstSelectedProductId = "{{first_good_id}}";
     const goodsCompositionsData = {{goods_compositions_data | safe}}; // Данные в формате JSON
     const parametersData = {{parameters_data | safe}}; // Данные параметров
 
     const productListItems = document.querySelectorAll("#productList li");
-
+    if (firstSelectedProductId) {
+        submitButton.textContent = 'Изменить';
+        submitButton.addEventListener('click', updateCalculation);
+    } else {
+        submitButton.addEventListener('click', createCalculation);
+    }
     productListItems.forEach(item => {
         const productId = item.getAttribute("data-product-id");
 
