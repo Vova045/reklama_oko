@@ -972,21 +972,19 @@ function updateCalculation() {
         return;
     }
 
-    fetch('/api/update-calculation/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken'),
-        },
-        body: JSON.stringify({
-            calculation_id: calc_number,
-            name: calculationName,
-            ...currentParameters,
-            operations_fullprices: operationsFullprices,
-            parameters_dict: parameters_dict,
-            dealId: dealId_from_bx,
-        }),
-    })
+    fetch(`/api/update-calculation/${calculationId}/`, {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken'),
+    },
+    body: JSON.stringify({
+        name: calculationName,
+        ...currentParameters,
+        operations_fullprices: operationsFullprices,
+        parameters_dict: parameters_dict,
+    }),
+})
         .then(response => handleResponse(response, "Калькуляция успешно обновлена"))
         .catch(error => alert(`Ошибка при обновлении: ${error.message}`));
 }
