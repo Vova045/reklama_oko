@@ -691,6 +691,7 @@ def update_calculation(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
+            return JsonResponse({'data': data}, status=200)
             calculation_id = data.calculation_id
             if calculation_id:
                 # Получаем существующую калькуляцию
