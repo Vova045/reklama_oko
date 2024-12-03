@@ -687,31 +687,14 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 
 @csrf_exempt
-def update_calculation(request):
+def update_calculation(request, calculation_id):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-
-            calculation_name = data.get('name')
-            operations_fullprices = data.get('operations_fullprices')
-            parameters_dict = data.get('parameters_dict')
-            dealId = data.get('dealId')
-
-            if not calculation_name:
-                return JsonResponse({'error': 'Название калькуляции обязательно.'}, status=400)
-            if not dealId:
-                return JsonResponse({'error': 'dealId обязателен.'}, status=400)
-
-            # Проверяем существование сделки
-            deal = get_object_or_404(BitrixDeal, bitrix_id=dealId)
-
-            # Проверяем существование калькуляции
-            calculation = Bitrix_Calculation.objects.filter(deal=deal, name=calculation_name).first()
-            if not calculation:
-                return JsonResponse({'error': 'Калькуляция не найдена.'}, status=404)
-
-            # Обновляем данные калькуляции
-            calculation.name = calculation_name
+            
+            calculation = get_object_or_404(Bitrix_Calculation, id=calculation_id)
+            
+            calculation.name = data.get('name', calculation.name)
             calculation.price_material = data.get('price_material', calculation.price_material)
             calculation.price_add_material = data.get('price_add_material', calculation.price_add_material)
             calculation.price_salary = data.get('price_salary', calculation.price_salary)
@@ -723,8 +706,12 @@ def update_calculation(request):
             calculation.price_final_price = data.get('price_final_price', calculation.price_final_price)
             calculation.save()
 
-            # Обновляем операции
-            calculation.operations.clear()
+            # Обновление операций
+            operations_fullprices = data.get('operations_fullprices', [])
+            # Удаляем старые записи
+            Birtrix_Price_GoodsComposition.objects.filter(calculation=calculation).delete()
+            
+            # Создаем новые записи
             for item in operations_fullprices:
                 goods_composition = Bitrix_GoodsComposition.objects.filter(id=item.get('composition_of_techoperation')).first()
                 if goods_composition:
@@ -742,8 +729,10 @@ def update_calculation(request):
                         price_final_price=item.get('final_price'),
                     )
 
-            # Обновляем параметры
-            calculation.parameters.clear()
+            # Обновление параметров
+            parameters_dict = data.get('parameters_dict', {})
+            Bitrix_GoodsParametersInCalculation.objects.filter(calculation=calculation).delete()
+
             for formula_name, value in parameters_dict.items():
                 try:
                     parameter = ParametersOfProducts.objects.get(formula_name=formula_name)
@@ -753,12 +742,13 @@ def update_calculation(request):
                         parameter_value=str(value)
                     )
                 except ParametersOfProducts.DoesNotExist:
-                    print(f"Parameter with formula_name='{formula_name}' not found.")
+                    print(f"Параметр с formula_name='{formula_name}' не найден.")
 
             return JsonResponse({'id': calculation.id, 'name': calculation.name}, status=200)
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+
     return JsonResponse({'error': 'Недопустимый метод.'}, status=405)
 
 
