@@ -221,8 +221,8 @@ let selectedProductId = null;
 let selectedProductName = null;
 document.addEventListener("DOMContentLoaded", () => {
     const firstSelectedProductId = "{{first_good_id}}";
-    const goodsCompositionsData = "{{goods_compositions_data | safe}}"; // Данные в формате JSON
-
+    const goodsCompositionsData = {{goods_compositions_data | safe}}; // Данные в формате JSON
+    console.log(goodsCompositionsData)
     const productListItems = document.querySelectorAll("#productList li");
 
     productListItems.forEach(item => {
