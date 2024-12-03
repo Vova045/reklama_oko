@@ -217,11 +217,13 @@
 let dealId_from_bx = null; // Глобальная переменная для хранения ID сделки
 let selectedProductId = null;
 let selectedProductName = null;
+let calc_number = null;
+calc_number = "{{calc_number}}";
 document.addEventListener("DOMContentLoaded", () => {
     const calculationName = "{{calculation_name}}"; // Название калькуляции
     const submitButton = document.querySelector('.submit-button');
 
-    const calc_number = "{{calc_number}}";
+    calc_number = "{{calc_number}}";
     const firstSelectedProductId = "{{first_good_id}}";
     const goodsCompositionsData = {{goods_compositions_data | safe}}; // Данные в формате JSON
     const parametersData = {{parameters_data | safe}}; // Данные параметров
